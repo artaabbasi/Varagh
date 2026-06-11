@@ -1,0 +1,26 @@
+{
+  "app": {
+    "title": "Varagh"
+  },
+  "auth": {
+    "signup": {
+      "title": "Welcome to Varagh",
+      "subtitle": "Choose a nickname to get started",
+      "nicknamePlaceholder": "Your nickname",
+      "nicknameHelp": "2–20 characters. Persian or Latin letters, digits, spaces.",
+      "submit": "Let's Play",
+      "loading": "...",
+      "error": {
+        "invalidNickname": "Nickname must be 2–20 characters (letters, digits, spaces only).",
+        "serverError": "Something went wrong. Please try again."
+      }
+    }
+  },
+  "lobby": {
+    "title": "Lobby",
+    "comingSoon": "Lobby coming soon"
+  },
+  "error": {
+    "notFound": "Page not found"
+  }
+}
