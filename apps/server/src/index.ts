@@ -7,6 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import type { ClientToServerEvents, ServerToClientEvents, SocketData } from "@varagh/shared";
 import { createAuthStore } from "./auth/store";
 import { RoomStore } from "./rooms/room-store";
+import { GameRunner } from "./rooms/game-runner";
 import { registerHandlers } from "./transport/handlers";
 
 const PORT = Number(process.env.PORT ?? 3001);
@@ -26,8 +27,9 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, Record<string,
 const db = new DatabaseSync(DB_PATH);
 const authStore = createAuthStore(db);
 const roomStore = new RoomStore();
+const gameRunner = new GameRunner(io, roomStore);
 
-registerHandlers(io, authStore, roomStore);
+registerHandlers(io, authStore, roomStore, gameRunner);
 
 httpServer.listen(PORT, () => {
   console.log(`Varagh server listening on :${PORT}  (db: ${DB_PATH})`);

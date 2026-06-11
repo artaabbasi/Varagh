@@ -39,12 +39,15 @@ export class RoomStore {
 
   join(code: string, seat: Seat): Room | null {
     const room = this.rooms.get(code);
-    if (!room || room.phase !== "lobby") return null;
+    if (!room) return null;
     const existing = room.seats.find((s) => s.playerId === seat.playerId);
     if (existing) {
+      // Allow reconnect to an existing seat regardless of room phase.
       existing.connected = seat.connected;
       return room;
     }
+    // New seat — only allowed while the room is still in the lobby.
+    if (room.phase !== "lobby") return null;
     room.seats.push(seat);
     return room;
   }

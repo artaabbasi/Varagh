@@ -3,6 +3,8 @@
  * Import from "@varagh/shared" on both sides — never from the server package.
  */
 
+import type { GameEvent, GameOutcome, PlayerViewBase } from "./engine/game-engine";
+
 export interface UserRecord {
   id: string;
   nickname: string;
@@ -60,11 +62,29 @@ export interface ClientToServerEvents {
     data: Record<string, never>,
     cb: (res: { ok: true; rooms: LobbyEntry[] }) => void
   ) => void;
+  /** Host starts the game (lobby → playing transition). */
+  "game:start": (
+    data: Record<string, never>,
+    cb: (res: { ok: true } | { ok: false; error: string }) => void
+  ) => void;
+  /** Player submits a move. The move shape is game-specific. */
+  "game:move": (
+    data: { move: unknown },
+    cb: (res: { ok: true } | { ok: false; error: string }) => void
+  ) => void;
 }
 
 export interface ServerToClientEvents {
   "room:updated": (room: RoomView) => void;
   error: (data: { code: string; message: string }) => void;
+  /**
+   * Per-player state snapshot. Each player receives only their own view
+   * plus the subset of events visible to them (public, addressed to them,
+   * or private-to-them). Never contains another player's hand.
+   */
+  "game:stateUpdate": (data: { view: PlayerViewBase; events: GameEvent[] }) => void;
+  /** Emitted once when the game is over. */
+  "game:ended": (data: { outcome: GameOutcome }) => void;
 }
 
 export interface SocketData {
