@@ -40,7 +40,11 @@ export class RoomStore {
   join(code: string, seat: Seat): Room | null {
     const room = this.rooms.get(code);
     if (!room || room.phase !== "lobby") return null;
-    if (room.seats.some((s) => s.playerId === seat.playerId)) return room;
+    const existing = room.seats.find((s) => s.playerId === seat.playerId);
+    if (existing) {
+      existing.connected = seat.connected;
+      return room;
+    }
     room.seats.push(seat);
     return room;
   }
