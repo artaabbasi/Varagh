@@ -21,6 +21,11 @@ export function createDeck(): Card[] {
   return deck;
 }
 
+/** 51-card deck for 3-player Hokm: standard 52 minus the 2 of hearts. */
+export function createDeck3p(): Card[] {
+  return createDeck().filter(c => !(c.suit === "hearts" && c.rank === "2"));
+}
+
 /** Team index (0 or 1) for the given player: seats 0,2 → team 0; seats 1,3 → team 1. */
 export function teamOf(players: PlayerId[], playerId: PlayerId): 0 | 1 {
   return (players.indexOf(playerId) % 2) as 0 | 1;
@@ -104,7 +109,7 @@ export function scoreHand(
 /** Build public events emitted when a hand finishes. */
 export function handOverEvents(
   tricksTaken: [number, number],
-  newScores: [number, number],
+  newScores: number[],
   score: HandScore
 ): GameEvent[] {
   const events: GameEvent[] = [];

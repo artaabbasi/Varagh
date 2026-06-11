@@ -23,6 +23,7 @@ function playingState(
     players: [...PLAYERS],
     hakemIndex: 0,
     trump: "spades",
+    teamMap: { P0: 0, P1: 1, P2: 0, P3: 1 },
     hands,
     deckForDeal: [],
     currentTrick: [],
@@ -622,3 +623,361 @@ function moveEquals(a: HokmMove, b: HokmMove): boolean {
     return a.card.suit === b.card.suit && a.card.rank === b.card.rank;
   return false;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 3-PLAYER HOKM TESTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── 3p test helpers ────────────────────────────────────────────────────────
+
+const RANKS_ALL = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"] as const;
+type AllRank = typeof RANKS_ALL[number];
+
+/** Build a minimal 3p playing state. Hakem = "A" (index 0), trump = spades. */
+function playingState3p(
+  hands: Record<string, Card[]>,
+  overrides: Partial<HokmState> = {}
+): HokmState {
+  return {
+    phase: "playing",
+    players: ["A", "B", "C"],
+    hakemIndex: 0,
+    trump: "spades",
+    teamMap: { A: 0, B: 1, C: 1 },
+    hands,
+    deckForDeal: [],
+    currentTrick: [],
+    trickLeaderIndex: 0,
+    currentTurn: "A",
+    tricksTaken: [0, 0],
+    scores: [0, 0, 0],
+    handNumber: 0,
+    targetScore: 7,
+    ...overrides,
+  };
+}
+
+/**
+ * A (hakem, index 0) holds all 13 spades (trump) + 4 lowest hearts.
+ * B holds 8 hearts + 9 clubs. C holds 13 diamonds + 4 clubs.
+ * A leads trump every trick → A wins all 7 tricks → regular kot.
+ * Suit totals: spades=13, hearts=4+8=12 (no 2♥), diamonds=13, clubs=9+4=13 = 51 ✓
+ */
+function hakemWinsAllSetup3p(): HokmState {
+  const allSpades  = RANKS_ALL.map(r => card(r, "spades"));
+  const lowHearts  = (["3","4","5","6"] as AllRank[]).map(r => card(r, "hearts")); // 4 for A
+  const highHearts = (["7","8","9","10","J","Q","K","A"] as AllRank[]).map(r => card(r, "hearts")); // 8 for B
+  const allDiamonds = RANKS_ALL.map(r => card(r, "diamonds"));
+  const lowClubs   = (["2","3","4","5","6","7","8","9","10"] as AllRank[]).map(r => card(r, "clubs")); // 9 for B
+  const highClubs  = (["J","Q","K","A"] as AllRank[]).map(r => card(r, "clubs")); // 4 for C
+
+  return playingState3p({
+    A: [...allSpades, ...lowHearts],   // 13 + 4 = 17
+    B: [...highHearts, ...lowClubs],   // 8 + 9 = 17
+    C: [...allDiamonds, ...highClubs], // 13 + 4 = 17
+  });
+}
+
+/**
+ * B holds all 13 spades (trump) + 4 clubs. A (hakem) holds 12 hearts + 5 diamonds.
+ * C holds 8 diamonds + 9 clubs.
+ * B wins every trick → tricksTaken[1] reaches 7 → hakem-kot.
+ * Suit totals: spades=13, hearts=12 (no 2♥), diamonds=5+8=13, clubs=4+9=13 = 51 ✓
+ */
+function opponentsWinAllSetup3p(): HokmState {
+  const allSpades  = RANKS_ALL.map(r => card(r, "spades"));
+  const allHearts  = (["3","4","5","6","7","8","9","10","J","Q","K","A"] as AllRank[]).map(r => card(r, "hearts")); // 12
+  const lowDiamonds  = (["2","3","4","5","6"] as AllRank[]).map(r => card(r, "diamonds")); // 5 for A
+  const highDiamonds = (["7","8","9","10","J","Q","K","A"] as AllRank[]).map(r => card(r, "diamonds")); // 8 for C
+  const lowClubs  = (["2","3","4","5"] as AllRank[]).map(r => card(r, "clubs")); // 4 for B
+  const highClubs = (["6","7","8","9","10","J","Q","K","A"] as AllRank[]).map(r => card(r, "clubs")); // 9 for C
+
+  return playingState3p({
+    A: [...allHearts, ...lowDiamonds],   // 12 + 5 = 17
+    B: [...allSpades, ...lowClubs],      // 13 + 4 = 17
+    C: [...highDiamonds, ...highClubs],  // 8 + 9 = 17
+  });
+}
+
+// ── 3p setup and deal ──────────────────────────────────────────────────────
+
+describe("3p — setup and deal", () => {
+  it("starts in choosingTrump with hakem holding exactly 5 cards", () => {
+    const rng = makeRng(1);
+    const s = hokm.setup({ variantId: "hokm-3p", players: ["A", "B", "C"], options: {}, rng });
+    expect(s.phase).toBe("choosingTrump");
+    const hakemId = s.players[s.hakemIndex];
+    expect(s.hands[hakemId]).toHaveLength(5);
+    for (const p of s.players) {
+      if (p !== hakemId) expect(s.hands[p]).toHaveLength(0);
+    }
+  });
+
+  it("hakem hand + deckForDeal totals 51 cards", () => {
+    const rng = makeRng(2);
+    const s = hokm.setup({ variantId: "hokm-3p", players: ["A", "B", "C"], options: {}, rng });
+    const hakem = s.players[s.hakemIndex];
+    expect(s.hands[hakem].length + s.deckForDeal.length).toBe(51);
+  });
+
+  it("17 cards per player after choosing trump, no 2♥ anywhere, 51 unique cards", () => {
+    const rng = makeRng(3);
+    const s0 = hokm.setup({ variantId: "hokm-3p", players: ["A", "B", "C"], options: {}, rng });
+    const hakem = s0.players[s0.hakemIndex];
+    const r = hokm.applyMove(s0, hakem, { type: "chooseTrump", suit: "spades" }, rng);
+    expect(r.ok).toBe(true);
+    if (!r.ok) throw new Error(r.error.message.en);
+    const s = r.state;
+
+    const allCards: Card[] = [];
+    for (const p of s.players) {
+      expect(s.hands[p]).toHaveLength(17);
+      allCards.push(...s.hands[p]);
+    }
+    expect(allCards).toHaveLength(51);
+    const keys = new Set(allCards.map(c => `${c.rank}${c.suit}`));
+    expect(keys.size).toBe(51);
+    expect(keys.has("2hearts")).toBe(false);
+  });
+
+  it("scores start as [0, 0, 0] for 3 players", () => {
+    const rng = makeRng(4);
+    const s = hokm.setup({ variantId: "hokm-3p", players: ["A", "B", "C"], options: {}, rng });
+    expect(s.scores).toEqual([0, 0, 0]);
+  });
+
+  it("teamMap assigns hakem to slot 0 and both opponents to slot 1", () => {
+    const rng = makeRng(5);
+    const s = hokm.setup({ variantId: "hokm-3p", players: ["A", "B", "C"], options: {}, rng });
+    const hakem = s.players[s.hakemIndex];
+    expect(s.teamMap[hakem]).toBe(0);
+    for (const p of s.players) {
+      if (p !== hakem) expect(s.teamMap[p]).toBe(1);
+    }
+  });
+
+  it("is deterministic: same seed produces identical initial state", () => {
+    const mk = () =>
+      hokm.setup({ variantId: "hokm-3p", players: ["A", "B", "C"], options: {}, rng: makeRng(77) });
+    expect(mk()).toEqual(mk());
+  });
+});
+
+// ── 3p trick counting ──────────────────────────────────────────────────────
+
+describe("3p — trick counting and hand end condition", () => {
+  it("B's and C's tricks are combined in tricksTaken[1]", () => {
+    // Trick 1: B wins (plays trump). Trick 2: C wins (highest of led suit).
+    const hands = {
+      A: [card("3", "diamonds"), card("4", "diamonds")],
+      B: [card("2", "spades"),   card("5", "clubs")],
+      C: [card("A", "diamonds"), card("6", "clubs")],
+    };
+    let s = playingState3p(hands, { currentTurn: "A" });
+
+    // A leads 3♦. B is void in diamonds → plays 2♠ (trump). C has A♦ → follows suit.
+    // B wins with trump.
+    s = playTrick(s, [card("3", "diamonds"), card("2", "spades"), card("A", "diamonds")]);
+    expect(s.tricksTaken).toEqual([0, 1]);
+
+    // B leads 5♣. C has 6♣ → must follow. A is void → plays 4♦. C's 6♣ beats B's 5♣. C wins.
+    s = playTrick(s, [card("5", "clubs"), card("6", "clubs"), card("4", "diamonds")]);
+    expect(s.tricksTaken).toEqual([0, 2]); // C's win also goes to slot 1
+  });
+
+  it("hand ends the moment hakem reaches 7 tricks (hakem leads trump every trick)", () => {
+    const s = autoPlayHand(hakemWinsAllSetup3p());
+    // A (hakem) wins all 7 tricks. Phase changes to choosingTrump (next hand).
+    expect(s.phase).toBe("choosingTrump");
+    expect(s.handNumber).toBe(1);
+  });
+
+  it("hand ends the moment combined opponents reach 7 tricks", () => {
+    const s = autoPlayHand(opponentsWinAllSetup3p());
+    // B wins all 7 tricks. Combined opponent count hits 7.
+    expect(s.phase).toBe("choosingTrump");
+    expect(s.handNumber).toBe(1);
+  });
+});
+
+// ── 3p scoring ─────────────────────────────────────────────────────────────
+
+describe("3p — scoring", () => {
+  it("hakem normal win (7-6): hakem +1, opponents unchanged", () => {
+    // tricksTaken=[6,6]; A leads A♠ (trump) → A wins the deciding trick.
+    const hands = { A: [card("A", "spades")], B: [card("2", "hearts")], C: [card("3", "diamonds")] };
+    let s = playingState3p(hands, { tricksTaken: [6, 6], currentTurn: "A", trickLeaderIndex: 0 });
+    s = play(s, "A", { type: "playCard", card: card("A", "spades") });
+    s = play(s, "B", { type: "playCard", card: card("2", "hearts") });
+    s = play(s, "C", { type: "playCard", card: card("3", "diamonds") });
+    // tricksTaken becomes [7, 6] → hakem wins normal → A +1
+    expect(s.scores).toEqual([1, 0, 0]);
+  });
+
+  it("hakem kot (7-0): hakem +2, opponents unchanged", () => {
+    const s = autoPlayHand(hakemWinsAllSetup3p());
+    // A wins all 7 tricks → regular kot (opponents got 0) → A +2
+    expect(s.scores).toEqual([2, 0, 0]);
+  });
+
+  it("opponents normal win (6-7): each opponent +1, hakem unchanged", () => {
+    // tricksTaken=[6,6]; A leads 2♥, B plays A♠ (trump) → B wins the deciding trick.
+    const hands = { A: [card("2", "hearts")], B: [card("A", "spades")], C: [card("3", "diamonds")] };
+    let s = playingState3p(hands, { tricksTaken: [6, 6], currentTurn: "A", trickLeaderIndex: 0 });
+    s = play(s, "A", { type: "playCard", card: card("2", "hearts") });
+    s = play(s, "B", { type: "playCard", card: card("A", "spades") });
+    s = play(s, "C", { type: "playCard", card: card("3", "diamonds") });
+    // tricksTaken becomes [6, 7] → opponents win normal → B+1, C+1
+    expect(s.scores).toEqual([0, 1, 1]);
+  });
+
+  it("hakem-kot (opponents win 7-0): each opponent +3, hakem unchanged", () => {
+    const s = autoPlayHand(opponentsWinAllSetup3p());
+    // B wins all 7 tricks; hakem (A) gets 0 → hakem-kot → B+3, C+3
+    expect(s.scores).toEqual([0, 3, 3]);
+  });
+
+  it("accumulated scores persist across hands", () => {
+    // Start with scores [2, 1, 0]; hakem wins a normal hand → A reaches 3
+    const hands = { A: [card("A", "spades")], B: [card("2", "hearts")], C: [card("3", "diamonds")] };
+    let s = playingState3p(hands, {
+      tricksTaken: [6, 6],
+      scores: [2, 1, 0],
+      currentTurn: "A",
+      trickLeaderIndex: 0,
+    });
+    s = play(s, "A", { type: "playCard", card: card("A", "spades") });
+    s = play(s, "B", { type: "playCard", card: card("2", "hearts") });
+    s = play(s, "C", { type: "playCard", card: card("3", "diamonds") });
+    expect(s.scores).toEqual([3, 1, 0]); // A: 2+1=3, B unchanged, C unchanged
+  });
+});
+
+// ── 3p hakem rotation ──────────────────────────────────────────────────────
+
+describe("3p — hakem rotation", () => {
+  it("hakem stays after winning a hand", () => {
+    const s = autoPlayHand(hakemWinsAllSetup3p()); // A wins all 7 tricks
+    expect(s.hakemIndex).toBe(0); // A stays hakem
+    expect(s.handNumber).toBe(1);
+  });
+
+  it("hakem passes counter-clockwise after losing (index 0 → 2)", () => {
+    const s = autoPlayHand(opponentsWinAllSetup3p()); // A loses (B wins all)
+    // (0 - 1 + 3) % 3 = 2 → C becomes hakem
+    expect(s.hakemIndex).toBe(2);
+    expect(s.handNumber).toBe(1);
+  });
+
+  it("hakem passes counter-clockwise after losing (index 2 → 1)", () => {
+    // Same card layout but C is hakem; B still holds all trump → C loses
+    const base = opponentsWinAllSetup3p();
+    const s = autoPlayHand({
+      ...base,
+      hakemIndex: 2,
+      teamMap: { A: 1, B: 1, C: 0 },
+      trickLeaderIndex: 2,
+      currentTurn: "C",
+    });
+    // (2 - 1 + 3) % 3 = 1 → B becomes hakem
+    expect(s.hakemIndex).toBe(1);
+  });
+
+  it("teamMap is rebuilt each hand to reflect the new hakem", () => {
+    const s = autoPlayHand(opponentsWinAllSetup3p()); // A loses → C becomes hakem (index 2)
+    // New hakem is C (index 2), so teamMap[C]=0, teamMap[A]=teamMap[B]=1
+    expect(s.teamMap["C"]).toBe(0);
+    expect(s.teamMap["A"]).toBe(1);
+    expect(s.teamMap["B"]).toBe(1);
+  });
+});
+
+// ── 3p game over ───────────────────────────────────────────────────────────
+
+describe("3p — game over and getOutcome", () => {
+  it("game ends when a player reaches targetScore", () => {
+    // Scores [6,0,0]: A needs 1 more; A wins a normal hand (A wins deciding trick).
+    const hands = { A: [card("A", "spades")], B: [card("2", "hearts")], C: [card("3", "diamonds")] };
+    let s = playingState3p(hands, {
+      tricksTaken: [6, 6],
+      scores: [6, 0, 0],
+      currentTurn: "A",
+      trickLeaderIndex: 0,
+    });
+    s = play(s, "A", { type: "playCard", card: card("A", "spades") });
+    s = play(s, "B", { type: "playCard", card: card("2", "hearts") });
+    s = play(s, "C", { type: "playCard", card: card("3", "diamonds") });
+    expect(s.phase).toBe("gameOver");
+    const outcome = hokm.getOutcome(s);
+    expect(outcome).not.toBeNull();
+    expect(outcome!.winners).toEqual(["A"]);
+  });
+
+  it("getOutcome returns single winner and per-player scores", () => {
+    const gameOverState: HokmState = {
+      ...playingState3p({ A: [], B: [], C: [] }),
+      phase: "gameOver",
+      scores: [7, 3, 5],
+      currentTurn: null,
+    };
+    const outcome = hokm.getOutcome(gameOverState);
+    expect(outcome).not.toBeNull();
+    expect(outcome!.winners).toEqual(["A"]);
+    expect(outcome!.scores).toEqual({ A: 7, B: 3, C: 5 });
+  });
+
+  it("getOutcome returns null while game is in progress", () => {
+    const rng = makeRng(80);
+    const s = hokm.setup({ variantId: "hokm-3p", players: ["A", "B", "C"], options: {}, rng });
+    expect(hokm.getOutcome(s)).toBeNull();
+  });
+});
+
+// ── 3p view security ───────────────────────────────────────────────────────
+
+describe("3p — getPlayerView security", () => {
+  it("each player sees only their own hand, not opponents cards", () => {
+    const rng = makeRng(90);
+    const s0 = hokm.setup({ variantId: "hokm-3p", players: ["A", "B", "C"], options: {}, rng });
+    const hakem = s0.players[s0.hakemIndex];
+    const r = hokm.applyMove(s0, hakem, { type: "chooseTrump", suit: "hearts" }, rng);
+    if (!r.ok) throw new Error(r.error.message.en);
+    const s = r.state;
+    for (const p of s.players) {
+      const view = hokm.getPlayerView(s, p);
+      expect(view.hand).toEqual(s.hands[p]);
+      expect(Object.keys(view)).not.toContain("hands");
+      expect(view.handSizes).toHaveLength(3);
+      expect(view.handSizes.every(n => n === 17)).toBe(true);
+    }
+  });
+});
+
+// ── 3p determinism ─────────────────────────────────────────────────────────
+
+describe("3p — determinism", () => {
+  it("same seed + same moves produce identical final state", () => {
+    function run3pGame(seed: number): HokmState {
+      const rng = makeRng(seed);
+      let state = hokm.setup({ variantId: "hokm-3p", players: ["A", "B", "C"], options: {}, rng });
+      for (let round = 0; round < 3; round++) {
+        const hakem = state.players[state.hakemIndex];
+        const trumpMoves = hokm.getValidMoves(state, hakem);
+        const r = hokm.applyMove(state, hakem, trumpMoves[0], rng);
+        if (!r.ok) break;
+        state = r.state;
+        while (state.phase === "playing") {
+          const player = state.currentTurn!;
+          const moves = hokm.getValidMoves(state, player);
+          const result = hokm.applyMove(state, player, moves[0], rng);
+          if (!result.ok) break;
+          state = result.state;
+        }
+        if (state.phase === "gameOver") break;
+      }
+      return state;
+    }
+    expect(run3pGame(42)).toEqual(run3pGame(42));
+    expect(run3pGame(999)).toEqual(run3pGame(999));
+  });
+});
