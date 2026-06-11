@@ -1,6 +1,6 @@
 import type { Card, PlayerId, PlayerViewBase, Suit } from "../../engine/game-engine";
 
-export type HokmPhase = "choosingTrump" | "playing" | "gameOver";
+export type HokmPhase = "choosingTrump" | "drawing" | "playing" | "gameOver";
 
 export interface TrickPlay {
   playerId: PlayerId;
@@ -47,7 +47,11 @@ export interface HokmState {
 
 export type HokmMove =
   | { type: "chooseTrump"; suit: Suit }
-  | { type: "playCard"; card: Card };
+  | { type: "playCard"; card: Card }
+  /** 2p drawing phase: keep the seen card, discard the next stock card unseen. */
+  | { type: "keepCard" }
+  /** 2p drawing phase: discard the seen card, take the next stock card unseen. */
+  | { type: "rejectCard" };
 
 export interface HokmView extends PlayerViewBase {
   phase: HokmPhase;
@@ -61,7 +65,14 @@ export interface HokmView extends PlayerViewBase {
   currentTrick: TrickPlay[];
   trickLeaderIndex: number;
   tricksTaken: [number, number];
-  /** Same shape as HokmState.scores — length 2 for 4p teams, length 3 for 3p players. */
+  /** Same shape as HokmState.scores — length 2 for 4p teams, length 3 for 3p players, length 2 for 2p players. */
   scores: number[];
   handNumber: number;
+  /**
+   * 2p drawing phase only: the top stock card the active player is looking at.
+   * null for the inactive player and for all non-drawing phases.
+   */
+  seenCard: Card | null;
+  /** Cards remaining in the stock (drawing phase only). 0 outside the drawing phase. */
+  stockCount: number;
 }

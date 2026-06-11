@@ -621,7 +621,8 @@ function moveEquals(a: HokmMove, b: HokmMove): boolean {
   if (a.type === "chooseTrump" && b.type === "chooseTrump") return a.suit === b.suit;
   if (a.type === "playCard" && b.type === "playCard")
     return a.card.suit === b.card.suit && a.card.rank === b.card.rank;
-  return false;
+  // keepCard / rejectCard have no payload; type equality (already checked) is sufficient.
+  return true;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -979,5 +980,414 @@ describe("3p — determinism", () => {
     }
     expect(run3pGame(42)).toEqual(run3pGame(42));
     expect(run3pGame(999)).toEqual(run3pGame(999));
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 2-PLAYER HOKM TESTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── 2p test helpers ────────────────────────────────────────────────────────
+
+/** Build a minimal 2p playing state (after drawing completes). Hakem = "X" (index 0). */
+function playingState2p(
+  hands: Record<string, Card[]>,
+  overrides: Partial<HokmState> = {}
+): HokmState {
+  return {
+    phase: "playing",
+    players: ["X", "Y"],
+    hakemIndex: 0,
+    trump: "spades",
+    teamMap: { X: 0, Y: 1 },
+    hands,
+    deckForDeal: [],
+    currentTrick: [],
+    trickLeaderIndex: 0,
+    currentTurn: "X",
+    tricksTaken: [0, 0],
+    scores: [0, 0],
+    handNumber: 0,
+    targetScore: 7,
+    ...overrides,
+  };
+}
+
+/** Setup 2p game and choose trump; returns the state in "drawing" phase. */
+function setupAndDeal2p(seed: number, trump: Suit): HokmState {
+  const rng = makeRng(seed);
+  const s0 = hokm.setup({ variantId: "hokm-2p", players: ["X", "Y"], options: {}, rng });
+  const hakem = s0.players[s0.hakemIndex];
+  const r = hokm.applyMove(s0, hakem, { type: "chooseTrump", suit: trump }, rng);
+  if (!r.ok) throw new Error("chooseTrump failed: " + r.error.message.en);
+  return r.state;
+}
+
+/** Drive through the entire drawing phase using keepCard every turn. */
+function autoDrawAll(state: HokmState): HokmState {
+  const rng = makeRng(0);
+  let s = state;
+  while (s.phase === "drawing") {
+    const player = s.currentTurn!;
+    const result = hokm.applyMove(s, player, { type: "keepCard" }, rng);
+    if (!result.ok) throw new Error(`${player}: ${result.error.message.en}`);
+    s = result.state;
+  }
+  return s;
+}
+
+/**
+ * X (hakem, index 0) holds all 13 spades (trump); Y holds all 13 hearts.
+ * X leads trump every trick → X wins all 7 tricks → regular kot.
+ */
+function hakemWinsAllSetup2p(): HokmState {
+  const allSpades = RANKS_ALL.map(r => card(r, "spades"));
+  const allHearts = RANKS_ALL.map(r => card(r, "hearts"));
+  return playingState2p({ X: [...allSpades], Y: [...allHearts] });
+}
+
+/**
+ * Y (opponent, index 1) holds all 13 spades (trump); X (hakem) holds all 13 hearts.
+ * Y wins every trick → hakem-kot.
+ */
+function opponentWinsAllSetup2p(): HokmState {
+  const allSpades = RANKS_ALL.map(r => card(r, "spades"));
+  const allHearts = RANKS_ALL.map(r => card(r, "hearts"));
+  return playingState2p({ X: [...allHearts], Y: [...allSpades] });
+}
+
+// ── 2p setup and deal ──────────────────────────────────────────────────────
+
+describe("2p — setup and deal", () => {
+  it("setup starts in choosingTrump with hakem holding exactly 5 cards", () => {
+    const rng = makeRng(1);
+    const s = hokm.setup({ variantId: "hokm-2p", players: ["X", "Y"], options: {}, rng });
+    expect(s.phase).toBe("choosingTrump");
+    expect(s.hands[s.players[s.hakemIndex]]).toHaveLength(5);
+    expect(s.hands[s.players[(s.hakemIndex + 1) % 2]]).toHaveLength(0);
+    expect(s.hands[s.players[s.hakemIndex]].length + s.deckForDeal.length).toBe(52);
+  });
+
+  it("chooseTrump → drawing: opponent gets 5 cards, stock has 42, hakem draws first", () => {
+    const s = setupAndDeal2p(2, "clubs");
+    expect(s.phase).toBe("drawing");
+    const hakem = s.players[s.hakemIndex];
+    const opponent = s.players[(s.hakemIndex + 1) % 2];
+    expect(s.hands[hakem]).toHaveLength(5);
+    expect(s.hands[opponent]).toHaveLength(5);
+    expect(s.deckForDeal).toHaveLength(42);
+    expect(s.currentTurn).toBe(hakem); // hakem draws first
+  });
+
+  it("scores start as [0, 0] for 2 players", () => {
+    const rng = makeRng(3);
+    const s = hokm.setup({ variantId: "hokm-2p", players: ["X", "Y"], options: {}, rng });
+    expect(s.scores).toEqual([0, 0]);
+  });
+
+  it("teamMap: hakem = slot 0, opponent = slot 1", () => {
+    const rng = makeRng(4);
+    const s = hokm.setup({ variantId: "hokm-2p", players: ["X", "Y"], options: {}, rng });
+    const hakem = s.players[s.hakemIndex];
+    const opponent = s.players[(s.hakemIndex + 1) % 2];
+    expect(s.teamMap[hakem]).toBe(0);
+    expect(s.teamMap[opponent]).toBe(1);
+  });
+
+  it("is deterministic: same seed produces identical initial state", () => {
+    const mk = () =>
+      hokm.setup({ variantId: "hokm-2p", players: ["X", "Y"], options: {}, rng: makeRng(55) });
+    expect(mk()).toEqual(mk());
+  });
+});
+
+// ── 2p drawing phase mechanics ─────────────────────────────────────────────
+
+describe("2p — drawing phase mechanics", () => {
+  it("keepCard: player gains stock[0], stock shrinks by 2", () => {
+    const s = setupAndDeal2p(10, "spades");
+    const hakem   = s.players[s.hakemIndex];
+    const seenCard = s.deckForDeal[0];
+    const prevHandLen = s.hands[hakem].length;
+    const prevStockLen = s.deckForDeal.length;
+
+    const r = hokm.applyMove(s, hakem, { type: "keepCard" }, makeRng(0));
+    expect(r.ok).toBe(true);
+    if (!r.ok) throw new Error(r.error.message.en);
+    expect(r.state.hands[hakem]).toHaveLength(prevHandLen + 1);
+    expect(r.state.hands[hakem]).toContainEqual(seenCard); // the seen card was kept
+    expect(r.state.deckForDeal).toHaveLength(prevStockLen - 2);
+  });
+
+  it("rejectCard: player gains stock[1], stock[0] is discarded, stock shrinks by 2", () => {
+    const s = setupAndDeal2p(11, "hearts");
+    const hakem      = s.players[s.hakemIndex];
+    const pairedCard = s.deckForDeal[1]; // the unseen card the player will receive
+    const prevHandLen  = s.hands[hakem].length;
+    const prevStockLen = s.deckForDeal.length;
+
+    const r = hokm.applyMove(s, hakem, { type: "rejectCard" }, makeRng(0));
+    expect(r.ok).toBe(true);
+    if (!r.ok) throw new Error(r.error.message.en);
+    expect(r.state.hands[hakem]).toHaveLength(prevHandLen + 1);
+    expect(r.state.hands[hakem]).toContainEqual(pairedCard); // the paired card was taken
+    expect(r.state.deckForDeal).toHaveLength(prevStockLen - 2);
+  });
+
+  it("turn alternates after each draw: hakem → opponent → hakem → …", () => {
+    const s0 = setupAndDeal2p(12, "diamonds");
+    const hakem    = s0.players[s0.hakemIndex];
+    const opponent = s0.players[(s0.hakemIndex + 1) % 2];
+    expect(s0.currentTurn).toBe(hakem);
+
+    const r1 = hokm.applyMove(s0, hakem, { type: "keepCard" }, makeRng(0));
+    expect(r1.ok).toBe(true);
+    if (!r1.ok) throw new Error();
+    expect(r1.state.currentTurn).toBe(opponent);
+
+    const r2 = hokm.applyMove(r1.state, opponent, { type: "keepCard" }, makeRng(0));
+    expect(r2.ok).toBe(true);
+    if (!r2.ok) throw new Error();
+    expect(r2.state.currentTurn).toBe(hakem);
+  });
+
+  it("drawing completes after 16 draws: both players have 13 cards, phase → playing", () => {
+    const s = setupAndDeal2p(13, "clubs");
+    const playingState2pResult = autoDrawAll(s);
+    expect(playingState2pResult.phase).toBe("playing");
+    for (const p of playingState2pResult.players) {
+      expect(playingState2pResult.hands[p]).toHaveLength(13);
+    }
+    expect(playingState2pResult.deckForDeal).toHaveLength(0); // remaining stock discarded
+  });
+
+  it("26 cards out of play after drawing (52 − 13 − 13 = 26)", () => {
+    const s = setupAndDeal2p(14, "hearts");
+    const final = autoDrawAll(s);
+    const liveCards = final.players.reduce((sum, p) => sum + final.hands[p].length, 0);
+    expect(liveCards).toBe(26);
+    // The 26 dead cards are not stored anywhere — they've been removed from deckForDeal
+    expect(final.deckForDeal).toHaveLength(0);
+  });
+});
+
+// ── 2p drawing view redaction ──────────────────────────────────────────────
+
+describe("2p — drawing view redaction", () => {
+  it("active player's view includes seenCard = top of stock", () => {
+    const s = setupAndDeal2p(20, "spades");
+    const activePlayer = s.currentTurn!;
+    const view = hokm.getPlayerView(s, activePlayer);
+    expect(view.seenCard).toEqual(s.deckForDeal[0]);
+  });
+
+  it("inactive player's view has seenCard = null", () => {
+    const s = setupAndDeal2p(21, "diamonds");
+    const inactivePlayer = s.players.find(p => p !== s.currentTurn)!;
+    const view = hokm.getPlayerView(s, inactivePlayer);
+    expect(view.seenCard).toBeNull();
+  });
+
+  it("both players see the same stockCount", () => {
+    const s = setupAndDeal2p(22, "clubs");
+    const [p0, p1] = s.players;
+    expect(hokm.getPlayerView(s, p0).stockCount).toBe(s.deckForDeal.length);
+    expect(hokm.getPlayerView(s, p1).stockCount).toBe(s.deckForDeal.length);
+  });
+
+  it("view never exposes deckForDeal directly", () => {
+    const s = setupAndDeal2p(23, "hearts");
+    for (const p of s.players) {
+      const view = hokm.getPlayerView(s, p);
+      expect(Object.keys(view)).not.toContain("deckForDeal");
+      expect(Object.keys(view)).not.toContain("hands");
+    }
+  });
+
+  it("stockCount = 0 outside the drawing phase", () => {
+    const drawing = setupAndDeal2p(24, "spades");
+    const playing = autoDrawAll(drawing);
+    expect(playing.phase).toBe("playing");
+    for (const p of playing.players) {
+      expect(hokm.getPlayerView(playing, p).stockCount).toBe(0);
+    }
+  });
+});
+
+// ── 2p drawing event security ──────────────────────────────────────────────
+
+describe("2p — drawing event security", () => {
+  it("trumpChosen → stockCardSeen: initial peek is a private event for the hakem only", () => {
+    const rng = makeRng(30);
+    const s0 = hokm.setup({ variantId: "hokm-2p", players: ["X", "Y"], options: {}, rng });
+    const hakem = s0.players[s0.hakemIndex];
+    const r = hokm.applyMove(s0, hakem, { type: "chooseTrump", suit: "spades" }, rng);
+    if (!r.ok) throw new Error(r.error.message.en);
+
+    const seenEvents = r.events.filter(e => e.type === "stockCardSeen");
+    expect(seenEvents).toHaveLength(1);
+    expect(seenEvents[0].visibility).toEqual({ kind: "private", id: hakem });
+    // The revealed card is the actual top of the stock
+    expect((seenEvents[0].data as { card: Card }).card).toEqual(r.state.deckForDeal[0]);
+  });
+
+  it("drawAction event is public and contains no card identity", () => {
+    const s = setupAndDeal2p(31, "hearts");
+    const activePlayer = s.currentTurn!;
+    const r = hokm.applyMove(s, activePlayer, { type: "keepCard" }, makeRng(0));
+    if (!r.ok) throw new Error(r.error.message.en);
+
+    const drawAction = r.events.find(e => e.type === "drawAction");
+    expect(drawAction).toBeDefined();
+    expect(drawAction!.visibility).toEqual({ kind: "public" });
+    // action field present, but NO card field
+    const data = drawAction!.data as Record<string, unknown>;
+    expect(data.action).toBe("kept");
+    expect(data).not.toHaveProperty("card");
+  });
+
+  it("cardDrawn event is private to the drawing player", () => {
+    const s = setupAndDeal2p(32, "diamonds");
+    const activePlayer = s.currentTurn!;
+    const r = hokm.applyMove(s, activePlayer, { type: "rejectCard" }, makeRng(0));
+    if (!r.ok) throw new Error(r.error.message.en);
+
+    const cardDrawn = r.events.find(e => e.type === "cardDrawn");
+    expect(cardDrawn).toBeDefined();
+    expect(cardDrawn!.visibility).toEqual({ kind: "private", id: activePlayer });
+  });
+
+  it("next-turn stockCardSeen is private to the NEXT player only", () => {
+    const s = setupAndDeal2p(33, "clubs");
+    const activePlayer = s.currentTurn!;
+    const nextPlayer   = s.players.find(p => p !== activePlayer)!;
+    const r = hokm.applyMove(s, activePlayer, { type: "keepCard" }, makeRng(0));
+    if (!r.ok) throw new Error(r.error.message.en);
+
+    const nextPeek = r.events.find(e => e.type === "stockCardSeen");
+    expect(nextPeek).toBeDefined();
+    expect(nextPeek!.visibility).toEqual({ kind: "private", id: nextPlayer });
+    // Must NOT be visible to the active player
+    expect((nextPeek!.visibility as { kind: string; id: string }).id).not.toBe(activePlayer);
+  });
+});
+
+// ── 2p scoring ─────────────────────────────────────────────────────────────
+
+describe("2p — scoring", () => {
+  it("hakem normal win (7-6): hakem +1", () => {
+    // tricksTaken=[6,6]; X leads A♠ (trump) → X wins the deciding trick.
+    const hands = { X: [card("A", "spades")], Y: [card("2", "hearts")] };
+    let s = playingState2p(hands, { tricksTaken: [6, 6], currentTurn: "X", trickLeaderIndex: 0 });
+    s = play(s, "X", { type: "playCard", card: card("A", "spades") });
+    s = play(s, "Y", { type: "playCard", card: card("2", "hearts") });
+    expect(s.scores).toEqual([1, 0]);
+  });
+
+  it("hakem kot (7-0): hakem +2", () => {
+    const s = autoPlayHand(hakemWinsAllSetup2p());
+    // X wins all 7 tricks → regular kot → X +2
+    expect(s.scores).toEqual([2, 0]);
+  });
+
+  it("opponent normal win (6-7): opponent +1", () => {
+    const hands = { X: [card("2", "hearts")], Y: [card("A", "spades")] };
+    let s = playingState2p(hands, { tricksTaken: [6, 6], currentTurn: "X", trickLeaderIndex: 0 });
+    s = play(s, "X", { type: "playCard", card: card("2", "hearts") });
+    s = play(s, "Y", { type: "playCard", card: card("A", "spades") });
+    expect(s.scores).toEqual([0, 1]);
+  });
+
+  it("hakem-kot (opponent wins 7-0): opponent +3", () => {
+    const s = autoPlayHand(opponentWinsAllSetup2p());
+    // Y wins all 7 tricks; hakem (X) gets 0 → hakem-kot → Y +3
+    expect(s.scores).toEqual([0, 3]);
+  });
+});
+
+// ── 2p hakem rotation ──────────────────────────────────────────────────────
+
+describe("2p — hakem rotation", () => {
+  it("winner of the hand stays/becomes hakem: hakem wins → hakem stays", () => {
+    const s = autoPlayHand(hakemWinsAllSetup2p()); // X wins all 7
+    expect(s.hakemIndex).toBe(0); // X stays hakem
+    expect(s.handNumber).toBe(1);
+  });
+
+  it("winner of the hand stays/becomes hakem: opponent wins → opponent becomes hakem", () => {
+    const s = autoPlayHand(opponentWinsAllSetup2p()); // Y wins all 7
+    expect(s.hakemIndex).toBe(1); // Y becomes hakem
+    expect(s.handNumber).toBe(1);
+  });
+});
+
+// ── 2p game over and getOutcome ────────────────────────────────────────────
+
+describe("2p — game over and getOutcome", () => {
+  it("game ends when a player reaches targetScore", () => {
+    const hands = { X: [card("A", "spades")], Y: [card("2", "hearts")] };
+    let s = playingState2p(hands, {
+      tricksTaken: [6, 6],
+      scores: [6, 0],
+      currentTurn: "X",
+      trickLeaderIndex: 0,
+    });
+    s = play(s, "X", { type: "playCard", card: card("A", "spades") });
+    s = play(s, "Y", { type: "playCard", card: card("2", "hearts") });
+    expect(s.phase).toBe("gameOver");
+    const outcome = hokm.getOutcome(s);
+    expect(outcome).not.toBeNull();
+    expect(outcome!.winners).toEqual(["X"]);
+  });
+
+  it("getOutcome returns single winner and per-player scores", () => {
+    const gameOverState: HokmState = {
+      ...playingState2p({ X: [], Y: [] }),
+      phase: "gameOver",
+      scores: [4, 7],
+      currentTurn: null,
+    };
+    const outcome = hokm.getOutcome(gameOverState);
+    expect(outcome).not.toBeNull();
+    expect(outcome!.winners).toEqual(["Y"]);
+    expect(outcome!.scores).toEqual({ X: 4, Y: 7 });
+  });
+});
+
+// ── 2p determinism ─────────────────────────────────────────────────────────
+
+describe("2p — determinism", () => {
+  it("same seed + same moves produce identical final state", () => {
+    function run2pGame(seed: number): HokmState {
+      const rng = makeRng(seed);
+      let state = hokm.setup({ variantId: "hokm-2p", players: ["X", "Y"], options: {}, rng });
+      for (let round = 0; round < 3; round++) {
+        // chooseTrump
+        const hakem = state.players[state.hakemIndex];
+        const r = hokm.applyMove(state, hakem, { type: "chooseTrump", suit: "spades" }, rng);
+        if (!r.ok) break;
+        state = r.state;
+        // draw phase
+        while (state.phase === "drawing") {
+          const player = state.currentTurn!;
+          const moves = hokm.getValidMoves(state, player);
+          const result = hokm.applyMove(state, player, moves[0], rng);
+          if (!result.ok) break;
+          state = result.state;
+        }
+        // play phase
+        while (state.phase === "playing") {
+          const player = state.currentTurn!;
+          const moves = hokm.getValidMoves(state, player);
+          const result = hokm.applyMove(state, player, moves[0], rng);
+          if (!result.ok) break;
+          state = result.state;
+        }
+        if (state.phase === "gameOver") break;
+      }
+      return state;
+    }
+    expect(run2pGame(7)).toEqual(run2pGame(7));
+    expect(run2pGame(42)).toEqual(run2pGame(42));
   });
 });
