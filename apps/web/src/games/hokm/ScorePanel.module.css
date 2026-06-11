@@ -1,0 +1,116 @@
+.panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--md-sys-color-surface-container);
+  border-radius: var(--md-sys-shape-corner-medium);
+  padding: 6px 12px;
+  box-shadow: var(--md-sys-elevation-1);
+  min-height: 40px;
+}
+
+.panelMulti {
+  gap: 12px;
+}
+
+.teamScore {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.teamDot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--md-sys-shape-corner-full);
+  flex-shrink: 0;
+}
+
+.teamDot[data-team="primary"] {
+  background: var(--md-sys-color-primary);
+}
+
+.teamDot[data-team="tertiary"] {
+  background: var(--md-sys-color-tertiary);
+}
+
+.trickCount {
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface);
+  min-width: 16px;
+  text-align: center;
+}
+
+.separator {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+}
+
+.gameScore {
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface);
+  min-width: 16px;
+  text-align: center;
+}
+
+.label {
+  font-size: var(--md-sys-typescale-label-small-size);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.trumpDisplay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+}
+
+.trumpSuit {
+  font-size: 22px;
+  line-height: 1;
+  transition: transform var(--md-sys-motion-dur-medium2) var(--md-sys-motion-easing-spring);
+}
+
+.red { color: var(--md-sys-color-error); }
+.black { color: var(--md-sys-color-on-surface); }
+[data-theme="dark"] .black { color: #e6e1e5; }
+
+/* trump reveal animation */
+@keyframes trumpReveal {
+  0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+  60% { transform: scale(1.4) rotate(10deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.trumpSuit {
+  animation: trumpReveal var(--md-sys-motion-dur-long1) var(--md-sys-motion-easing-spring) both;
+}
+
+.playerScore {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nickname {
+  font-size: var(--md-sys-typescale-label-medium-size);
+  color: var(--md-sys-color-on-surface-variant);
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hakemBadge {
+  color: var(--md-sys-color-tertiary);
+  font-size: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trumpSuit {
+    animation: none;
+  }
+}

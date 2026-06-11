@@ -1,0 +1,77 @@
+.localHand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 12px;
+  border-radius: var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large) 0 0;
+  background: var(--md-sys-color-surface-container-low);
+  box-shadow: var(--md-sys-elevation-2);
+  /* keeps the hand visually above the felt */
+  position: relative;
+  z-index: 10;
+  transition: background var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard);
+}
+
+/* active-turn: subtle glow on the hand area */
+.myTurn {
+  background: color-mix(in srgb, var(--md-sys-color-primary-container) 30%, var(--md-sys-color-surface-container-low) 70%);
+}
+
+.team_primary {
+  border-block-start: 2px solid var(--md-sys-color-primary);
+}
+
+.team_tertiary {
+  border-block-start: 2px solid var(--md-sys-color-tertiary);
+}
+
+.playerRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.playerInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.timerArea {
+  flex-shrink: 0;
+}
+
+.fan {
+  width: 100%;
+  justify-content: center;
+  overflow: visible;
+}
+
+.errorToast {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+  padding: 6px 14px;
+  border-radius: var(--md-sys-shape-corner-full);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-weight: 500;
+  cursor: pointer;
+  animation: toastIn var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-decelerate) both;
+  text-align: center;
+}
+
+@keyframes toastIn {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .localHand {
+    transition: none;
+  }
+  .errorToast {
+    animation: none;
+  }
+}

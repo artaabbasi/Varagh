@@ -1,0 +1,56 @@
+.pile {
+  position: relative;
+  width: 28px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.card {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--md-sys-shape-corner-extra-small);
+  background: var(--md-sys-color-surface-container-high);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  transform: translate(
+    calc(var(--offset, 0) * -1.5px),
+    calc(var(--offset, 0) * -1.5px)
+  );
+}
+
+.team_primary .card {
+  background: var(--md-sys-color-primary-container);
+  border-color: var(--md-sys-color-primary);
+}
+
+.team_tertiary .card {
+  background: var(--md-sys-color-tertiary-container);
+  border-color: var(--md-sys-color-tertiary);
+}
+
+.badge {
+  position: absolute;
+  inset-block-end: -6px;
+  inset-inline-end: -6px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-secondary);
+  color: var(--md-sys-color-on-secondary);
+  font-size: var(--md-sys-typescale-label-small-size);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 3px;
+  line-height: 1;
+}
+
+.team_primary .badge {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+.team_tertiary .badge {
+  background: var(--md-sys-color-tertiary);
+  color: var(--md-sys-color-on-tertiary);
+}

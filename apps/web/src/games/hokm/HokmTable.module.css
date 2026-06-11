@@ -1,0 +1,95 @@
+/* ── Base table ─────────────────────────────────────────────────── */
+.table {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  z-index: 1;
+}
+
+/* ── 4-player layout ────────────────────────────────────────────── */
+.table4p {
+  grid-template-areas:
+    "score score score"
+    ". top ."
+    "left center right"
+    "bottom bottom bottom";
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  padding: 12px;
+}
+
+.table4p .seat_top { grid-area: top; justify-self: center; align-self: start; }
+.table4p .seat_left { grid-area: left; justify-self: start; align-self: center; }
+.table4p .seat_right { grid-area: right; justify-self: end; align-self: center; }
+.table4p .trickArea { grid-area: center; }
+.table4p .localHand { grid-area: bottom; }
+.table4p .scorePanel { grid-area: score; }
+
+/* RTL: swap left/right seats */
+[dir="rtl"] .table4p .seat_left { grid-area: right; justify-self: end; }
+[dir="rtl"] .table4p .seat_right { grid-area: left; justify-self: start; }
+
+/* ── 3-player layout ────────────────────────────────────────────── */
+.table3p {
+  grid-template-areas:
+    "score score"
+    "top-left top-right"
+    "center center"
+    "bottom bottom";
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 12px;
+}
+
+.table3p .seat_top_left { grid-area: top-left; justify-self: center; align-self: start; }
+.table3p .seat_top_right { grid-area: top-right; justify-self: center; align-self: start; }
+.table3p .trickArea { grid-area: center; }
+.table3p .localHand { grid-area: bottom; }
+.table3p .scorePanel { grid-area: score; }
+
+/* RTL: swap top-left/top-right */
+[dir="rtl"] .table3p .seat_top_left { grid-area: top-right; }
+[dir="rtl"] .table3p .seat_top_right { grid-area: top-left; }
+
+/* ── 2-player layout ────────────────────────────────────────────── */
+.table2p {
+  grid-template-areas:
+    "score"
+    "top"
+    "center"
+    "bottom";
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 12px;
+}
+
+.table2p .seat_top { grid-area: top; justify-self: center; align-self: start; }
+.table2p .trickArea { grid-area: center; }
+.table2p .localHand { grid-area: bottom; }
+.table2p .scorePanel { grid-area: score; }
+
+/* ── Kot burst flash ────────────────────────────────────────────── */
+@keyframes kotFlash {
+  0%, 100% { background: transparent; }
+  20% { background: color-mix(in srgb, var(--md-sys-color-primary) 15%, transparent); }
+  50% { background: color-mix(in srgb, var(--md-sys-color-tertiary) 15%, transparent); }
+}
+
+.kotBurst::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  animation: kotFlash 1.8s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kotBurst::after {
+    animation: none;
+  }
+}

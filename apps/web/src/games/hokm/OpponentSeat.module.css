@@ -1,0 +1,77 @@
+.seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--md-sys-shape-corner-large);
+  position: relative;
+  transition: background var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard);
+}
+
+/* Active turn glow */
+.activeTurn {
+  background: color-mix(in srgb, var(--md-sys-color-primary) 10%, transparent);
+}
+
+.activeTurn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid var(--md-sys-color-primary);
+  animation: pulseRing 1.5s ease infinite;
+  pointer-events: none;
+}
+
+@keyframes pulseRing {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.04); }
+}
+
+/* Team color underline */
+.team_primary {
+  border-block-end: 2px solid var(--md-sys-color-primary);
+}
+
+.team_tertiary {
+  border-block-end: 2px solid var(--md-sys-color-tertiary);
+}
+
+/* ── Countdown ring ─────────────────────────────────────────────── */
+.ring {
+  position: absolute;
+  inset-block-start: 4px;
+  inset-inline-end: 4px;
+  z-index: 2;
+}
+
+/* ── Left/right seats (4p): rotate layout ──────────────────────── */
+.pos_left,
+.pos_right {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  max-width: 80px;
+}
+
+.pos_left .handFan,
+.pos_right .handFan {
+  transform: rotate(90deg);
+}
+
+/* ── Fan and pile positioning ───────────────────────────────────── */
+.handFan {
+  flex-shrink: 0;
+}
+
+.trickPile {
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activeTurn::after {
+    animation: none;
+  }
+}

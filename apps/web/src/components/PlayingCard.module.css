@@ -1,0 +1,295 @@
+/* ── Base card ─────────────────────────────────────────────────── */
+.card {
+  position: relative;
+  width: 52px;
+  height: 78px;
+  border-radius: var(--md-sys-shape-corner-small);
+  box-shadow: var(--md-sys-elevation-1);
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--md-sys-typescale-font);
+  transition:
+    transform var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-spring),
+    box-shadow var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard);
+}
+
+.compact {
+  width: 32px;
+  height: 48px;
+  border-radius: var(--md-sys-shape-corner-extra-small);
+}
+
+/* ── Card back ─────────────────────────────────────────────────── */
+.back {
+  background: var(--md-sys-color-primary-container);
+  border: 1.5px solid var(--md-sys-color-outline-variant);
+  background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 4px,
+      color-mix(in srgb, var(--md-sys-color-primary) 18%, transparent) 4px,
+      color-mix(in srgb, var(--md-sys-color-primary) 18%, transparent) 5px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 4px,
+      color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent) 4px,
+      color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent) 5px
+    );
+}
+
+/* ── Card face ─────────────────────────────────────────────────── */
+.face {
+  background: #ffffff;
+  border: 1.5px solid var(--md-sys-color-outline-variant);
+  flex-direction: column;
+  padding: 3px;
+}
+
+[data-theme="dark"] .face {
+  background: #f5f0f8;
+}
+
+.red {
+  --suit-color: var(--md-sys-color-error);
+}
+
+.black {
+  --suit-color: var(--md-sys-color-on-surface);
+}
+
+/* ensure black suit reads on white card in dark mode */
+[data-theme="dark"] .black {
+  --suit-color: #1c1b1f;
+}
+
+/* ── Interactive card (button reset + cursor) ──────────────────── */
+.interactive {
+  cursor: pointer;
+  border: none;
+  padding: 3px;
+}
+
+.interactive:focus-visible {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+/* ── State modifiers ───────────────────────────────────────────── */
+.highlighted {
+  box-shadow:
+    var(--md-sys-elevation-2),
+    0 0 0 2px var(--md-sys-color-primary),
+    0 0 12px 2px color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+}
+
+.disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.interactive:not(.disabled):hover {
+  transform: translateY(-8px);
+  box-shadow: var(--md-sys-elevation-3);
+}
+
+.interactive:not(.disabled):active {
+  transform: translateY(-4px);
+  box-shadow: var(--md-sys-elevation-2);
+}
+
+@media (hover: none) {
+  .interactive:not(.disabled):hover {
+    transform: none;
+    box-shadow: var(--md-sys-elevation-1);
+  }
+  .interactive:not(.disabled):active {
+    transform: translateY(-4px);
+  }
+}
+
+/* ── Face typography ───────────────────────────────────────────── */
+.corner {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-start: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  color: var(--suit-color);
+}
+
+.cornerBr {
+  inset-block-start: auto;
+  inset-inline-start: auto;
+  inset-block-end: 3px;
+  inset-inline-end: 5px;
+  transform: rotate(180deg);
+}
+
+.rank {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+  display: block;
+}
+
+.compact .rank {
+  font-size: 8px;
+}
+
+.suitSmall {
+  font-size: 9px;
+  line-height: 1;
+  display: block;
+}
+
+.compact .suitSmall {
+  font-size: 6px;
+}
+
+.centerSuit {
+  font-size: 26px;
+  line-height: 1;
+  color: var(--suit-color);
+}
+
+.compact .centerSuit {
+  font-size: 16px;
+}
+
+/* ── Trick-play animations (from each seat direction) ──────────── */
+@keyframes slideFromBottom {
+  from {
+    transform: translateY(80px) scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slideFromTop {
+  from {
+    transform: translateY(-80px) scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slideFromLeft {
+  from {
+    transform: translateX(-80px) scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slideFromRight {
+  from {
+    transform: translateX(80px) scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.from_bottom {
+  animation: slideFromBottom var(--md-sys-motion-dur-medium4) var(--md-sys-motion-easing-spring)
+    both;
+}
+.from_top {
+  animation: slideFromTop var(--md-sys-motion-dur-medium4) var(--md-sys-motion-easing-spring) both;
+}
+.from_left {
+  animation: slideFromLeft var(--md-sys-motion-dur-medium4) var(--md-sys-motion-easing-spring)
+    both;
+}
+.from_right {
+  animation: slideFromRight var(--md-sys-motion-dur-medium4) var(--md-sys-motion-easing-spring)
+    both;
+}
+
+/* ── Trick sweep-out ───────────────────────────────────────────── */
+@keyframes sweepOut {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.3) translate(var(--sweep-x, 0px), var(--sweep-y, 0px));
+    opacity: 0;
+  }
+}
+
+.sweeping {
+  animation: sweepOut 0.6s var(--md-sys-motion-easing-accelerate) forwards;
+}
+
+/* ── Deal animation ─────────────────────────────────────────────── */
+@keyframes dealIn {
+  from {
+    transform: translate(var(--deal-from-x, 0px), var(--deal-from-y, 0px)) scale(0.5) rotate(-10deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.dealing {
+  animation: dealIn var(--md-sys-motion-dur-long2) var(--md-sys-motion-easing-decelerate) both;
+  animation-delay: var(--deal-delay, 0ms);
+}
+
+/* ── Shake (unplayable tap feedback) ───────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.shaking {
+  animation: shake 0.28s ease both;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+  .from_bottom,
+  .from_top,
+  .from_left,
+  .from_right,
+  .sweeping,
+  .dealing,
+  .shaking {
+    animation: none;
+  }
+  .interactive:not(.disabled):hover {
+    transform: none;
+  }
+}

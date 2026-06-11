@@ -1,0 +1,104 @@
+.area {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+}
+
+/* ── Center trump indicator ─────────────────────────────────────── */
+.trumpIndicator {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-surface-container);
+  box-shadow: var(--md-sys-elevation-1);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.trumpSymbol {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.red { color: var(--md-sys-color-error); }
+.black { color: var(--md-sys-color-on-surface); }
+[data-theme="dark"] .black { color: #e6e1e5; }
+
+/* ── Trick grid ─────────────────────────────────────────────────── */
+.trickGrid {
+  position: relative;
+  width: 180px;
+  height: 150px;
+  z-index: 1;
+}
+
+/* Card slots: one per seat position, offset from center */
+.cardSlot {
+  position: absolute;
+}
+
+.slot_bottom {
+  inset-block-end: 0;
+  inset-inline: 0;
+  margin: auto;
+  width: fit-content;
+}
+
+.slot_top {
+  inset-block-start: 0;
+  inset-inline: 0;
+  margin: auto;
+  width: fit-content;
+}
+
+.slot_left {
+  inset-inline-start: 0;
+  inset-block: 0;
+  margin: auto;
+  height: fit-content;
+}
+
+.slot_right {
+  inset-inline-end: 0;
+  inset-block: 0;
+  margin: auto;
+  height: fit-content;
+}
+
+.slot_top_left {
+  inset-block-start: 0;
+  inset-inline-start: 0;
+}
+
+.slot_top_right {
+  inset-block-start: 0;
+  inset-inline-end: 0;
+}
+
+/* ── Trick sweep out ────────────────────────────────────────────── */
+@keyframes sweepCard {
+  0% { transform: scale(1); opacity: 1; }
+  60% { opacity: 0.8; }
+  100% {
+    transform: translate(var(--sweep-x, 0px), var(--sweep-y, 0px)) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.sweeping {
+  animation: sweepCard 0.55s var(--md-sys-motion-easing-accelerate) forwards;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .sweeping {
+    animation: none;
+  }
+}

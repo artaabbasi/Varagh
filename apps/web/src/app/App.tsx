@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { createBrowserRouter, RouterProvider, redirect } from "react-router-dom";
 import { SignupScreen } from "../auth/SignupScreen";
+import { HokmGame } from "../games/hokm/HokmGame";
 import { getStoredToken, clearToken } from "../auth/auth-store";
 import { socket } from "./socket";
 
@@ -22,6 +23,11 @@ const router = createBrowserRouter([
         Lobby — coming soon
       </div>
     ),
+  },
+  {
+    path: "/room/:code",
+    loader: () => (!getStoredToken() ? redirect("/signup") : null),
+    element: <HokmGame />,
   },
 ]);
 

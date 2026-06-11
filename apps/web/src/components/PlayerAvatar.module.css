@@ -1,0 +1,103 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.crown {
+  width: 20px;
+  height: 14px;
+  color: var(--md-sys-color-tertiary);
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--md-sys-color-tertiary) 60%, transparent));
+  margin-block-end: -2px;
+}
+
+.compact .crown {
+  width: 14px;
+  height: 10px;
+}
+
+.circle {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--md-sys-shape-corner-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: oklch(70% 0.12 var(--avatar-hue, 250));
+  color: oklch(15% 0.06 var(--avatar-hue, 250));
+  position: relative;
+  border: 2px solid transparent;
+  transition: border-color var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard);
+}
+
+.compact .circle {
+  width: 36px;
+  height: 36px;
+}
+
+.disconnected {
+  opacity: 0.5;
+}
+
+.offlineDot {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-end: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-error);
+  border: 2px solid var(--md-sys-color-surface-container);
+}
+
+.initial {
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.compact .initial {
+  font-size: var(--md-sys-typescale-body-medium-size);
+}
+
+.name {
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface);
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.compact .name {
+  font-size: var(--md-sys-typescale-label-small-size);
+  max-width: 60px;
+}
+
+.discriminator {
+  font-size: var(--md-sys-typescale-label-small-size);
+  color: var(--md-sys-color-on-surface-variant);
+  font-weight: 400;
+  margin-inline-start: 1px;
+}
+
+/* Team color ring */
+.team_primary .circle {
+  border-color: var(--md-sys-color-primary);
+}
+
+.team_tertiary .circle {
+  border-color: var(--md-sys-color-tertiary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .circle {
+    transition: none;
+  }
+}

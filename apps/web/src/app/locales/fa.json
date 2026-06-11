@@ -22,5 +22,49 @@
   },
   "error": {
     "notFound": "صفحه یافت نشد"
+  },
+  "hokm": {
+    "loading": "در حال اتصال به بازی…",
+    "you": "شما",
+    "score": "امتیاز",
+    "team": "تیم {{n}}",
+    "hakem": "حاکم",
+    "trump": "حکم",
+    "tricks": "شت",
+    "chooseTrump": "انتخاب حکم",
+    "chooseTrumpSubtitle": "یک خال را به عنوان حکم این دست انتخاب کنید",
+    "hakemChoosingTrump": "{{name}} در حال انتخاب حکم است…",
+    "suits": {
+      "hearts": "دل",
+      "diamonds": "خشت",
+      "clubs": "گشنیز",
+      "spades": "پیک"
+    },
+    "draw": {
+      "title": "فاز کشیدن",
+      "keep": "نگه‌دار",
+      "pass": "پاس",
+      "stockRemaining": "{{count}} کارت باقی‌مانده",
+      "cardHint": "این کارت را نگه‌داری یا پاس می‌دهی؟",
+      "opponentKept": "{{name}} کارتی نگه داشت",
+      "opponentPassed": "{{name}} پاس داد",
+      "waitingForOpponent": "در انتظار {{name}}…"
+    },
+    "handOver": {
+      "pointsLabel": "امتیاز",
+      "pointsLabel_plural": "امتیاز",
+      "kot": "کُت! {{score}}",
+      "hakemKot": "حاکم کُت!",
+      "nextHakem": "حاکم بعدی: {{name}}",
+      "continue": "ادامه"
+    },
+    "gameOver": {
+      "title": "بازی تمام شد",
+      "winner": "{{name}} برنده شد!",
+      "teamWins": "{{name}} برنده شد!",
+      "finalScore": "امتیاز نهایی",
+      "rematch": "دوباره بازی",
+      "leave": "خروج"
+    }
   }
 }

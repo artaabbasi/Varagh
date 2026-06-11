@@ -1,0 +1,38 @@
+.ring {
+  transform: rotate(-90deg);
+  flex-shrink: 0;
+}
+
+.track {
+  fill: none;
+  stroke: var(--md-sys-color-surface-container-high);
+}
+
+.progress {
+  fill: none;
+  stroke: var(--md-sys-color-primary);
+  transition: stroke-dashoffset 1s linear, stroke var(--md-sys-motion-dur-short4) ease;
+}
+
+.urgent .progress {
+  stroke: var(--md-sys-color-error);
+}
+
+.label {
+  transform: rotate(90deg) translate(0, 0);
+  transform-origin: 50% 50%;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--md-sys-typescale-font);
+  fill: var(--md-sys-color-on-surface);
+}
+
+.urgent .label {
+  fill: var(--md-sys-color-error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress {
+    transition: none;
+  }
+}

@@ -1,0 +1,163 @@
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large) 0 0;
+  box-shadow: var(--md-sys-elevation-3);
+  animation: slideUp var(--md-sys-motion-dur-medium4) var(--md-sys-motion-easing-spring) both;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.content {
+  padding: 28px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* ── Kot badge ──────────────────────────────────────────────────── */
+.kotBadge {
+  padding: 6px 20px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  animation: kotBadgeIn var(--md-sys-motion-dur-medium2) var(--md-sys-motion-easing-spring) both;
+}
+
+.hakemKot {
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+@keyframes kotBadgeIn {
+  from { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* ── Points burst ───────────────────────────────────────────────── */
+.pointsBurst {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--md-sys-color-primary);
+  animation: burstIn var(--md-sys-motion-dur-medium3) var(--md-sys-motion-easing-spring) both;
+  animation-delay: 100ms;
+}
+
+@keyframes burstIn {
+  from { transform: scale(0.4) translateY(20px); opacity: 0; }
+  60% { transform: scale(1.1); }
+  to { transform: none; opacity: 1; }
+}
+
+.plusSign {
+  font-size: var(--md-sys-typescale-headline-medium-size);
+  font-weight: 400;
+}
+
+.pointsNum {
+  font-size: var(--md-sys-typescale-display-medium-size);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pointsLabel {
+  font-size: var(--md-sys-typescale-body-large-size);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* ── Trick count ────────────────────────────────────────────────── */
+.trickRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trickNum {
+  font-size: var(--md-sys-typescale-title-large-size);
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface);
+  min-width: 28px;
+  text-align: center;
+}
+
+.trickSep {
+  font-size: var(--md-sys-typescale-title-large-size);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* ── Scores table ───────────────────────────────────────────────── */
+.scores {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--md-sys-color-surface-container);
+  border-radius: var(--md-sys-shape-corner-medium);
+  padding: 12px 16px;
+}
+
+.scoreRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.scoreName {
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.scoreVal {
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface);
+}
+
+/* ── Next hakem ─────────────────────────────────────────────────── */
+.nextHakem {
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+  text-align: center;
+}
+
+/* ── Continue button ────────────────────────────────────────────── */
+.continueBtn {
+  min-height: 52px;
+  width: 100%;
+  max-width: 280px;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    transform var(--md-sys-motion-dur-short3) var(--md-sys-motion-easing-spring),
+    box-shadow var(--md-sys-motion-dur-short3) var(--md-sys-motion-easing-standard);
+}
+
+.continueBtn:hover { box-shadow: var(--md-sys-elevation-1); }
+.continueBtn:active { transform: scale(0.97); }
+.continueBtn:focus-visible {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet, .kotBadge, .pointsBurst { animation: none; }
+  .continueBtn { transition: none; }
+}

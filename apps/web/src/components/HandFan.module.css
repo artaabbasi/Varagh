@@ -1,0 +1,107 @@
+/* ── Base fan layout ────────────────────────────────────────────── */
+.fan {
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* ── Face-up fan (local player) ─────────────────────────────────── */
+.faceUp {
+  padding-block-start: 16px; /* room for card lift */
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
+.faceUp .cardSlot {
+  margin-inline-start: -22px;
+  transition: transform var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-spring);
+  position: relative;
+  /* subtle arc: each card rotates slightly from center */
+  --rotation: calc((var(--fan-i, 0) - (var(--fan-total, 1) - 1) / 2) * 3deg);
+  --lift: calc(abs((var(--fan-i, 0) - (var(--fan-total, 1) - 1) / 2)) * 2px);
+  transform: rotate(var(--rotation)) translateY(var(--lift));
+  transform-origin: bottom center;
+}
+
+.faceUp .cardSlot:first-child {
+  margin-inline-start: 0;
+}
+
+/* deal-in stagger */
+.faceUp .cardSlot {
+  animation: fanIn var(--md-sys-motion-dur-medium4) var(--md-sys-motion-easing-spring) both;
+  animation-delay: calc(var(--fan-i, 0) * 50ms);
+}
+
+@keyframes fanIn {
+  from {
+    opacity: 0;
+    transform: rotate(var(--rotation)) translateY(calc(var(--lift) + 40px));
+  }
+  to {
+    opacity: 1;
+    transform: rotate(var(--rotation)) translateY(var(--lift));
+  }
+}
+
+/* ── Face-down fan (opponent) ───────────────────────────────────── */
+.faceDown {
+  position: relative;
+  width: 52px;
+  height: 72px;
+}
+
+.faceDown .fanCard {
+  position: absolute;
+  inset: 0;
+  transform: rotate(calc(var(--fan-i, 0) * 6deg - 9deg))
+    translate(calc(var(--fan-i, 0) * 4px - 6px), calc(var(--fan-i, 0) * -2px));
+}
+
+.compact.faceDown {
+  width: 36px;
+  height: 52px;
+}
+
+.compact.faceDown .fanCard {
+  transform: rotate(calc(var(--fan-i, 0) * 5deg - 7.5deg))
+    translate(calc(var(--fan-i, 0) * 3px - 4px), calc(var(--fan-i, 0) * -1.5px));
+}
+
+.extraBadge {
+  position: absolute;
+  inset-block-start: -6px;
+  inset-inline-end: -8px;
+  background: var(--md-sys-color-secondary);
+  color: var(--md-sys-color-on-secondary);
+  font-size: var(--md-sys-typescale-label-small-size);
+  font-weight: 700;
+  border-radius: var(--md-sys-shape-corner-full);
+  padding: 1px 5px;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+/* ── Shake ──────────────────────────────────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: rotate(var(--rotation)) translateY(var(--lift)) translateX(0); }
+  20% { transform: rotate(var(--rotation)) translateY(var(--lift)) translateX(-6px); }
+  40% { transform: rotate(var(--rotation)) translateY(var(--lift)) translateX(6px); }
+  60% { transform: rotate(var(--rotation)) translateY(var(--lift)) translateX(-4px); }
+  80% { transform: rotate(var(--rotation)) translateY(var(--lift)) translateX(4px); }
+}
+
+.shaking {
+  animation: shake 0.3s ease both !important;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .faceUp .cardSlot {
+    animation: none;
+  }
+  .shaking {
+    animation: none !important;
+  }
+}

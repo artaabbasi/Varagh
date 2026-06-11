@@ -1,0 +1,127 @@
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large) 0 0;
+  box-shadow: var(--md-sys-elevation-3);
+  animation: slideUp var(--md-sys-motion-dur-medium4) var(--md-sys-motion-easing-spring) both;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.content {
+  padding: 28px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.title {
+  font-size: var(--md-sys-typescale-headline-small-size);
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface);
+  margin: 0;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+  text-align: center;
+}
+
+/* ── Hakem's 5 cards ────────────────────────────────────────────── */
+.hand {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ── Suit grid ──────────────────────────────────────────────────── */
+.suitGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.suitBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 72px;
+  border: 2px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-large);
+  background: var(--md-sys-color-surface-container);
+  cursor: pointer;
+  transition:
+    transform var(--md-sys-motion-dur-short3) var(--md-sys-motion-easing-spring),
+    border-color var(--md-sys-motion-dur-short3) var(--md-sys-motion-easing-standard),
+    background var(--md-sys-motion-dur-short3) var(--md-sys-motion-easing-standard);
+  font-family: inherit;
+}
+
+.suitBtn:hover {
+  transform: translateY(-4px) scale(1.04);
+  box-shadow: var(--md-sys-elevation-2);
+}
+
+.suitBtn:active {
+  transform: scale(0.97);
+}
+
+.suitBtn:focus-visible {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.red {
+  color: var(--md-sys-color-error);
+}
+
+.red:hover {
+  background: var(--md-sys-color-error-container);
+  border-color: var(--md-sys-color-error);
+}
+
+.black {
+  color: var(--md-sys-color-on-surface);
+}
+
+.black:hover {
+  background: var(--md-sys-color-surface-container-highest);
+  border-color: var(--md-sys-color-outline);
+}
+
+[data-theme="dark"] .black { color: #e6e1e5; }
+
+.suitSymbol {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.suitName {
+  font-size: var(--md-sys-typescale-label-small-size);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: none;
+  }
+  .suitBtn {
+    transition: none;
+  }
+  .suitBtn:hover {
+    transform: none;
+  }
+}
