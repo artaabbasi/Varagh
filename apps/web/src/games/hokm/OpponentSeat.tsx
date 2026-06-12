@@ -50,8 +50,6 @@ export function OpponentSeat({
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isTurn, playerId]);
 
-  const isVertical = position === "left" || position === "right";
-
   return (
     <div
       className={[
@@ -65,12 +63,13 @@ export function OpponentSeat({
         .join(" ")}
       data-position={position}
     >
+      {/* Prominent turn timer badge, centred above the avatar */}
       {isTurn && (
-        <div className={styles.ring}>
+        <div className={styles.timerBadge}>
           <CountdownRing
             totalSeconds={TURN_SECONDS}
             remainingSeconds={remaining}
-            size={isVertical ? 44 : 52}
+            size={50}
           />
         </div>
       )}

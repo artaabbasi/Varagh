@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { RoomView } from "@varagh/shared";
+import type { RoomView, FriendEntry } from "@varagh/shared";
 import { socket } from "../../app/socket";
 import { getStoredUser } from "../../auth/auth-store";
 import styles from "./WaitingRoom.module.css";
@@ -11,7 +11,6 @@ interface WaitingRoomProps {
 }
 
 function minPlayersForVariant(variantId: string): number {
-  // variantId may be "hokm-4p", "hokm-3p", "hokm-2p" or plain "4p" etc.
   const match = /(\d+)p$/.exec(variantId);
   return match ? parseInt(match[1], 10) : 2;
 }
@@ -31,6 +30,25 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [onlineFriends, setOnlineFriends] = useState<FriendEntry[]>([]);
+  const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    socket.emit("friend:list", {}, (res) => {
+      const seated = new Set(room.seats.map((s) => s.playerId));
+      setOnlineFriends(
+        res.friends.filter((f) => f.status === "accepted" && f.online && !seated.has(f.userId))
+      );
+    });
+  }, [room.seats]);
+
+  const handleInviteFriend = (userId: string) => {
+    socket.emit("room:inviteFriend", { userId }, () => {
+      setInvitedIds((prev) => new Set([...prev, userId]));
+    });
+  };
 
   const isHost = room.seats.some(
     (s) => s.playerId === user?.id && s.isHost,
@@ -49,7 +67,7 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
     });
   };
 
-  const handleLeave = () => {
+  const handleLeaveConfirmed = () => {
     socket.emit("room:leave", {}, () => {
       void navigate("/lobby");
     });
@@ -59,6 +77,14 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
     void navigator.clipboard.writeText(room.code).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}/room/${room.code}`;
+    void navigator.clipboard.writeText(url).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
     });
   };
 
@@ -86,7 +112,37 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
               {copied ? t("room.waiting.copied") : t("room.waiting.copyCode")}
             </button>
           </div>
+          <button
+            className={styles.copyLinkBtn}
+            onClick={handleCopyLink}
+            aria-label={t("room.waiting.copyLink")}
+          >
+            <LinkIcon />
+            {copiedLink ? t("room.waiting.copied") : t("room.waiting.copyLink")}
+          </button>
         </div>
+
+        {/* Invite online friends */}
+        {onlineFriends.length > 0 && (
+          <div className={styles.friendsSection}>
+            <span className={styles.friendsLabel}>{t("room.waiting.inviteFriends")}</span>
+            <ul className={styles.friendsList}>
+              {onlineFriends.map((f) => (
+                <li key={f.userId} className={styles.friendItem}>
+                  <span className={styles.friendOnlineDot} aria-hidden="true" />
+                  <span className={styles.friendName}>{f.nickname}<span className={styles.friendDisc}>#{f.discriminator}</span></span>
+                  <button
+                    className={styles.inviteBtn}
+                    onClick={() => handleInviteFriend(f.userId)}
+                    disabled={invitedIds.has(f.userId)}
+                  >
+                    {invitedIds.has(f.userId) ? t("room.waiting.invited") : t("room.waiting.invite")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Player list */}
         <div className={styles.playersSection}>
@@ -148,9 +204,24 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
           <p className={styles.waitHint}>{t("room.waiting.waitHint")}</p>
         )}
 
-        <button className={styles.leaveBtn} onClick={handleLeave}>
-          {t("room.waiting.leave")}
-        </button>
+        {/* Leave — with inline confirmation */}
+        {confirmLeave ? (
+          <div className={styles.confirmLeave} role="alertdialog" aria-label={t("room.leave.confirm")}>
+            <p className={styles.confirmMsg}>{t("room.leave.confirm")}</p>
+            <div className={styles.confirmActions}>
+              <button className={styles.cancelBtn} onClick={() => setConfirmLeave(false)}>
+                {t("room.leave.cancel")}
+              </button>
+              <button className={styles.confirmBtn} onClick={handleLeaveConfirmed}>
+                {isHost ? t("room.leave.terminateRoom") : t("room.leave.leaveGame")}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button className={styles.leaveBtn} onClick={() => setConfirmLeave(true)}>
+            {t("room.waiting.leave")}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -160,6 +231,15 @@ function HostIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+
+function LinkIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
     </svg>
   );
 }

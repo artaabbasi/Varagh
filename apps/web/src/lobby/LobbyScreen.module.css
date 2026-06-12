@@ -23,10 +23,13 @@
 .logo {
   font-size: 1.5rem;
   font-weight: 900;
-  color: var(--md-sys-color-primary);
   letter-spacing: -0.03em;
   line-height: 1;
   margin-inline-end: 0.5rem;
+  background: linear-gradient(120deg, var(--varagh-grad-1), var(--varagh-grad-4));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .userInfo {
@@ -113,22 +116,23 @@
   width: 100%;
   min-height: 52px;
   padding: 0.75rem 1.5rem;
-  background: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
+  background: linear-gradient(120deg, var(--varagh-grad-1), var(--varagh-accent-cta));
+  color: #fff;
   border: none;
   border-radius: var(--md-sys-shape-corner-full);
   font-size: var(--md-sys-typescale-label-large-size);
-  font-weight: 600;
+  font-weight: 700;
   font-family: inherit;
   cursor: pointer;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--varagh-accent-cta) 32%, transparent);
   transition:
     box-shadow var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard),
     transform var(--md-sys-motion-dur-short3) var(--md-sys-motion-easing-spring);
 }
 
 .primaryBtn:hover:not(:disabled) {
-  box-shadow: var(--md-sys-elevation-2);
-  transform: translateY(-1px);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--varagh-accent-cta) 48%, transparent);
+  transform: translateY(-2px);
 }
 
 .primaryBtn:active:not(:disabled) {
@@ -147,6 +151,99 @@
   max-width: 1100px;
   margin-inline: auto;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ─── Active games section ──────────────────────────────────────── */
+.activeGamesSection {
+  background: var(--md-sys-color-tertiary-container);
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  animation: slideDown 200ms var(--md-sys-motion-easing-decelerate) both;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.activeGamesTitle {
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: 700;
+  color: var(--md-sys-color-on-tertiary-container);
+  margin: 0;
+}
+
+.activeGamesList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.activeGameItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  background: color-mix(in srgb, var(--md-sys-color-on-tertiary-container) 8%, transparent);
+  border-radius: var(--md-sys-shape-corner-large);
+}
+
+.activeGameInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.activeGameName {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--md-sys-typescale-body-large-size);
+  font-weight: 600;
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.activeGameSuits {
+  font-size: 0.875rem;
+  opacity: 0.75;
+}
+
+.activeGameMeta {
+  font-size: var(--md-sys-typescale-body-small-size);
+  color: color-mix(in srgb, var(--md-sys-color-on-tertiary-container) 70%, transparent);
+}
+
+.rejoinBtn {
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 0.4rem 1.125rem;
+  background: var(--md-sys-color-tertiary);
+  color: var(--md-sys-color-on-tertiary);
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    box-shadow var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard),
+    transform var(--md-sys-motion-dur-short3) var(--md-sys-motion-easing-spring);
+}
+
+.rejoinBtn:hover {
+  box-shadow: var(--md-sys-elevation-1);
+  transform: translateY(-1px);
 }
 
 .grid {
@@ -168,6 +265,7 @@
 
 /* ─── Card panels ───────────────────────────────────────────────── */
 .card {
+  position: relative;
   background: var(--md-sys-color-surface-container);
   border-radius: var(--md-sys-shape-corner-extra-large);
   padding: 1.5rem;
@@ -175,6 +273,26 @@
   flex-direction: column;
   gap: 1.25rem;
   box-shadow: var(--md-sys-elevation-1);
+  overflow: hidden;
+  animation: cardRise var(--md-sys-motion-dur-medium3) var(--md-sys-motion-easing-decelerate) both;
+}
+
+/* colourful hairline along the top edge of each panel */
+.card::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 3px;
+  background: linear-gradient(90deg,
+    var(--varagh-suit-spades), var(--varagh-suit-hearts),
+    var(--varagh-suit-diamonds), var(--varagh-suit-clubs));
+  opacity: 0.85;
+}
+
+@keyframes cardRise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
 }
 
 .cardHeader {
@@ -312,8 +430,9 @@
 
 .codeInput:focus {
   outline: none;
-  border-color: var(--md-sys-color-primary);
+  border-color: var(--varagh-grad-1);
   border-width: 2px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--varagh-grad-1) 20%, transparent);
 }
 
 .codeInput::placeholder {
@@ -382,12 +501,17 @@
   padding: 1rem 1.125rem;
   background: var(--md-sys-color-surface-container-high);
   border-radius: var(--md-sys-shape-corner-large);
+  border-inline-start: 3px solid transparent;
   transition:
-    background var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard);
+    background var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard),
+    border-color var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard),
+    transform var(--md-sys-motion-dur-short3) var(--md-sys-motion-easing-spring);
 }
 
 .roomItem:hover {
   background: var(--md-sys-color-surface-container-highest);
+  border-inline-start-color: var(--varagh-grad-1);
+  transform: translateX(2px);
 }
 
 .roomInfo {
@@ -424,12 +548,12 @@
   flex-shrink: 0;
   min-height: 40px;
   padding: 0.5rem 1.125rem;
-  background: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
+  background: linear-gradient(120deg, var(--varagh-grad-1), var(--varagh-accent-cta));
+  color: #fff;
   border: none;
   border-radius: var(--md-sys-shape-corner-full);
   font-size: var(--md-sys-typescale-label-large-size);
-  font-weight: 600;
+  font-weight: 700;
   font-family: inherit;
   cursor: pointer;
   transition:
@@ -438,11 +562,78 @@
 }
 
 .joinBtn:hover:not(:disabled) {
-  box-shadow: var(--md-sys-elevation-1);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--varagh-accent-cta) 45%, transparent);
   transform: translateY(-1px);
 }
 
 .joinBtn:disabled {
   opacity: 0.38;
   cursor: not-allowed;
+}
+
+/* ── Friend invite toast ── */
+.inviteToast {
+  position: fixed;
+  inset-block-end: 1.5rem;
+  inset-inline-end: 1.5rem;
+  max-width: 320px;
+  background: var(--md-sys-color-secondary-container);
+  border-radius: var(--md-sys-shape-corner-large);
+  padding: 1rem 1.125rem;
+  box-shadow: var(--md-sys-elevation-3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 50;
+  animation: toastSlideIn var(--md-sys-motion-dur-medium2) var(--md-sys-motion-easing-decelerate) both;
+}
+
+@keyframes toastSlideIn {
+  from { transform: translateY(100%) scale(0.9); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+.inviteMsg {
+  font-size: var(--md-sys-typescale-body-medium-size);
+  font-weight: 500;
+  color: var(--md-sys-color-on-secondary-container);
+  margin: 0;
+}
+
+.inviteActions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.inviteDismiss {
+  min-height: 36px;
+  padding: 0.25rem 0.875rem;
+  background: transparent;
+  border: 1.5px solid color-mix(in srgb, var(--md-sys-color-on-secondary-container) 30%, transparent);
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-on-secondary-container);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.inviteJoin {
+  min-height: 36px;
+  padding: 0.25rem 1rem;
+  background: var(--md-sys-color-secondary);
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-on-secondary);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inviteToast,
+  .card,
+  .activeGamesSection { animation: none; }
+  .roomItem:hover { transform: none; }
 }

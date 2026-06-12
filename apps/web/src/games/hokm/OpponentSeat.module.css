@@ -2,70 +2,71 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
+  text-align: center;
   gap: 6px;
-  padding: 8px;
+  padding: 10px 8px 8px;
   border-radius: var(--md-sys-shape-corner-large);
   position: relative;
-  transition: background var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard);
+  width: max-content;
+  max-width: 132px;
+  margin-inline: auto;
+  background: color-mix(in srgb, var(--md-sys-color-surface-container) 55%, transparent);
+  backdrop-filter: blur(2px);
+  transition:
+    background var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard),
+    box-shadow var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard);
 }
 
-/* Active turn glow */
+/* Active turn glow — clearly highlights whose turn it is for everyone */
 .activeTurn {
-  background: color-mix(in srgb, var(--md-sys-color-primary) 10%, transparent);
+  background: color-mix(in srgb, var(--md-sys-color-primary) 16%, var(--md-sys-color-surface-container));
+  box-shadow: 0 0 0 2px var(--md-sys-color-primary),
+    0 6px 22px color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
 }
 
 .activeTurn::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -3px;
   border-radius: inherit;
   border: 2px solid var(--md-sys-color-primary);
-  animation: pulseRing 1.5s ease infinite;
+  animation: pulseRing 1.4s ease infinite;
   pointer-events: none;
 }
 
 @keyframes pulseRing {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.04); }
+  0%, 100% { opacity: 0.9; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(1.05); }
 }
 
 /* Team color underline */
-.team_primary {
-  border-block-end: 2px solid var(--md-sys-color-primary);
-}
+.team_primary { border-block-end: 3px solid var(--md-sys-color-primary); }
+.team_tertiary { border-block-end: 3px solid var(--md-sys-color-tertiary); }
 
-.team_tertiary {
-  border-block-end: 2px solid var(--md-sys-color-tertiary);
-}
-
-/* ── Countdown ring ─────────────────────────────────────────────── */
-.ring {
+/* ── Prominent turn-timer badge ─────────────────────────────────── */
+.timerBadge {
   position: absolute;
-  inset-block-start: 4px;
-  inset-inline-end: 4px;
-  z-index: 2;
-}
-
-/* ── Left/right seats (4p): rotate layout ──────────────────────── */
-.pos_left,
-.pos_right {
-  flex-direction: row;
-  flex-wrap: wrap;
+  inset-block-start: -22px;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 4px;
-  max-width: 80px;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--md-sys-color-surface-container-highest);
+  box-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.28),
+    0 0 0 2px color-mix(in srgb, var(--md-sys-color-primary) 45%, transparent);
 }
 
-.pos_left .handFan,
-.pos_right .handFan {
-  transform: rotate(90deg);
-}
+[dir="rtl"] .timerBadge { transform: translateX(50%); }
 
-/* ── Fan and pile positioning ───────────────────────────────────── */
-.handFan {
-  flex-shrink: 0;
-}
-
+/* ── Seats keep a tidy centred column in every position ─────────── */
+.handFan,
 .trickPile {
   flex-shrink: 0;
 }

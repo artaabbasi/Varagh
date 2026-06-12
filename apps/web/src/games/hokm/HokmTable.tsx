@@ -99,6 +99,16 @@ export function HokmTable({
 
   return (
     <div className={tableClass}>
+      {/* Decorative card-table felt + centre emblem (behind all seats) */}
+      <div className={styles.felt} aria-hidden="true">
+        <div className={styles.feltEmblem}>
+          <span className={styles.feltSuit} data-suit="spades">♠</span>
+          <span className={styles.feltSuit} data-suit="hearts">♥</span>
+          <span className={styles.feltSuit} data-suit="diamonds">♦</span>
+          <span className={styles.feltSuit} data-suit="clubs">♣</span>
+        </div>
+      </div>
+
       <ScorePanel view={view} room={room} className={styles.scorePanel} />
 
       {opponents.map((playerId) => {

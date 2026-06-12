@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { HokmView, RoomView } from "@varagh/shared";
+import { sortHand } from "@varagh/shared";
 import { PlayingCard } from "../../../components/PlayingCard";
 import styles from "./DrawPhase.module.css";
 
@@ -80,6 +81,28 @@ export function DrawPhase({ view, room, drawFeedback, onKeep, onReject }: DrawPh
             >
               {t("hokm.draw.pass")}
             </button>
+          </div>
+        )}
+
+        {/* Cards already collected this drawing phase */}
+        {view.hand.length > 0 && (
+          <div className={styles.collectedSection}>
+            <span className={styles.collectedLabel}>
+              {t("hokm.draw.collectedLabel", { count: view.hand.length })}
+            </span>
+            <div className={styles.collectedRow} aria-label={t("hokm.draw.collectedLabel", { count: view.hand.length })}>
+              {sortHand(view.hand, view.trump).map((card, i) => (
+                <PlayingCard
+                  key={`${card.rank}-${card.suit}`}
+                  card={card}
+                  faceUp
+                  compact
+                  isTrump={Boolean(view.trump && card.suit === view.trump)}
+                  style={{ marginInlineStart: i === 0 ? 0 : "-18px", zIndex: i }}
+                  aria-label={`${card.rank} of ${card.suit}`}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>

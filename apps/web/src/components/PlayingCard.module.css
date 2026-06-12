@@ -89,6 +89,19 @@
     0 0 12px 2px color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
 }
 
+.trump {
+  box-shadow:
+    var(--md-sys-elevation-1),
+    0 0 0 1.5px #c9971a,
+    0 0 8px 2px rgba(201, 151, 26, 0.45);
+  animation: trumpPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes trumpPulse {
+  0%, 100% { box-shadow: var(--md-sys-elevation-1), 0 0 0 1.5px #c9971a, 0 0 8px 2px rgba(201, 151, 26, 0.45); }
+  50%       { box-shadow: var(--md-sys-elevation-1), 0 0 0 1.5px #e8b84b, 0 0 14px 4px rgba(232, 184, 75, 0.65); }
+}
+
 .disabled {
   opacity: 0.42;
   cursor: default;
@@ -286,7 +299,8 @@
   .from_right,
   .sweeping,
   .dealing,
-  .shaking {
+  .shaking,
+  .trump {
     animation: none;
   }
   .interactive:not(.disabled):hover {

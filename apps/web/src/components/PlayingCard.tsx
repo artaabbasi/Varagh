@@ -15,6 +15,7 @@ interface PlayingCardProps {
   faceUp?: boolean;
   disabled?: boolean;
   highlighted?: boolean;
+  isTrump?: boolean;
   onClick?: () => void;
   onKeyDown?: (e: React.KeyboardEvent) => void;
   style?: React.CSSProperties;
@@ -30,6 +31,7 @@ export function PlayingCard({
   faceUp = true,
   disabled = false,
   highlighted = false,
+  isTrump = false,
   onClick,
   onKeyDown,
   style,
@@ -60,6 +62,7 @@ export function PlayingCard({
     styles.face,
     isRed ? styles.red : styles.black,
     highlighted ? styles.highlighted : null,
+    isTrump && !highlighted ? styles.trump : null,
     disabled ? styles.disabled : null,
     onClick ? styles.interactive : null,
   ]

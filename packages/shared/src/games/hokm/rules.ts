@@ -6,10 +6,22 @@ export const RANKS: readonly Rank[] = [
   "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A",
 ];
 
-const RANK_VALUE: Record<Rank, number> = {
+export const RANK_VALUE: Record<Rank, number> = {
   "2": 2,  "3": 3,  "4": 4,  "5": 5,  "6": 6,  "7": 7,
   "8": 8,  "9": 9,  "10": 10, "J": 11, "Q": 12, "K": 13, "A": 14,
 };
+
+const SUIT_SORT_ORDER: Record<string, number> = { spades: 1, hearts: 2, diamonds: 3, clubs: 4 };
+
+/** Sort a hand: trump suit first, then spades/hearts/diamonds/clubs, rank high-to-low. */
+export function sortHand(cards: Card[], trump: Suit | null): Card[] {
+  return [...cards].sort((a, b) => {
+    const sa = trump && a.suit === trump ? 0 : SUIT_SORT_ORDER[a.suit] ?? 5;
+    const sb = trump && b.suit === trump ? 0 : SUIT_SORT_ORDER[b.suit] ?? 5;
+    if (sa !== sb) return sa - sb;
+    return RANK_VALUE[b.rank] - RANK_VALUE[a.rank];
+  });
+}
 
 export function createDeck(): Card[] {
   const deck: Card[] = [];

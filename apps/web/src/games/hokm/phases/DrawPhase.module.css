@@ -134,6 +134,33 @@
   border: 1px solid var(--md-sys-color-outline-variant);
 }
 
+/* ─── Collected cards ──────────────────────────────────────────── */
+.collectedSection {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.collectedLabel {
+  font-size: var(--md-sys-typescale-label-small-size);
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.collectedRow {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  min-height: 56px;
+  padding: 4px 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sheet, .seenCard, .opponentFeedback { animation: none; }
   .btn { transition: none; }

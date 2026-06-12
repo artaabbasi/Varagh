@@ -37,8 +37,15 @@
   "landing": {
     "hero": {
       "tagline": "Play Persian card games with friends — online and free.",
-      "cta": "Play Now"
+      "cta": "Play Now",
+      "scrollCue": "Scroll to explore"
     },
+    "deck": {
+      "title": "Turn the cards",
+      "subtitle": "Scroll to deal a full Persian deck — four suits, endless games.",
+      "hint": "Keep scrolling to flip them all"
+    },
+    "liveTag": "Live now",
     "games": {
       "title": "Games",
       "hokm": {
@@ -112,7 +119,26 @@
       "waitHint": "Waiting for host to start…",
       "leave": "Leave Room",
       "copyCode": "Copy",
-      "copied": "Copied!"
+      "copied": "Copied!",
+      "copyLink": "Copy Invite Link",
+      "inviteFriends": "Invite Friends",
+      "invite": "Invite",
+      "invited": "Invited!"
+    },
+    "leave": {
+      "confirm": "Leave this game?",
+      "gameWillPause": "Leaving now ends the game for everyone.",
+      "cancel": "Stay",
+      "leaveGame": "Leave",
+      "terminateRoom": "Close Room"
+    },
+    "activeGames": {
+      "title": "Your Active Games",
+      "rejoin": "Rejoin",
+      "phaseLabel": {
+        "lobby": "Waiting",
+        "playing": "In Progress"
+      }
     }
   },
   "profile": {
@@ -129,6 +155,30 @@
       "win": "Win",
       "loss": "Loss",
       "vs": "vs."
+    }
+  },
+  "friends": {
+    "title": "Friends",
+    "online": "online",
+    "noFriends": "No friends yet. Add one with nickname#1234.",
+    "incoming": "Friend Requests",
+    "pending": "Sent Requests",
+    "accept": "Accept",
+    "decline": "Decline",
+    "remove": "Remove",
+    "cancel": "Cancel",
+    "add": {
+      "label": "Add friend",
+      "placeholder": "nickname#1234",
+      "submit": "Send Request",
+      "formatError": "Use format: nickname#1234",
+      "notFound": "User not found"
+    },
+    "invite": {
+      "title": "Game Invite",
+      "message": "{{name}} invited you to play!",
+      "join": "Join",
+      "dismiss": "Dismiss"
     }
   },
   "landingStats": {
@@ -167,7 +217,8 @@
       "cardHint": "Keep this card or pass it to take the next one?",
       "opponentKept": "{{name}} kept a card",
       "opponentPassed": "{{name}} passed",
-      "waitingForOpponent": "Waiting for {{name}}…"
+      "waitingForOpponent": "Waiting for {{name}}…",
+      "collectedLabel": "Your hand ({{count}} cards)"
     },
     "handOver": {
       "pointsLabel": "point",
@@ -184,6 +235,12 @@
       "finalScore": "Final Score",
       "rematch": "Rematch",
       "leave": "Leave"
+    },
+    "aborted": {
+      "title": "Game ended",
+      "desc": "A player left the game.",
+      "descBy": "{{name}} left the game.",
+      "toLobby": "Back to Lobby"
     }
   }
 }

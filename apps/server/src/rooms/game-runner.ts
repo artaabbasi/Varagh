@@ -222,6 +222,18 @@ export class GameRunner {
     this.io.to(playerId).emit("game:stateUpdate", { view, events: [] });
   }
 
+  /**
+   * End an in-progress game early (e.g. a player left). Transitions the room
+   * to "finished" and tears down all timers. No outcome is recorded — an
+   * abandoned game does not count towards anyone's stats. Transport is
+   * responsible for notifying the remaining players.
+   */
+  abortGame(room: Room): void {
+    if (room.phase !== "playing") return;
+    room.phase = "finished";
+    this.cleanup(room.code);
+  }
+
   /** Returns the live game data for a room (for testing / inspection). */
   getGame(roomCode: string): RoomGame | undefined {
     return this.games.get(roomCode);

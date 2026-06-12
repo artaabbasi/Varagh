@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { HokmView } from "@varagh/shared";
 import type { Card } from "@varagh/shared";
+import { sortHand } from "@varagh/shared";
 import { HandFan } from "../../components/HandFan";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
 import { TrickPile } from "../../components/TrickPile";
@@ -9,6 +10,10 @@ import { CountdownRing } from "../../components/CountdownRing";
 import styles from "./LocalHand.module.css";
 
 const TURN_SECONDS = 30;
+
+const SUIT_SYMBOL: Record<string, string> = {
+  hearts: "♥", diamonds: "♦", clubs: "♣", spades: "♠",
+};
 
 interface LocalHandProps {
   view: HokmView;
@@ -57,6 +62,12 @@ export function LocalHand({
     setTimeout(() => setInvalidCard(null), 400);
   };
 
+  // Sort hand: trump suit first, then by suit/rank high-to-low
+  const sortedHand = sortHand(view.hand, view.trump);
+
+  const hasTrump = view.trump !== null && view.phase !== "choosingTrump";
+  const isRed = view.trump === "hearts" || view.trump === "diamonds";
+
   return (
     <div
       className={[
@@ -80,15 +91,30 @@ export function LocalHand({
           <TrickPile count={trickCount} teamColor={teamColor} />
         </div>
 
-        {isMyTurn && (
-          <div className={styles.timerArea}>
-            <CountdownRing
-              totalSeconds={TURN_SECONDS}
-              remainingSeconds={remaining}
-              size={48}
-            />
-          </div>
-        )}
+        <div className={styles.playerRowRight}>
+          {/* Trump indicator — always visible once trump is known */}
+          {hasTrump && view.trump && (
+            <div className={styles.trumpStrip} aria-label={`${t("hokm.trump")}: ${t(`hokm.suits.${view.trump}`)}`}>
+              <span className={styles.trumpStripLabel}>{t("hokm.trump")}</span>
+              <span className={[styles.trumpStripSuit, isRed ? styles.red : styles.black].join(" ")}>
+                {SUIT_SYMBOL[view.trump]}
+              </span>
+              <span className={[styles.trumpStripName, isRed ? styles.red : styles.black].join(" ")}>
+                {t(`hokm.suits.${view.trump}`)}
+              </span>
+            </div>
+          )}
+
+          {isMyTurn && (
+            <div className={styles.timerArea}>
+              <CountdownRing
+                totalSeconds={TURN_SECONDS}
+                remainingSeconds={remaining}
+                size={48}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Move error toast */}
@@ -102,11 +128,12 @@ export function LocalHand({
         </div>
       )}
 
-      {/* Hand fan */}
+      {/* Hand fan — sorted, trump cards glow */}
       <HandFan
-        cards={view.hand}
+        cards={sortedHand}
         faceUp
         validCards={isMyTurn ? validCards : undefined}
+        trump={view.trump}
         onPlay={isMyTurn ? onPlay : undefined}
         onInvalidPlay={handleInvalidPlay}
         className={styles.fan}

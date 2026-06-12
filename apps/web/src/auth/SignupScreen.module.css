@@ -1,12 +1,16 @@
 .backLogo {
   display: block;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 900;
-  color: var(--md-sys-color-primary);
   text-decoration: none;
   text-align: center;
   margin-bottom: 1rem;
   letter-spacing: -0.03em;
+  background: linear-gradient(120deg, var(--varagh-grad-1), var(--varagh-grad-4));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 14px color-mix(in srgb, var(--varagh-grad-1) 35%, transparent));
 }
 
 .switchLink {
@@ -56,21 +60,55 @@
 }
 
 .container {
+  position: relative;
   min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
   background: var(--md-sys-color-background);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Soft animated colour wash behind the auth card */
+.container::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  z-index: -1;
+  background:
+    radial-gradient(38% 44% at 22% 26%, color-mix(in srgb, var(--varagh-grad-1) 45%, transparent), transparent 70%),
+    radial-gradient(40% 46% at 80% 24%, color-mix(in srgb, var(--varagh-grad-4) 40%, transparent), transparent 70%),
+    radial-gradient(46% 52% at 68% 82%, color-mix(in srgb, var(--varagh-grad-3) 36%, transparent), transparent 72%);
+  filter: saturate(1.1);
+  opacity: 0.6;
+  animation: authMesh 20s ease-in-out infinite alternate;
+}
+
+@keyframes authMesh {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(-2%, 2%, 0) scale(1.08); }
 }
 
 .card {
   width: 100%;
   max-width: 420px;
-  background: var(--md-sys-color-surface-container);
+  background: color-mix(in srgb, var(--md-sys-color-surface-container) 92%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in srgb, var(--varagh-grad-1) 18%, var(--md-sys-color-outline-variant));
   border-radius: var(--md-sys-shape-corner-extra-large);
   padding: 2.5rem 2rem;
-  box-shadow: var(--md-sys-elevation-2);
+  box-shadow:
+    var(--md-sys-elevation-2),
+    0 20px 60px color-mix(in srgb, var(--varagh-grad-1) 18%, transparent);
+  animation: cardRise var(--md-sys-motion-dur-medium4) var(--md-sys-motion-easing-decelerate) both;
+}
+
+@keyframes cardRise {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
 }
 
 .title {
@@ -117,8 +155,9 @@
 
 .input:focus {
   outline: none;
-  border-color: var(--md-sys-color-primary);
+  border-color: var(--varagh-grad-1);
   border-width: 2px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--varagh-grad-1) 22%, transparent);
 }
 
 .input::placeholder {
@@ -150,19 +189,21 @@
   padding: 0.875rem 1.5rem;
   border: none;
   border-radius: var(--md-sys-shape-corner-full);
-  background: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
+  background: linear-gradient(120deg, var(--varagh-grad-1), var(--varagh-accent-cta));
+  color: #fff;
   font-size: var(--md-sys-typescale-label-large-size);
-  font-weight: 500;
+  font-weight: 700;
   font-family: inherit;
   cursor: pointer;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--varagh-accent-cta) 35%, transparent);
   transition:
     box-shadow var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard),
     transform var(--md-sys-motion-dur-short3) var(--md-sys-motion-easing-spring);
 }
 
 .submit:hover:not(:disabled) {
-  box-shadow: var(--md-sys-elevation-1);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--varagh-accent-cta) 50%, transparent);
+  transform: translateY(-2px);
 }
 
 .submit:active:not(:disabled) {
@@ -172,4 +213,10 @@
 .submit:disabled {
   opacity: 0.38;
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .container::before,
+  .card { animation: none; }
 }

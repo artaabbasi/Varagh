@@ -111,6 +111,23 @@
   --md-sys-motion-easing-decelerate: cubic-bezier(0, 0, 0, 1);
   --md-sys-motion-easing-accelerate: cubic-bezier(0.3, 0, 1, 1);
   --md-sys-motion-easing-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Varagh brand accents (vibrant, playful — used on landing/marketing) ──
+     Four-colour suit palette: distinguishable without relying on red/black
+     alone (accessibility), and far more colourful than a 2-colour deck. */
+  --varagh-suit-spades: #1f2a44;
+  --varagh-suit-hearts: #e11d48;
+  --varagh-suit-diamonds: #2563eb;
+  --varagh-suit-clubs: #059669;
+
+  /* Joyful gradient stops for hero / CTA mesh backgrounds */
+  --varagh-grad-1: #7c3aed; /* violet */
+  --varagh-grad-2: #2563eb; /* blue   */
+  --varagh-grad-3: #06b6d4; /* cyan   */
+  --varagh-grad-4: #f43f5e; /* rose   */
+  --varagh-grad-5: #f59e0b; /* amber  */
+  --varagh-accent-cta: #f43f5e;
+  --varagh-on-cta: #ffffff;
 }
 
 /* ── Dark theme ─────────────────────────────────────────────── */
@@ -156,6 +173,20 @@
   --md-sys-color-inverse-surface: #e6e1e5;
   --md-sys-color-inverse-on-surface: #313033;
   --md-sys-color-inverse-primary: #6750a4;
+
+  /* Brand accents — brighter on dark so colour still reads against #1c1b1f */
+  --varagh-suit-spades: #b9c4e6;
+  --varagh-suit-hearts: #ff6b8a;
+  --varagh-suit-diamonds: #6ea8ff;
+  --varagh-suit-clubs: #34d399;
+
+  --varagh-grad-1: #a78bfa;
+  --varagh-grad-2: #60a5fa;
+  --varagh-grad-3: #22d3ee;
+  --varagh-grad-4: #fb7185;
+  --varagh-grad-5: #fbbf24;
+  --varagh-accent-cta: #fb7185;
+  --varagh-on-cta: #2a0a12;
 }
 
 /* ── Base resets ─────────────────────────────────────────────── */

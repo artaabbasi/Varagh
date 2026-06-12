@@ -131,12 +131,24 @@ export function registerHandlers(
     });
 
     socket.on("room:leave", (_, cb) => {
-      const { userId, currentRoomCode } = socket.data;
+      const { userId, currentRoomCode, nickname } = socket.data;
       if (!currentRoomCode || !userId) return cb({ ok: false, error: "Not in a room" });
+
+      // Leaving a game in progress ends it for everyone — there is no
+      // meaningful way to continue a trick-taking hand a seat short.
+      const room = roomStore.get(currentRoomCode);
+      const endedGame = room?.phase === "playing";
+      if (endedGame && room) {
+        gameRunner.abortGame(room);
+        io.to(room.code).emit("game:aborted", { reason: "playerLeft", by: nickname });
+      }
+
       const remaining = roomStore.leave(currentRoomCode, userId);
       void socket.leave(currentRoomCode);
       socket.data.currentRoomCode = null;
-      if (remaining) io.to(remaining.code).emit("room:updated", toRoomView(remaining));
+      // When the game was aborted the remaining players are being sent to the
+      // lobby, so a room:updated would be redundant noise.
+      if (remaining && !endedGame) io.to(remaining.code).emit("room:updated", toRoomView(remaining));
       cb({ ok: true });
     });
 
@@ -156,6 +168,77 @@ export function registerHandlers(
       if (!userId) return cb({ ok: false, error: "Not authenticated" });
       const matches = authStore.getUserHistory(userId);
       cb({ ok: true, matches });
+    });
+
+    socket.on("user:getActiveRooms", (_, cb) => {
+      const { userId } = socket.data;
+      if (!userId) return cb({ ok: true, rooms: [] });
+      const rooms = roomStore.getActiveRoomsForUser(userId).map((r) => ({
+        code: r.code,
+        gameId: r.gameId,
+        variantId: r.variantId,
+        phase: r.phase,
+        playerCount: r.seats.length,
+      }));
+      cb({ ok: true, rooms });
+    });
+
+    // ── Friends ──────────────────────────────────────────────────────────
+
+    socket.on("friend:add", ({ nickname, discriminator }, cb) => {
+      const { userId } = socket.data;
+      if (!userId) return cb({ ok: false, error: "Not authenticated" });
+      const target = authStore.findByNicknameAndDiscriminator(nickname, discriminator);
+      if (!target) return cb({ ok: false, error: "User not found" });
+      if (target.id === userId) return cb({ ok: false, error: "Cannot add yourself" });
+      authStore.addFriendRequest(userId, target.id);
+      // notify target if online
+      io.to(target.id).emit("friend:request", {
+        from: { userId, nickname: socket.data.nickname!, discriminator: socket.data.discriminator! },
+      });
+      cb({ ok: true });
+    });
+
+    socket.on("friend:accept", ({ userId: requesterId }, cb) => {
+      const { userId } = socket.data;
+      if (!userId) return cb({ ok: false, error: "Not authenticated" });
+      authStore.acceptFriendRequest(requesterId, userId);
+      io.to(requesterId).emit("friend:accepted", {
+        by: { userId, nickname: socket.data.nickname!, discriminator: socket.data.discriminator! },
+      });
+      cb({ ok: true });
+    });
+
+    socket.on("friend:remove", ({ userId: otherId }, cb) => {
+      const { userId } = socket.data;
+      if (!userId) return cb({ ok: false, error: "Not authenticated" });
+      authStore.removeFriend(userId, otherId);
+      cb({ ok: true });
+    });
+
+    socket.on("friend:list", (_, cb) => {
+      const { userId } = socket.data;
+      if (!userId) return cb({ ok: true, friends: [] });
+      const rows = authStore.getFriends(userId);
+      const friends = rows.map((row) => ({
+        userId: row.userId,
+        nickname: row.nickname,
+        discriminator: row.discriminator,
+        status: row.status,
+        incoming: row.incoming,
+        online: io.sockets.adapter.rooms.has(row.userId),
+      }));
+      cb({ ok: true, friends });
+    });
+
+    socket.on("room:inviteFriend", ({ userId: targetId }, cb) => {
+      const { userId, currentRoomCode } = socket.data;
+      if (!userId || !currentRoomCode) return cb({ ok: false, error: "Not in a room" });
+      io.to(targetId).emit("friend:invite", {
+        from: { userId, nickname: socket.data.nickname!, discriminator: socket.data.discriminator! },
+        roomCode: currentRoomCode,
+      });
+      cb({ ok: true });
     });
 
     // ── Game ──────────────────────────────────────────────────────────────

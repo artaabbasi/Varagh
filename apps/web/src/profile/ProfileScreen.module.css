@@ -38,9 +38,12 @@
 .logo {
   font-size: 1.5rem;
   font-weight: 900;
-  color: var(--md-sys-color-primary);
   letter-spacing: -0.03em;
   flex: 1;
+  background: linear-gradient(120deg, var(--varagh-grad-1), var(--varagh-grad-4));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .topActions {
@@ -83,27 +86,38 @@
 
 /* ─── User card ── */
 .userCard {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1.25rem;
   padding: 1.5rem;
-  background: var(--md-sys-color-surface-container);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--varagh-grad-1) 14%, var(--md-sys-color-surface-container)), var(--md-sys-color-surface-container));
   border-radius: var(--md-sys-shape-corner-extra-large);
-  box-shadow: var(--md-sys-elevation-1);
+  box-shadow:
+    var(--md-sys-elevation-1),
+    0 16px 40px color-mix(in srgb, var(--varagh-grad-1) 14%, transparent);
+  animation: cardRise var(--md-sys-motion-dur-medium3) var(--md-sys-motion-easing-decelerate) both;
+}
+
+@keyframes cardRise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
 }
 
 .avatar {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
+  background: linear-gradient(135deg, var(--varagh-grad-1), var(--varagh-grad-4));
+  color: #fff;
   font-size: 1.75rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--varagh-grad-1) 40%, transparent);
 }
 
 .userInfo { flex: 1; }
@@ -150,6 +164,15 @@
   background: var(--md-sys-color-surface-container);
   border-radius: var(--md-sys-shape-corner-large);
   text-align: center;
+  border: 1px solid transparent;
+  transition:
+    transform var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-spring),
+    border-color var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard);
+}
+
+.statCard:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--varagh-grad-1) 40%, transparent);
 }
 
 .statVal {
@@ -226,7 +249,10 @@
   background: var(--md-sys-color-surface-container);
   border-radius: var(--md-sys-shape-corner-large);
   border-inline-start: 3px solid transparent;
+  transition: transform var(--md-sys-motion-dur-short3) var(--md-sys-motion-easing-spring);
 }
+
+.matchItem:hover { transform: translateX(2px); }
 
 .matchWin  { border-inline-start-color: #3dbb5c; }
 .matchLoss { border-inline-start-color: var(--md-sys-color-error); }
@@ -293,4 +319,10 @@
   color: var(--md-sys-color-on-surface-variant);
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .userCard { animation: none; }
+  .statCard:hover,
+  .matchItem:hover { transform: none; }
 }

@@ -366,3 +366,53 @@ describe("GameRunner — turn timer and disconnect grace", () => {
     }
   });
 });
+
+// ── Abort (player left mid-game) ─────────────────────────────────────────────
+
+describe("GameRunner — abortGame", () => {
+  let roomStore: RoomStore;
+  let gameRunner: GameRunner;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    const { io } = makeMockIo();
+    roomStore = new RoomStore();
+    gameRunner = new GameRunner(io as never, roomStore);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("ends an in-progress game and tears down its live state", () => {
+    const room = create4pRoom(roomStore);
+    gameRunner.startGame(room);
+    expect(room.phase).toBe("playing");
+    expect(gameRunner.getGame(room.code)).toBeDefined();
+
+    gameRunner.abortGame(room);
+
+    expect(room.phase).toBe("finished");
+    expect(gameRunner.getGame(room.code)).toBeUndefined();
+  });
+
+  it("stops the turn timer so no auto-play fires after the game is aborted", () => {
+    const room = create4pRoom(roomStore);
+    gameRunner.startGame(room);
+    const phaseBefore = (room.gameState as { phase: string }).phase;
+
+    gameRunner.abortGame(room);
+
+    // Well past TURN_MS: had the timer survived, it would have auto-played.
+    vi.advanceTimersByTime(TURN_MS * 2);
+    expect((room.gameState as { phase: string }).phase).toBe(phaseBefore);
+    expect(room.phase).toBe("finished");
+  });
+
+  it("is a no-op on a room that is not playing", () => {
+    const room = create4pRoom(roomStore);
+    expect(room.phase).toBe("lobby");
+    gameRunner.abortGame(room);
+    expect(room.phase).toBe("lobby");
+  });
+});

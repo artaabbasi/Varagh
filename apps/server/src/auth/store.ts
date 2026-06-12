@@ -8,6 +8,14 @@ export interface User {
   discriminator: string;
 }
 
+export interface FriendRow {
+  userId: string;
+  nickname: string;
+  discriminator: string;
+  status: "pending" | "accepted";
+  incoming: boolean;
+}
+
 export interface AuthStore {
   createUser(nickname: string, tokenHash: string, passwordHash?: string): User;
   findByTokenHash(tokenHash: string): User | undefined;
@@ -17,6 +25,12 @@ export interface AuthStore {
   findByNicknameAndPasswordHash(nickname: string, passwordHash: string): User | undefined;
   updatePasswordHash(userId: string, passwordHash: string): void;
   getTotalUsers(): number;
+  findByNicknameAndDiscriminator(nickname: string, discriminator: string): User | undefined;
+
+  addFriendRequest(requesterId: string, targetId: string): void;
+  acceptFriendRequest(requesterId: string, targetId: string): void;
+  removeFriend(userId: string, otherId: string): void;
+  getFriends(userId: string): FriendRow[];
 
   saveMatch(
     matchId: string,
@@ -46,6 +60,16 @@ export function createAuthStore(db: DatabaseSync): AuthStore {
   if (!userColumns.includes("password_hash")) {
     db.exec("ALTER TABLE users ADD COLUMN password_hash TEXT");
   }
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS friends (
+      requester_id TEXT NOT NULL,
+      target_id    TEXT NOT NULL,
+      status       TEXT NOT NULL DEFAULT 'pending',
+      created_at   INTEGER NOT NULL,
+      PRIMARY KEY (requester_id, target_id)
+    )
+  `);
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS matches (
@@ -115,6 +139,55 @@ export function createAuthStore(db: DatabaseSync): AuthStore {
     getTotalUsers() {
       const row = db.prepare("SELECT COUNT(*) as n FROM users").get() as { n: number };
       return row.n;
+    },
+
+    findByNicknameAndDiscriminator(nickname, discriminator) {
+      return db
+        .prepare("SELECT id, nickname, discriminator FROM users WHERE nickname = ? AND discriminator = ?")
+        .get(nickname, discriminator) as User | undefined;
+    },
+
+    addFriendRequest(requesterId, targetId) {
+      db.prepare(
+        "INSERT OR IGNORE INTO friends (requester_id, target_id, status, created_at) VALUES (?, ?, 'pending', ?)"
+      ).run(requesterId, targetId, Date.now());
+    },
+
+    acceptFriendRequest(requesterId, targetId) {
+      db.prepare(
+        "UPDATE friends SET status = 'accepted' WHERE requester_id = ? AND target_id = ?"
+      ).run(requesterId, targetId);
+    },
+
+    removeFriend(userId, otherId) {
+      db.prepare(
+        "DELETE FROM friends WHERE (requester_id = ? AND target_id = ?) OR (requester_id = ? AND target_id = ?)"
+      ).run(userId, otherId, otherId, userId);
+    },
+
+    getFriends(userId) {
+      const rows = db.prepare(`
+        SELECT
+          CASE WHEN f.requester_id = ? THEN f.target_id ELSE f.requester_id END as friendId,
+          f.status,
+          CASE WHEN f.requester_id = ? THEN 0 ELSE 1 END as incoming
+        FROM friends f
+        WHERE f.requester_id = ? OR f.target_id = ?
+      `).all(userId, userId, userId, userId) as Array<{ friendId: string; status: string; incoming: number }>;
+
+      return rows.map((row) => {
+        const user = db
+          .prepare("SELECT id, nickname, discriminator FROM users WHERE id = ?")
+          .get(row.friendId) as User | undefined;
+        if (!user) return null;
+        return {
+          userId: user.id,
+          nickname: user.nickname,
+          discriminator: user.discriminator,
+          status: row.status as "pending" | "accepted",
+          incoming: row.incoming === 1,
+        };
+      }).filter((r): r is FriendRow => r !== null);
     },
 
     saveMatch(matchId, gameId, variantId, startedAt, endedAt, players) {

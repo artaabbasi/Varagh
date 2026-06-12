@@ -7,6 +7,69 @@
   z-index: 1;
 }
 
+/* Grid content sits above the decorative felt (z-index:-1 below). */
+.table > .scorePanel,
+.table > .trickArea,
+.table > .localHand,
+.table > [class*="seat_"] {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Decorative felt table + centre emblem ──────────────────────── */
+.felt {
+  position: absolute;
+  inset: clamp(8px, 3vw, 40px);
+  z-index: -1;
+  border-radius: 48% / 32%;
+  background:
+    radial-gradient(ellipse at 50% 42%,
+      color-mix(in srgb, var(--md-sys-color-primary) 16%, var(--md-sys-color-surface-container)) 0%,
+      color-mix(in srgb, var(--md-sys-color-primary) 7%, var(--md-sys-color-surface-container-low)) 55%,
+      var(--md-sys-color-surface-container-lowest) 100%);
+  border: 2px solid color-mix(in srgb, var(--md-sys-color-primary) 22%, transparent);
+  box-shadow:
+    inset 0 0 60px color-mix(in srgb, var(--md-sys-color-primary) 14%, transparent),
+    inset 0 2px 0 color-mix(in srgb, #fff 12%, transparent),
+    0 20px 60px rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* Soft inner ring to read as a betting line */
+.felt::before {
+  content: "";
+  position: absolute;
+  inset: clamp(14px, 5vw, 46px);
+  border-radius: 48% / 34%;
+  border: 1.5px dashed color-mix(in srgb, var(--md-sys-color-primary) 18%, transparent);
+}
+
+.feltEmblem {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: clamp(2px, 1vw, 10px);
+  opacity: 0.16;
+  transform: rotate(-8deg);
+}
+
+.feltSuit {
+  --suit-spades: var(--md-sys-color-on-surface);
+  --suit-hearts: #e11d48;
+  --suit-diamonds: #2563eb;
+  --suit-clubs: #059669;
+  font-size: clamp(2.25rem, 9vw, 5rem);
+  line-height: 0.8;
+  color: var(--suit);
+}
+
+.feltSuit[data-suit="spades"]   { --suit: var(--suit-spades); }
+.feltSuit[data-suit="hearts"]   { --suit: var(--suit-hearts); }
+.feltSuit[data-suit="diamonds"] { --suit: var(--suit-diamonds); }
+.feltSuit[data-suit="clubs"]    { --suit: var(--suit-clubs); }
+
 /* ── 4-player layout ────────────────────────────────────────────── */
 .table4p {
   grid-template-areas:

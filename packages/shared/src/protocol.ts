@@ -54,6 +54,25 @@ export interface LobbyStats {
   totalUsers: number;
 }
 
+export interface ActiveRoomEntry {
+  code: string;
+  gameId: string;
+  variantId: string;
+  phase: "lobby" | "playing" | "finished";
+  playerCount: number;
+}
+
+export interface FriendEntry {
+  userId: string;
+  nickname: string;
+  discriminator: string;
+  online: boolean;
+  /** "pending" = request sent/received but not yet accepted; "accepted" = mutual friends */
+  status: "pending" | "accepted";
+  /** true when this entry is an incoming request (you are the target, not the requester) */
+  incoming: boolean;
+}
+
 export interface ClientToServerEvents {
   "auth:signup": (
     data: { nickname: string; password?: string },
@@ -91,6 +110,10 @@ export interface ClientToServerEvents {
     data: Record<string, never>,
     cb: (res: { ok: true; matches: MatchHistoryEntry[] } | { ok: false; error: string }) => void
   ) => void;
+  "user:getActiveRooms": (
+    data: Record<string, never>,
+    cb: (res: { ok: true; rooms: ActiveRoomEntry[] }) => void
+  ) => void;
   /** Host starts the game (lobby → playing transition). */
   "game:start": (
     data: Record<string, never>,
@@ -99,6 +122,31 @@ export interface ClientToServerEvents {
   /** Player submits a move. The move shape is game-specific. */
   "game:move": (
     data: { move: unknown },
+    cb: (res: { ok: true } | { ok: false; error: string }) => void
+  ) => void;
+  /** Send a friend request by nickname + discriminator. */
+  "friend:add": (
+    data: { nickname: string; discriminator: string },
+    cb: (res: { ok: true } | { ok: false; error: string }) => void
+  ) => void;
+  /** Accept an incoming friend request from userId. */
+  "friend:accept": (
+    data: { userId: string },
+    cb: (res: { ok: true } | { ok: false; error: string }) => void
+  ) => void;
+  /** Remove a friend or cancel a sent request. */
+  "friend:remove": (
+    data: { userId: string },
+    cb: (res: { ok: true } | { ok: false; error: string }) => void
+  ) => void;
+  /** List all friends and pending requests. */
+  "friend:list": (
+    data: Record<string, never>,
+    cb: (res: { ok: true; friends: FriendEntry[] }) => void
+  ) => void;
+  /** Invite a friend to the current room. */
+  "room:inviteFriend": (
+    data: { userId: string },
     cb: (res: { ok: true } | { ok: false; error: string }) => void
   ) => void;
 }
@@ -114,6 +162,17 @@ export interface ServerToClientEvents {
   "game:stateUpdate": (data: { view: PlayerViewBase; events: GameEvent[] }) => void;
   /** Emitted once when the game is over. */
   "game:ended": (data: { outcome: GameOutcome }) => void;
+  /**
+   * Emitted to the remaining players when an in-progress game is ended early
+   * because a player left. The game is over; clients should return to lobby.
+   */
+  "game:aborted": (data: { reason: "playerLeft"; by: string | null }) => void;
+  /** Someone sent you a friend request. */
+  "friend:request": (data: { from: { userId: string; nickname: string; discriminator: string } }) => void;
+  /** A friend request you sent was accepted. */
+  "friend:accepted": (data: { by: { userId: string; nickname: string; discriminator: string } }) => void;
+  /** A friend invited you to their room. */
+  "friend:invite": (data: { from: { userId: string; nickname: string; discriminator: string }; roomCode: string }) => void;
 }
 
 export interface SocketData {

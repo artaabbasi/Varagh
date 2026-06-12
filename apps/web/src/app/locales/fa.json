@@ -37,8 +37,15 @@
   "landing": {
     "hero": {
       "tagline": "بازی‌های ورق ایرانی با دوستان — آنلاین و رایگان.",
-      "cta": "بزن بریم"
+      "cta": "بزن بریم",
+      "scrollCue": "برای کاوش اسکرول کن"
     },
+    "deck": {
+      "title": "کارت‌ها را برگردان",
+      "subtitle": "اسکرول کن تا یک دست کامل ورق پخش شود — چهار خال، بازی‌های بی‌پایان.",
+      "hint": "ادامه بده تا همه را برگردانی"
+    },
+    "liveTag": "همین حالا زنده",
     "games": {
       "title": "بازی‌ها",
       "hokm": {
@@ -112,7 +119,26 @@
       "waitHint": "در انتظار شروع توسط میزبان…",
       "leave": "ترک اتاق",
       "copyCode": "کپی",
-      "copied": "کپی شد!"
+      "copied": "کپی شد!",
+      "copyLink": "کپی لینک دعوت",
+      "inviteFriends": "دعوت دوستان",
+      "invite": "دعوت",
+      "invited": "دعوت شد!"
+    },
+    "leave": {
+      "confirm": "از بازی خارج می‌شوید؟",
+      "gameWillPause": "با خروج شما بازی برای همه تمام می‌شود.",
+      "cancel": "ماندن",
+      "leaveGame": "خروج",
+      "terminateRoom": "بستن اتاق"
+    },
+    "activeGames": {
+      "title": "بازی‌های فعال شما",
+      "rejoin": "بازگشت",
+      "phaseLabel": {
+        "lobby": "در انتظار",
+        "playing": "در جریان"
+      }
     }
   },
   "profile": {
@@ -129,6 +155,30 @@
       "win": "برد",
       "loss": "باخت",
       "vs": "در برابر"
+    }
+  },
+  "friends": {
+    "title": "دوستان",
+    "online": "آنلاین",
+    "noFriends": "هنوز دوستی ندارید. با nickname#1234 اضافه کنید.",
+    "incoming": "درخواست‌های دوستی",
+    "pending": "درخواست‌های ارسال‌شده",
+    "accept": "قبول",
+    "decline": "رد",
+    "remove": "حذف",
+    "cancel": "لغو",
+    "add": {
+      "label": "افزودن دوست",
+      "placeholder": "nickname#1234",
+      "submit": "ارسال درخواست",
+      "formatError": "از فرمت nickname#1234 استفاده کنید",
+      "notFound": "کاربر پیدا نشد"
+    },
+    "invite": {
+      "title": "دعوت به بازی",
+      "message": "{{name}} شما را دعوت کرد!",
+      "join": "ورود",
+      "dismiss": "رد"
     }
   },
   "landingStats": {
@@ -167,7 +217,8 @@
       "cardHint": "این کارت را نگه‌داری یا پاس می‌دهی؟",
       "opponentKept": "{{name}} کارتی نگه داشت",
       "opponentPassed": "{{name}} پاس داد",
-      "waitingForOpponent": "در انتظار {{name}}…"
+      "waitingForOpponent": "در انتظار {{name}}…",
+      "collectedLabel": "دست شما ({{count}} کارت)"
     },
     "handOver": {
       "pointsLabel": "امتیاز",
@@ -184,6 +235,12 @@
       "finalScore": "امتیاز نهایی",
       "rematch": "دوباره بازی",
       "leave": "خروج"
+    },
+    "aborted": {
+      "title": "بازی تمام شد",
+      "desc": "یک بازیکن از بازی خارج شد.",
+      "descBy": "{{name}} از بازی خارج شد.",
+      "toLobby": "بازگشت به لابی"
     }
   }
 }

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { LobbyEntry } from "@varagh/shared";
+import type { LobbyEntry, ActiveRoomEntry } from "@varagh/shared";
 import { socket } from "../app/socket";
 import { getStoredUser, clearToken } from "../auth/auth-store";
 import { useTheme } from "../theme/ThemeProvider";
+import { FriendsPanel } from "./FriendsPanel";
 import styles from "./LobbyScreen.module.css";
 
 type Variant = "4p" | "3p" | "2p";
@@ -84,6 +85,12 @@ export function LobbyScreen() {
   const [rooms, setRooms] = useState<LobbyEntry[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
 
+  // ── Active (in-progress) rooms for this player ──────────────────
+  const [activeRooms, setActiveRooms] = useState<ActiveRoomEntry[]>([]);
+
+  // ── Friend invite toast ──────────────────────────────────────────
+  const [friendInvite, setFriendInvite] = useState<{ roomCode: string; fromName: string } | null>(null);
+
   const fetchRooms = useCallback(() => {
     setLoadingRooms(true);
     socket.emit("room:list", {}, (res) => {
@@ -94,6 +101,9 @@ export function LobbyScreen() {
 
   useEffect(() => {
     fetchRooms();
+    socket.emit("user:getActiveRooms", {}, (res) => {
+      if (res.ok) setActiveRooms(res.rooms);
+    });
   }, [fetchRooms]);
 
   // ── Handlers ─────────────────────────────────────────────────────
@@ -180,6 +190,38 @@ export function LobbyScreen() {
 
       {/* ── Main ── */}
       <main className={styles.main}>
+        {/* ── Active games banner ── */}
+        {activeRooms.length > 0 && (
+          <div className={styles.activeGamesSection}>
+            <h2 className={styles.activeGamesTitle}>{t("room.activeGames.title")}</h2>
+            <ul className={styles.activeGamesList}>
+              {activeRooms.map((r) => (
+                <li key={r.code} className={styles.activeGameItem}>
+                  <div className={styles.activeGameInfo}>
+                    <span className={styles.activeGameName}>
+                      <span className={styles.activeGameSuits} aria-hidden="true">♠♥♦♣</span>
+                      Hokm · حکم
+                    </span>
+                    <span className={styles.activeGameMeta}>
+                      {t(`room.activeGames.phaseLabel.${r.phase}`)}
+                      {" · "}
+                      {t(`lobby.variants.${(r.variantId.replace(/^hokm-/, "") as "4p" | "3p" | "2p") || r.variantId}`)}
+                      {" · "}
+                      {t("lobby.playersLabel", { count: r.playerCount })}
+                    </span>
+                  </div>
+                  <button
+                    className={styles.rejoinBtn}
+                    onClick={() => void navigate(`/room/${r.code}`)}
+                  >
+                    {t("room.activeGames.rejoin")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className={styles.grid}>
           {/* ── Left column: Create + Join ── */}
           <div className={styles.column}>
@@ -312,7 +354,7 @@ export function LobbyScreen() {
             </div>
           </div>
 
-          {/* ── Right column: Public rooms ── */}
+          {/* ── Right column: Public rooms + Friends ── */}
           <div className={`${styles.column} ${styles.columnWide}`}>
             <div className={styles.card}>
               <div className={styles.cardHeader}>
@@ -363,9 +405,41 @@ export function LobbyScreen() {
                 </ul>
               )}
             </div>
+
+            {/* Friends panel */}
+            <div className={styles.card}>
+              <FriendsPanel
+                onInviteToJoin={(roomCode, fromName) =>
+                  setFriendInvite({ roomCode, fromName })
+                }
+              />
+            </div>
           </div>
         </div>
       </main>
+
+      {/* Friend invite toast */}
+      {friendInvite && (
+        <div className={styles.inviteToast} role="alertdialog" aria-label={t("friends.invite.title")}>
+          <p className={styles.inviteMsg}>
+            {t("friends.invite.message", { name: friendInvite.fromName })}
+          </p>
+          <div className={styles.inviteActions}>
+            <button className={styles.inviteDismiss} onClick={() => setFriendInvite(null)}>
+              {t("friends.invite.dismiss")}
+            </button>
+            <button
+              className={styles.inviteJoin}
+              onClick={() => {
+                void navigate(`/room/${friendInvite.roomCode}`);
+                setFriendInvite(null);
+              }}
+            >
+              {t("friends.invite.join")}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

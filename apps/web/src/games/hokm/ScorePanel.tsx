@@ -3,6 +3,13 @@ import type { HokmView } from "@varagh/shared";
 import type { RoomView } from "@varagh/shared";
 import styles from "./ScorePanel.module.css";
 
+const SUIT_SYMBOL: Record<string, string> = {
+  hearts: "♥",
+  diamonds: "♦",
+  clubs: "♣",
+  spades: "♠",
+};
+
 function getNickname(room: RoomView | null, playerId: string) {
   return room?.seats.find((s) => s.playerId === playerId)?.nickname ?? "?";
 }
@@ -11,6 +18,24 @@ interface ScorePanelProps {
   view: HokmView;
   room: RoomView | null;
   className?: string;
+}
+
+function TrumpBadge({ trump, t }: { trump: string; t: (k: string) => string }) {
+  const isRed = trump === "hearts" || trump === "diamonds";
+  return (
+    <div
+      className={styles.trumpBadge}
+      aria-label={`${t("hokm.trump")}: ${t(`hokm.suits.${trump}`)}`}
+    >
+      <span className={styles.trumpBadgeLabel}>{t("hokm.trump")}</span>
+      <span className={[styles.trumpBadgeSuit, isRed ? styles.red : styles.black].join(" ")}>
+        {SUIT_SYMBOL[trump]}
+      </span>
+      <span className={[styles.trumpBadgeName, isRed ? styles.red : styles.black].join(" ")}>
+        {t(`hokm.suits.${trump}`)}
+      </span>
+    </div>
+  );
 }
 
 export function ScorePanel({ view, room, className }: ScorePanelProps) {
@@ -29,18 +54,9 @@ export function ScorePanel({ view, room, className }: ScorePanelProps) {
           <span className={styles.label}>{t("hokm.score")}</span>
         </div>
         <div className={styles.trumpDisplay}>
-          {view.trump && (
-            <span
-              className={[
-                styles.trumpSuit,
-                view.trump === "hearts" || view.trump === "diamonds"
-                  ? styles.red
-                  : styles.black,
-              ].join(" ")}
-            >
-              {SUIT_SYMBOL[view.trump]}
-            </span>
-          )}
+          {view.trump
+            ? <TrumpBadge trump={view.trump} t={t} />
+            : <span className={styles.trumpUnknown}>?</span>}
         </div>
         <div className={styles.teamScore}>
           <span className={styles.teamDot} data-team="tertiary" />
@@ -63,26 +79,10 @@ export function ScorePanel({ view, room, className }: ScorePanelProps) {
         </div>
       ))}
       <div className={styles.trumpDisplay}>
-        {view.trump && (
-          <span
-            className={[
-              styles.trumpSuit,
-              view.trump === "hearts" || view.trump === "diamonds"
-                ? styles.red
-                : styles.black,
-            ].join(" ")}
-          >
-            {SUIT_SYMBOL[view.trump]}
-          </span>
-        )}
+        {view.trump
+          ? <TrumpBadge trump={view.trump} t={t} />
+          : <span className={styles.trumpUnknown}>?</span>}
       </div>
     </div>
   );
 }
-
-const SUIT_SYMBOL: Record<string, string> = {
-  hearts: "♥",
-  diamonds: "♦",
-  clubs: "♣",
-  spades: "♠",
-};

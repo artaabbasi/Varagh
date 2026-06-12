@@ -9,4 +9,4 @@ export const games: GameDefinition<any, any, any>[] = [
 
 // UI utilities — re-exported so the web app doesn't need deep imports
 export type { HokmView, HokmMove, HokmPhase, TrickPlay } from "./hokm/state";
-export { legalPlays, SUITS, isLegalPlay } from "./hokm/rules";
+export { legalPlays, SUITS, isLegalPlay, sortHand } from "./hokm/rules";

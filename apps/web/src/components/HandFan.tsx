@@ -15,6 +15,7 @@ interface HandFanProps {
   cards: Card[];
   faceUp?: boolean;
   validCards?: Card[];
+  trump?: string | null;
   onPlay?: (card: Card) => void;
   onInvalidPlay?: (card: Card) => void;
   compact?: boolean;
@@ -25,6 +26,7 @@ export function HandFan({
   cards,
   faceUp = true,
   validCards,
+  trump,
   onPlay,
   onInvalidPlay,
   compact = false,
@@ -89,6 +91,7 @@ export function HandFan({
         const key = cardKey(card);
         const isPlayable = !validCards || validCards.some((v) => sameCard(v, card));
         const isShaking = shakingCard === key;
+        const cardIsTrump = Boolean(trump && card.suit === trump);
 
         return (
           <div
@@ -108,6 +111,7 @@ export function HandFan({
               card={card}
               faceUp
               highlighted={isMyTurn && isPlayable}
+              isTrump={cardIsTrump}
               disabled={isMyTurn && !isPlayable}
               onClick={isMyTurn ? () => handlePlay(card) : undefined}
               aria-label={`${card.rank} of ${card.suit}${isMyTurn && !isPlayable ? " — cannot play" : ""}`}

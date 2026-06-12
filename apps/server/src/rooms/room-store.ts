@@ -75,6 +75,12 @@ export class RoomStore {
     return [...this.rooms.values()].filter((r) => r.isPublic && r.phase === "lobby");
   }
 
+  getActiveRoomsForUser(userId: string): Room[] {
+    return [...this.rooms.values()].filter(
+      (r) => r.phase !== "finished" && r.seats.some((s) => s.playerId === userId),
+    );
+  }
+
   getStats(): { activeGames: number; publicRooms: number } {
     const all = [...this.rooms.values()];
     return {

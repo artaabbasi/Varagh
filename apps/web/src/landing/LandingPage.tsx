@@ -48,6 +48,70 @@ function IconVariants() {
 const FEATURE_ICONS = [IconBolt, IconDevice, IconLock, IconVariants];
 const FEATURE_KEYS = ["f1", "f2", "f3", "f4"] as const;
 
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** A suit on a card — drives the four-colour palette via a data attribute. */
+type Suit = "spades" | "hearts" | "diamonds" | "clubs";
+const SUIT_SYMBOL: Record<Suit, string> = {
+  spades: "♠",
+  hearts: "♥",
+  diamonds: "♦",
+  clubs: "♣",
+};
+
+/** Cards revealed in the scroll-flip showcase (rank + suit). */
+const DECK: { rank: string; suit: Suit }[] = [
+  { rank: "A", suit: "spades" },
+  { rank: "K", suit: "hearts" },
+  { rank: "Q", suit: "diamonds" },
+  { rank: "J", suit: "clubs" },
+  { rank: "10", suit: "hearts" },
+  { rank: "9", suit: "spades" },
+  { rank: "A", suit: "diamonds" },
+];
+
+/** Floating hero cards — colourful four-suit set. */
+const HERO_CARDS: { rank: string; suit: Suit; cls: string }[] = [
+  { rank: "A", suit: "spades", cls: "fc1" },
+  { rank: "K", suit: "hearts", cls: "fc2" },
+  { rank: "Q", suit: "diamonds", cls: "fc3" },
+  { rank: "J", suit: "clubs", cls: "fc4" },
+  { rank: "10", suit: "spades", cls: "fc5" },
+];
+
+/** Animates a number from 0 → target whenever target changes (≈900ms). */
+function useCountUp(target: number | undefined): number {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (target === undefined) return;
+    if (prefersReducedMotion()) {
+      setValue(target);
+      return;
+    }
+    let raf: number;
+    const start = performance.now();
+    const from = 0;
+    const dur = 900;
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / dur, 1);
+      // easeOutCubic
+      const eased = 1 - Math.pow(1 - p, 3);
+      setValue(Math.round(from + (target - from) * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+  return value;
+}
+
+function StatValue({ value }: { value: number | undefined }) {
+  const display = useCountUp(value);
+  return <span className={styles.statVal}>{value !== undefined ? display.toLocaleString() : "—"}</span>;
+}
+
 export function LandingPage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -57,6 +121,7 @@ export function LandingPage() {
   const [stats, setStats] = useState<LobbyStats | null>(null);
   const revealRefs = useRef<(HTMLElement | null)[]>([]);
   const heroCardsRef = useRef<HTMLDivElement>(null);
+  const deckRef = useRef<HTMLDivElement>(null);
 
   const handlePlay = () => {
     void navigate(getStoredToken() ? "/lobby" : "/signup");
@@ -80,26 +145,62 @@ export function LandingPage() {
     }
   }, []);
 
-  // Scroll-parallax: cards scatter as user scrolls out of hero
+  // Single scroll handler drives BOTH the hero scatter (--sp) and the
+  // per-card deck-flip progress (--p), computed in JS so the flip can never
+  // be silently dropped by a CSS unit-mismatch and so it survives any layout.
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let raf: number;
-    const onScroll = () => {
-      raf = requestAnimationFrame(() => {
-        const vh = window.innerHeight;
-        const t = Math.min(window.scrollY / vh, 1); // 0 → 1 over one screen height
-        const el = heroCardsRef.current;
-        if (!el) return;
-        el.style.setProperty("--sp", String(t));
+    const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+
+    // Apply each card's flip progress (0 = back showing, 1 = face showing).
+    const setFlips = (reveal: number) => {
+      const deck = deckRef.current;
+      if (!deck) return;
+      const flippers = deck.querySelectorAll<HTMLElement>("[data-flipper]");
+      flippers.forEach((el, i) => {
+        const start = 0.1 + i * 0.08; // staggered deal
+        const p = clamp01((reveal - start) / 0.32);
+        el.style.setProperty("--p", String(p));
       });
     };
+
+    if (prefersReducedMotion()) {
+      setFlips(1); // show all faces, no motion
+      return;
+    }
+
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const vh = window.innerHeight;
+
+        const hero = heroCardsRef.current;
+        if (hero) {
+          const sp = Math.min(window.scrollY / vh, 1);
+          hero.style.setProperty("--sp", String(sp));
+        }
+
+        const deck = deckRef.current;
+        if (deck) {
+          const rect = deck.getBoundingClientRect();
+          // 0 as the section enters from the bottom → 1 as it leaves the top.
+          const reveal = clamp01((vh - rect.top) / (vh + rect.height));
+          setFlips(reveal);
+        }
+      });
+    };
+    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
     };
   }, []);
 
+  // Reveal-on-scroll for content sections
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -122,200 +223,227 @@ export function LandingPage() {
   return (
     <div className={styles.page}>
       {/* ── Navigation ── */}
-      <nav className={styles.nav} aria-label="Main navigation">
-        <span className={styles.navLogo} aria-label="Varagh">ورق</span>
-        <div className={styles.navActions}>
-          <button className={styles.navBtn} onClick={toggleLang} aria-label="Toggle language">
-            {isRtl ? "EN" : "فا"}
-          </button>
-          <button className={styles.navBtn} onClick={toggle} aria-label="Toggle theme">
-            {theme === "dark" ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <circle cx="12" cy="12" r="5" />
-                <line x1="12" y1="1" x2="12" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="23" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                <line x1="1" y1="12" x2="3" y2="12" />
-                <line x1="21" y1="12" x2="23" y2="12" />
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            )}
-          </button>
-          <button className={styles.playBtn} onClick={handlePlay}>
-            {t("landing.hero.cta")}
-          </button>
-        </div>
-      </nav>
+      <header className={styles.nav}>
+        <nav className={styles.navInner} aria-label="Main navigation">
+          <span className={styles.navLogo} aria-label="Varagh">ورق</span>
+          <div className={styles.navActions}>
+            <button className={styles.navBtn} onClick={toggleLang} aria-label="Toggle language">
+              {isRtl ? "EN" : "فا"}
+            </button>
+            <button className={styles.navBtn} onClick={toggle} aria-label="Toggle theme">
+              {theme === "dark" ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="5" />
+                  <line x1="12" y1="1" x2="12" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" />
+                  <line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              )}
+            </button>
+            <button className={styles.playBtn} onClick={handlePlay}>
+              {t("landing.hero.cta")}
+            </button>
+          </div>
+        </nav>
+      </header>
 
-      {/* ── Hero ── */}
-      <section className={styles.hero}>
-        <div className={styles.heroCards} aria-hidden="true" ref={heroCardsRef}>
-          <div className={`${styles.floatCard} ${styles.fc1}`}>
-            <span className={styles.fcVal}>A</span>
-            <span className={styles.fcSuit}>♠</span>
-          </div>
-          <div className={`${styles.floatCard} ${styles.fc2}`}>
-            <span className={styles.fcVal}>K</span>
-            <span className={`${styles.fcSuit} ${styles.red}`}>♥</span>
-          </div>
-          <div className={`${styles.floatCard} ${styles.fc3}`}>
-            <span className={styles.fcVal}>Q</span>
-            <span className={`${styles.fcSuit} ${styles.red}`}>♦</span>
-          </div>
-          <div className={`${styles.floatCard} ${styles.fc4}`}>
-            <span className={styles.fcVal}>J</span>
-            <span className={styles.fcSuit}>♣</span>
-          </div>
-          <div className={`${styles.floatCard} ${styles.fc5}`}>
-            <span className={styles.fcVal}>10</span>
-            <span className={styles.fcSuit}>♠</span>
-          </div>
-        </div>
-
-        <div className={styles.heroContent}>
-          <h1 className={styles.heroTitle}>
-            ورق
-          </h1>
-          <p className={styles.heroSub}>Varagh</p>
-          <p className={styles.heroTagline}>{t("landing.hero.tagline")}</p>
-          <button className={styles.heroCta} onClick={handlePlay}>
-            {t("landing.hero.cta")}
-          </button>
-        </div>
-      </section>
-
-      {/* ── Live stats band ── */}
-      <div className={styles.statsBand} aria-label="Live platform stats">
-        {(
-          [
-            { key: "online",      val: stats?.onlineCount  },
-            { key: "activeGames", val: stats?.activeGames  },
-            { key: "publicRooms", val: stats?.publicRooms  },
-            { key: "totalUsers",  val: stats?.totalUsers   },
-          ] as const
-        ).map(({ key, val }) => (
-          <div key={key} className={styles.statItem}>
-            <span className={styles.statVal}>
-              {val !== undefined ? val.toLocaleString() : "—"}
-            </span>
-            <span className={styles.statKey}>{t(`landingStats.${key}`)}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Games ── */}
-      <section
-        className={styles.section}
-        ref={setRevealRef(0)}
-      >
-        <div className={styles.inner}>
-          <h2 className={styles.sectionTitle}>{t("landing.games.title")}</h2>
-          <div className={styles.gameGrid}>
-            {/* Hokm — available */}
-            <div className={styles.gameCard} onClick={handlePlay} role="button" tabIndex={0}
-              onKeyDown={(e) => { if (e.key === "Enter") handlePlay(); }}>
-              <div className={styles.gameCardSuits} aria-hidden="true">
-                <span>♠</span><span className={styles.red}>♥</span>
-                <span className={styles.red}>♦</span><span>♣</span>
+      <main>
+        {/* ── Hero ── */}
+        <section className={styles.hero} aria-labelledby="hero-title">
+          <div className={styles.heroGlow} aria-hidden="true" />
+          <div className={styles.heroCards} aria-hidden="true" ref={heroCardsRef}>
+            {HERO_CARDS.map((c) => (
+              <div
+                key={c.cls}
+                className={`${styles.floatCard} ${styles[c.cls]}`}
+                data-suit={c.suit}
+              >
+                <span className={styles.fcVal}>{c.rank}</span>
+                <span className={styles.fcSuit}>{SUIT_SYMBOL[c.suit]}</span>
               </div>
-              <h3 className={styles.gameName}>{t("landing.games.hokm.name")}</h3>
-              <p className={styles.gameDesc}>{t("landing.games.hokm.desc")}</p>
-              <div className={styles.gameFooter}>
-                <span className={styles.gamePlayers}>{t("landing.games.hokm.players")}</span>
-                <button
-                  className={styles.gamePlayBtn}
-                  onClick={(e) => { e.stopPropagation(); handlePlay(); }}
-                >
-                  {t("landing.hero.cta")}
-                </button>
-              </div>
-            </div>
-
-            {/* Shelem — coming soon */}
-            <div className={`${styles.gameCard} ${styles.gameSoon}`} aria-disabled="true">
-              <div className={styles.gameCardSuits} aria-hidden="true">
-                <span>♠</span><span className={styles.red}>♥</span>
-                <span className={styles.red}>♦</span><span>♣</span>
-              </div>
-              <h3 className={styles.gameName}>{t("landing.games.shelem.name")}</h3>
-              <span className={styles.comingSoon}>{t("landing.comingSoon")}</span>
-            </div>
-
-            {/* Pasur — coming soon */}
-            <div className={`${styles.gameCard} ${styles.gameSoon}`} aria-disabled="true">
-              <div className={styles.gameCardSuits} aria-hidden="true">
-                <span>♠</span><span className={styles.red}>♥</span>
-                <span className={styles.red}>♦</span><span>♣</span>
-              </div>
-              <h3 className={styles.gameName}>{t("landing.games.pasur.name")}</h3>
-              <span className={styles.comingSoon}>{t("landing.comingSoon")}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section
-        className={`${styles.section} ${styles.featureSection}`}
-        ref={setRevealRef(1)}
-      >
-        <div className={styles.inner}>
-          <h2 className={styles.sectionTitle}>{t("landing.features.title")}</h2>
-          <div className={styles.featureGrid}>
-            {FEATURE_KEYS.map((key, i) => {
-              const Icon = FEATURE_ICONS[i];
-              return (
-                <div key={key} className={styles.featureCard}>
-                  <div className={styles.featureIcon}>
-                    <Icon />
-                  </div>
-                  <p className={styles.featureText}>{t(`landing.features.${key}`)}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ── How to play ── */}
-      <section
-        className={styles.section}
-        ref={setRevealRef(2)}
-      >
-        <div className={styles.inner}>
-          <h2 className={styles.sectionTitle}>{t("landing.howto.title")}</h2>
-          <ol className={styles.steps} aria-label={t("landing.howto.title")}>
-            {([1, 2, 3] as const).map((n) => (
-              <li key={n} className={styles.step}>
-                <div className={styles.stepNum} aria-hidden="true">{n}</div>
-                <div className={styles.stepBody}>
-                  <h3 className={styles.stepTitle}>{t(`landing.howto.s${n}.title`)}</h3>
-                  <p className={styles.stepDesc}>{t(`landing.howto.s${n}.desc`)}</p>
-                </div>
-              </li>
             ))}
-          </ol>
-        </div>
-      </section>
+          </div>
 
-      {/* ── Bottom CTA ── */}
-      <section
-        className={`${styles.section} ${styles.ctaSection}`}
-        ref={setRevealRef(3)}
-      >
-        <div className={styles.inner}>
-          <h2 className={styles.ctaTitle}>{t("landing.cta.title")}</h2>
-          <button className={styles.heroCta} onClick={handlePlay}>
-            {t("landing.hero.cta")}
-          </button>
-        </div>
-      </section>
+          <div className={styles.heroContent}>
+            <h1 id="hero-title" className={styles.heroTitle}>ورق</h1>
+            <p className={styles.heroSub}>Varagh</p>
+            <p className={styles.heroTagline}>{t("landing.hero.tagline")}</p>
+            <button className={styles.heroCta} onClick={handlePlay}>
+              {t("landing.hero.cta")}
+            </button>
+          </div>
+
+          <div className={styles.scrollCue} aria-hidden="true">
+            <span>{t("landing.hero.scrollCue")}</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+        </section>
+
+        {/* ── Live stats band ── */}
+        <section className={styles.statsBand} aria-label="Live platform stats">
+          <div className={styles.liveTag}>
+            <span className={styles.liveDot} aria-hidden="true" />
+            {t("landing.liveTag")}
+          </div>
+          <div className={styles.statsRow}>
+            {(
+              [
+                { key: "online",      val: stats?.onlineCount  },
+                { key: "activeGames", val: stats?.activeGames  },
+                { key: "publicRooms", val: stats?.publicRooms  },
+                { key: "totalUsers",  val: stats?.totalUsers   },
+              ] as const
+            ).map(({ key, val }) => (
+              <div key={key} className={styles.statItem}>
+                <StatValue value={val} />
+                <span className={styles.statKey}>{t(`landingStats.${key}`)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Scroll card-flip showcase ── */}
+        <section className={styles.deckSection} aria-labelledby="deck-title">
+          <div className={styles.inner}>
+            <h2 id="deck-title" className={styles.sectionTitle}>{t("landing.deck.title")}</h2>
+            <p className={styles.deckSubtitle}>{t("landing.deck.subtitle")}</p>
+          </div>
+          <div className={styles.deckStage} ref={deckRef} aria-hidden="true">
+            {DECK.map((c, i) => (
+              <div
+                key={`${c.rank}-${c.suit}-${i}`}
+                className={styles.flipCard}
+                style={{ "--n": i - (DECK.length - 1) / 2 } as React.CSSProperties}
+              >
+                <div className={styles.flipper} data-flipper>
+                  <div className={styles.flipCover}>
+                    <span className={styles.coverGlyph}>ورق</span>
+                  </div>
+                  <div className={styles.flipFace} data-suit={c.suit}>
+                    <span className={styles.faceCorner}>
+                      <span className={styles.faceRank}>{c.rank}</span>
+                      <span className={styles.faceSuitSm}>{SUIT_SYMBOL[c.suit]}</span>
+                    </span>
+                    <span className={styles.faceCenter}>{SUIT_SYMBOL[c.suit]}</span>
+                    <span className={`${styles.faceCorner} ${styles.faceCornerBr}`}>
+                      <span className={styles.faceRank}>{c.rank}</span>
+                      <span className={styles.faceSuitSm}>{SUIT_SYMBOL[c.suit]}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className={styles.deckHint} aria-hidden="true">{t("landing.deck.hint")}</p>
+        </section>
+
+        {/* ── Games ── */}
+        <section className={styles.section} ref={setRevealRef(0)} aria-labelledby="games-title">
+          <div className={styles.inner}>
+            <h2 id="games-title" className={styles.sectionTitle}>{t("landing.games.title")}</h2>
+            <div className={styles.gameGrid}>
+              {/* Hokm — available */}
+              <div className={`${styles.gameCard} ${styles.gameHokm}`} onClick={handlePlay} role="button" tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter") handlePlay(); }}>
+                <div className={styles.gameCardSuits} aria-hidden="true">
+                  <span data-suit="spades">♠</span><span data-suit="hearts">♥</span>
+                  <span data-suit="diamonds">♦</span><span data-suit="clubs">♣</span>
+                </div>
+                <h3 className={styles.gameName}>{t("landing.games.hokm.name")}</h3>
+                <p className={styles.gameDesc}>{t("landing.games.hokm.desc")}</p>
+                <div className={styles.gameFooter}>
+                  <span className={styles.gamePlayers}>{t("landing.games.hokm.players")}</span>
+                  <button
+                    className={styles.gamePlayBtn}
+                    onClick={(e) => { e.stopPropagation(); handlePlay(); }}
+                  >
+                    {t("landing.hero.cta")}
+                  </button>
+                </div>
+              </div>
+
+              {/* Shelem — coming soon */}
+              <div className={`${styles.gameCard} ${styles.gameSoon}`} aria-disabled="true">
+                <div className={styles.gameCardSuits} aria-hidden="true">
+                  <span data-suit="spades">♠</span><span data-suit="hearts">♥</span>
+                  <span data-suit="diamonds">♦</span><span data-suit="clubs">♣</span>
+                </div>
+                <h3 className={styles.gameName}>{t("landing.games.shelem.name")}</h3>
+                <span className={styles.comingSoon}>{t("landing.comingSoon")}</span>
+              </div>
+
+              {/* Pasur — coming soon */}
+              <div className={`${styles.gameCard} ${styles.gameSoon}`} aria-disabled="true">
+                <div className={styles.gameCardSuits} aria-hidden="true">
+                  <span data-suit="spades">♠</span><span data-suit="hearts">♥</span>
+                  <span data-suit="diamonds">♦</span><span data-suit="clubs">♣</span>
+                </div>
+                <h3 className={styles.gameName}>{t("landing.games.pasur.name")}</h3>
+                <span className={styles.comingSoon}>{t("landing.comingSoon")}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Features ── */}
+        <section className={`${styles.section} ${styles.featureSection}`} ref={setRevealRef(1)} aria-labelledby="features-title">
+          <div className={styles.inner}>
+            <h2 id="features-title" className={styles.sectionTitle}>{t("landing.features.title")}</h2>
+            <div className={styles.featureGrid}>
+              {FEATURE_KEYS.map((key, i) => {
+                const Icon = FEATURE_ICONS[i];
+                return (
+                  <div key={key} className={styles.featureCard} data-accent={i}>
+                    <div className={styles.featureIcon}>
+                      <Icon />
+                    </div>
+                    <p className={styles.featureText}>{t(`landing.features.${key}`)}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ── How to play ── */}
+        <section className={styles.section} ref={setRevealRef(2)} aria-labelledby="howto-title">
+          <div className={styles.inner}>
+            <h2 id="howto-title" className={styles.sectionTitle}>{t("landing.howto.title")}</h2>
+            <ol className={styles.steps}>
+              {([1, 2, 3] as const).map((n) => (
+                <li key={n} className={styles.step}>
+                  <div className={styles.stepNum} aria-hidden="true">{n}</div>
+                  <div className={styles.stepBody}>
+                    <h3 className={styles.stepTitle}>{t(`landing.howto.s${n}.title`)}</h3>
+                    <p className={styles.stepDesc}>{t(`landing.howto.s${n}.desc`)}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* ── Bottom CTA ── */}
+        <section className={`${styles.section} ${styles.ctaSection}`} ref={setRevealRef(3)} aria-labelledby="cta-title">
+          <div className={styles.inner}>
+            <h2 id="cta-title" className={styles.ctaTitle}>{t("landing.cta.title")}</h2>
+            <button className={styles.heroCta} onClick={handlePlay}>
+              {t("landing.hero.cta")}
+            </button>
+          </div>
+        </section>
+      </main>
 
       {/* ── Footer ── */}
       <footer className={styles.footer}>
