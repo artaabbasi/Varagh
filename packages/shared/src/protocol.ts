@@ -37,14 +37,35 @@ export interface LobbyEntry {
   hostNickname: string;
 }
 
+export interface MatchHistoryEntry {
+  matchId: string;
+  gameId: string;
+  variantId: string;
+  endedAt: number;
+  isWinner: boolean;
+  score: string;
+  opponents: string[];
+}
+
+export interface LobbyStats {
+  onlineCount: number;
+  activeGames: number;
+  publicRooms: number;
+  totalUsers: number;
+}
+
 export interface ClientToServerEvents {
   "auth:signup": (
-    data: { nickname: string },
+    data: { nickname: string; password?: string },
     cb: (res: { ok: true; token: string; user: UserRecord } | { ok: false; error: string }) => void
   ) => void;
   "auth:login": (
     data: { token: string },
     cb: (res: { ok: true; user: UserRecord } | { ok: false; error: string }) => void
+  ) => void;
+  "auth:loginWithPassword": (
+    data: { nickname: string; password: string },
+    cb: (res: { ok: true; token: string; user: UserRecord } | { ok: false; error: string }) => void
   ) => void;
   "room:create": (
     data: { gameId: string; variantId: string; options: Record<string, unknown>; isPublic: boolean },
@@ -61,6 +82,14 @@ export interface ClientToServerEvents {
   "room:list": (
     data: Record<string, never>,
     cb: (res: { ok: true; rooms: LobbyEntry[] }) => void
+  ) => void;
+  "lobby:getStats": (
+    data: Record<string, never>,
+    cb: (res: { ok: true; stats: LobbyStats }) => void
+  ) => void;
+  "user:getHistory": (
+    data: Record<string, never>,
+    cb: (res: { ok: true; matches: MatchHistoryEntry[] } | { ok: false; error: string }) => void
   ) => void;
   /** Host starts the game (lobby → playing transition). */
   "game:start": (

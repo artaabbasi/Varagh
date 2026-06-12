@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { HokmMove } from "@varagh/shared";
 import type { HandOverEventData } from "./hooks/useAnimatedEvents";
@@ -10,11 +11,24 @@ import { TrumpWaiting } from "./phases/TrumpWaiting";
 import { DrawPhase } from "./phases/DrawPhase";
 import { HandOverSheet } from "./phases/HandOverSheet";
 import { GameOverSheet } from "./phases/GameOverSheet";
+import { WaitingRoom } from "./WaitingRoom";
+import { socket } from "../../app/socket";
 import styles from "./HokmGame.module.css";
 
 export function HokmGame() {
+  const { code } = useParams<{ code: string }>();
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { view, room, events, sendMove, moveError, clearMoveError } = useHokmSocket();
+
+  // Join (or rejoin) the room on mount so direct URL access works.
+  useEffect(() => {
+    if (!code) return;
+    socket.emit("room:join", { joinCode: code.toUpperCase() }, (res) => {
+      if (!res.ok) void navigate("/lobby");
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code]);
 
   // ── Animation / overlay state ─────────────────────────────────
   const [showHandOver, setShowHandOver] = useState(false);
@@ -56,6 +70,11 @@ export function HokmGame() {
     },
     [sendMove, clearMoveError],
   );
+
+  // Room is in pre-game lobby — show waiting room UI.
+  if (room?.phase === "lobby") {
+    return <WaitingRoom room={room} />;
+  }
 
   if (!view) {
     return (

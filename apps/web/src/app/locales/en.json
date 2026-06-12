@@ -8,20 +8,139 @@
       "subtitle": "Choose a nickname to get started",
       "nicknamePlaceholder": "Your nickname",
       "nicknameHelp": "2–20 characters. Persian or Latin letters, digits, spaces.",
+      "passwordPlaceholder": "Password (optional)",
+      "passwordHelp": "Set a password to sign in from other devices.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
       "submit": "Let's Play",
       "loading": "...",
+      "haveAccount": "Already have an account?",
+      "signInLink": "Sign in",
       "error": {
         "invalidNickname": "Nickname must be 2–20 characters (letters, digits, spaces only).",
+        "shortPassword": "Password must be at least 4 characters.",
         "serverError": "Something went wrong. Please try again."
       }
+    },
+    "signin": {
+      "title": "Sign in to Varagh",
+      "subtitle": "Enter your nickname and password",
+      "passwordPlaceholder": "Password",
+      "submit": "Sign in",
+      "noAccount": "New here?",
+      "signUpLink": "Create account",
+      "error": {
+        "invalidCredentials": "Nickname or password is incorrect."
+      }
+    }
+  },
+  "landing": {
+    "hero": {
+      "tagline": "Play Persian card games with friends — online and free.",
+      "cta": "Play Now"
+    },
+    "games": {
+      "title": "Games",
+      "hokm": {
+        "name": "Hokm",
+        "desc": "The classic Persian trick-taking game. Choose trump, follow suit, race to 7 points.",
+        "players": "2 · 3 · 4 players"
+      },
+      "shelem": { "name": "Shelem" },
+      "pasur": { "name": "Pasur" }
+    },
+    "comingSoon": "Coming soon",
+    "features": {
+      "title": "Why Varagh?",
+      "f1": "No sign-up — pick a nickname and play instantly",
+      "f2": "Works on any device, any screen size",
+      "f3": "Private rooms — share a 6-letter code with friends",
+      "f4": "2, 3, and 4 player variants of Hokm"
+    },
+    "howto": {
+      "title": "How to Play",
+      "s1": { "title": "Pick a nickname", "desc": "No email or password needed" },
+      "s2": { "title": "Create or join a room", "desc": "Share the 6-letter code with friends" },
+      "s3": { "title": "Play!", "desc": "First team to 7 points wins the game" }
+    },
+    "cta": {
+      "title": "Ready to play?"
     }
   },
   "lobby": {
     "title": "Lobby",
-    "comingSoon": "Lobby coming soon"
+    "greeting": "Hi, {{name}}",
+    "discriminator": "#{{disc}}",
+    "createGame": "Create Game",
+    "joinGame": "Join a Game",
+    "joinCodePlaceholder": "Enter 6-letter code",
+    "join": "Join",
+    "publicRooms": "Public Rooms",
+    "noPublicRooms": "No public rooms right now. Create one!",
+    "refresh": "Refresh",
+    "hostLabel": "Host",
+    "playersLabel": "{{count}} player(s)",
+    "joinRoomBtn": "Join",
+    "create": {
+      "title": "Create Game",
+      "game": "Game",
+      "variant": "Players",
+      "visibility": "Visibility",
+      "public": "Public",
+      "private": "Private",
+      "submit": "Create Room",
+      "loading": "Creating..."
+    },
+    "variants": {
+      "4p": "4 Players",
+      "3p": "3 Players",
+      "2p": "2 Players"
+    },
+    "errors": {
+      "invalidCode": "Enter a valid 6-letter code",
+      "joinFailed": "Room not found. Check the code.",
+      "createFailed": "Could not create room. Try again."
+    }
+  },
+  "room": {
+    "waiting": {
+      "title": "Waiting for players",
+      "codeLabel": "Join Code",
+      "playersLabel": "Players",
+      "startGame": "Start Game",
+      "startHint": "Need {{min}} players to start",
+      "waitHint": "Waiting for host to start…",
+      "leave": "Leave Room",
+      "copyCode": "Copy",
+      "copied": "Copied!"
+    }
+  },
+  "profile": {
+    "player": "Player",
+    "stats": {
+      "games": "Games",
+      "wins": "Wins",
+      "losses": "Losses",
+      "winRate": "Win Rate"
+    },
+    "history": {
+      "title": "Match History",
+      "empty": "No matches played yet. Play your first game!",
+      "win": "Win",
+      "loss": "Loss",
+      "vs": "vs."
+    }
+  },
+  "landingStats": {
+    "online": "Online Now",
+    "activeGames": "Active Games",
+    "publicRooms": "Open Rooms",
+    "totalUsers": "Players"
   },
   "error": {
-    "notFound": "Page not found"
+    "notFound": "Page not found",
+    "roomNotFound": "Room not found",
+    "roomNotFoundDesc": "This room may have ended or the code is incorrect."
   },
   "hokm": {
     "loading": "Connecting to game…",

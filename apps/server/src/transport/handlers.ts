@@ -7,13 +7,14 @@ import type {
 } from "@varagh/shared";
 import type { AuthStore } from "../auth/store";
 import type { Room } from "../rooms/room";
-import { signup, login } from "../auth/auth";
+import { signup, login, loginWithPassword } from "../auth/auth";
 import { RoomStore } from "../rooms/room-store";
 import { toLobbyEntry } from "../rooms/lobby";
 import { GameRunner } from "../rooms/game-runner";
 
 // 2–20 chars: Persian letters, Latin letters, digits, spaces
 const NICKNAME_RE = /^[؀-ۿa-zA-Z0-9 ]{2,20}$/;
+const PASSWORD_MIN = 4;
 
 function toRoomView(room: Room): RoomView {
   return {
@@ -46,18 +47,19 @@ export function registerHandlers(
 
     // ── Auth ──────────────────────────────────────────────────────────────
 
-    socket.on("auth:signup", ({ nickname }, cb) => {
+    socket.on("auth:signup", ({ nickname, password }, cb) => {
       const trimmed = nickname.trim();
       if (!NICKNAME_RE.test(trimmed)) {
         return cb({ ok: false, error: "Invalid nickname" });
       }
+      if (password !== undefined && password.length < PASSWORD_MIN) {
+        return cb({ ok: false, error: `Password must be at least ${PASSWORD_MIN} characters` });
+      }
       try {
-        const { token, user } = signup(authStore, trimmed);
+        const { token, user } = signup(authStore, trimmed, password);
         socket.data.userId = user.id;
         socket.data.nickname = user.nickname;
         socket.data.discriminator = user.discriminator;
-        // Join a personal Socket.IO room so game:stateUpdate can reach this
-        // socket by userId regardless of room membership.
         void socket.join(user.id);
         cb({ ok: true, token, user });
       } catch {
@@ -73,6 +75,17 @@ export function registerHandlers(
       socket.data.discriminator = user.discriminator;
       void socket.join(user.id);
       cb({ ok: true, user });
+    });
+
+    socket.on("auth:loginWithPassword", ({ nickname, password }, cb) => {
+      const result = loginWithPassword(authStore, nickname.trim(), password);
+      if (!result) return cb({ ok: false, error: "Invalid nickname or password" });
+      const { token, user } = result;
+      socket.data.userId = user.id;
+      socket.data.nickname = user.nickname;
+      socket.data.discriminator = user.discriminator;
+      void socket.join(user.id);
+      cb({ ok: true, token, user });
     });
 
     // ── Room lifecycle ────────────────────────────────────────────────────
@@ -109,8 +122,6 @@ export function registerHandlers(
       socket.data.currentRoomCode = room.code;
       void socket.join(room.code);
 
-      // If the room is already in progress this is a reconnect — restore the
-      // player's view and cancel their grace timer.
       if (room.phase === "playing") {
         gameRunner.handleReconnect(room.code, socket.data.userId);
       }
@@ -133,6 +144,20 @@ export function registerHandlers(
       cb({ ok: true, rooms: roomStore.listPublic().map(toLobbyEntry) });
     });
 
+    socket.on("lobby:getStats", (_, cb) => {
+      const onlineCount = io.sockets.sockets.size;
+      const { activeGames, publicRooms } = roomStore.getStats();
+      const totalUsers = authStore.getTotalUsers();
+      cb({ ok: true, stats: { onlineCount, activeGames, publicRooms, totalUsers } });
+    });
+
+    socket.on("user:getHistory", (_, cb) => {
+      const { userId } = socket.data;
+      if (!userId) return cb({ ok: false, error: "Not authenticated" });
+      const matches = authStore.getUserHistory(userId);
+      cb({ ok: true, matches });
+    });
+
     // ── Game ──────────────────────────────────────────────────────────────
 
     socket.on("game:start", (_, cb) => {
@@ -145,7 +170,6 @@ export function registerHandlers(
       const result = gameRunner.startGame(room);
       if (!result.ok) return cb({ ok: false, error: result.error });
 
-      // Notify lobby that the room is no longer joinable.
       io.to(room.code).emit("room:updated", toRoomView(room));
       cb({ ok: true });
     });

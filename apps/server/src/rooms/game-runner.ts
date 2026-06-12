@@ -13,7 +13,7 @@
  * Transport stays thin; this class only needs the io reference for emitting.
  */
 
-import { randomInt } from "crypto";
+import { randomInt, randomUUID } from "crypto";
 import type { Server } from "socket.io";
 import {
   games,
@@ -27,6 +27,7 @@ import {
 } from "@varagh/shared";
 import type { Room } from "./room";
 import type { RoomStore } from "./room-store";
+import type { AuthStore } from "../auth/store";
 
 // ── Tunable constants ──────────────────────────────────────────────────────
 
@@ -56,6 +57,7 @@ interface RoomGame {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   engine: GameDefinition<any, any, any>;
   rng: Rng;
+  startedAt: number;
   turnTimer?: ReturnType<typeof setTimeout>;
   graceTimers: Map<string, ReturnType<typeof setTimeout>>;
   /** Players whose grace period has expired; their turns are auto-played at 0 ms. */
@@ -86,6 +88,7 @@ export class GameRunner {
   constructor(
     private readonly io: AppServer,
     private readonly roomStore: RoomStore,
+    private readonly authStore?: AuthStore,
   ) {}
 
   // ── Public API ─────────────────────────────────────────────────────────
@@ -130,6 +133,7 @@ export class GameRunner {
     const game: RoomGame = {
       engine,
       rng,
+      startedAt: Date.now(),
       graceTimers: new Map(),
       disconnectedPastGrace: new Set(),
       autoMoveCount: 0,
@@ -248,6 +252,27 @@ export class GameRunner {
 
     room.phase = "finished";
     this.io.to(room.code).emit("game:ended", { outcome });
+
+    // Persist match result
+    if (this.authStore) {
+      try {
+        const endedAt = Date.now();
+        const winnerSet = new Set(outcome.winners);
+        const players = room.seats.map((s) => ({
+          id: s.playerId,
+          nickname: s.nickname,
+          score: String((outcome.scores as Record<string, number>)[s.playerId] ?? 0),
+          isWinner: winnerSet.has(s.playerId),
+        }));
+        this.authStore.saveMatch(
+          randomUUID(), room.gameId, room.variantId,
+          game.startedAt, endedAt, players,
+        );
+      } catch {
+        // Non-fatal — game already over
+      }
+    }
+
     this.cleanup(room.code);
     return true;
   }

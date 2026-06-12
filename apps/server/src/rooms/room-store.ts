@@ -74,4 +74,12 @@ export class RoomStore {
   listPublic(): Room[] {
     return [...this.rooms.values()].filter((r) => r.isPublic && r.phase === "lobby");
   }
+
+  getStats(): { activeGames: number; publicRooms: number } {
+    const all = [...this.rooms.values()];
+    return {
+      activeGames: all.filter((r) => r.phase === "playing").length,
+      publicRooms: all.filter((r) => r.phase === "lobby" && r.isPublic).length,
+    };
+  }
 }

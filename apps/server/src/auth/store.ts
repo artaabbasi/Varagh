@@ -1,5 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID, randomInt } from "crypto";
+import type { MatchHistoryEntry } from "@varagh/shared";
 
 export interface User {
   id: string;
@@ -8,11 +9,24 @@ export interface User {
 }
 
 export interface AuthStore {
-  createUser(nickname: string, tokenHash: string): User;
+  createUser(nickname: string, tokenHash: string, passwordHash?: string): User;
   findByTokenHash(tokenHash: string): User | undefined;
   updateTokenHash(userId: string, tokenHash: string): void;
   setPin(userId: string, pinHash: string): void;
   findByNicknameAndPinHash(nickname: string, pinHash: string): User | undefined;
+  findByNicknameAndPasswordHash(nickname: string, passwordHash: string): User | undefined;
+  updatePasswordHash(userId: string, passwordHash: string): void;
+  getTotalUsers(): number;
+
+  saveMatch(
+    matchId: string,
+    gameId: string,
+    variantId: string,
+    startedAt: number,
+    endedAt: number,
+    players: Array<{ id: string; nickname: string; score: string; isWinner: boolean }>,
+  ): void;
+  getUserHistory(userId: string, limit?: number): MatchHistoryEntry[];
 }
 
 export function createAuthStore(db: DatabaseSync): AuthStore {
@@ -22,17 +36,45 @@ export function createAuthStore(db: DatabaseSync): AuthStore {
       nickname      TEXT NOT NULL,
       discriminator TEXT NOT NULL,
       token_hash    TEXT UNIQUE NOT NULL,
-      pin_hash      TEXT
+      pin_hash      TEXT,
+      password_hash TEXT
+    )
+  `);
+
+  // Migrate pre-existing databases that lack newer columns
+  const userColumns = (db.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>).map(c => c.name);
+  if (!userColumns.includes("password_hash")) {
+    db.exec("ALTER TABLE users ADD COLUMN password_hash TEXT");
+  }
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS matches (
+      id          TEXT PRIMARY KEY,
+      game_id     TEXT NOT NULL,
+      variant_id  TEXT NOT NULL,
+      started_at  INTEGER NOT NULL,
+      ended_at    INTEGER NOT NULL
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS match_players (
+      match_id   TEXT NOT NULL,
+      player_id  TEXT NOT NULL,
+      nickname   TEXT NOT NULL,
+      score      TEXT NOT NULL,
+      is_winner  INTEGER NOT NULL,
+      PRIMARY KEY (match_id, player_id)
     )
   `);
 
   return {
-    createUser(nickname, tokenHash) {
+    createUser(nickname, tokenHash, passwordHash?) {
       const id = randomUUID();
       const discriminator = String(randomInt(1000, 9999));
       db.prepare(
-        "INSERT INTO users (id, nickname, discriminator, token_hash) VALUES (?, ?, ?, ?)"
-      ).run(id, nickname, discriminator, tokenHash);
+        "INSERT INTO users (id, nickname, discriminator, token_hash, password_hash) VALUES (?, ?, ?, ?, ?)"
+      ).run(id, nickname, discriminator, tokenHash, passwordHash ?? null);
       return { id, nickname, discriminator };
     },
 
@@ -56,6 +98,70 @@ export function createAuthStore(db: DatabaseSync): AuthStore {
           "SELECT id, nickname, discriminator FROM users WHERE nickname = ? AND pin_hash = ?"
         )
         .get(nickname, pinHash) as User | undefined;
+    },
+
+    findByNicknameAndPasswordHash(nickname, passwordHash) {
+      return db
+        .prepare(
+          "SELECT id, nickname, discriminator FROM users WHERE nickname = ? AND password_hash = ?"
+        )
+        .get(nickname, passwordHash) as User | undefined;
+    },
+
+    updatePasswordHash(userId, passwordHash) {
+      db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(userId, passwordHash);
+    },
+
+    getTotalUsers() {
+      const row = db.prepare("SELECT COUNT(*) as n FROM users").get() as { n: number };
+      return row.n;
+    },
+
+    saveMatch(matchId, gameId, variantId, startedAt, endedAt, players) {
+      db.prepare(
+        "INSERT OR IGNORE INTO matches (id, game_id, variant_id, started_at, ended_at) VALUES (?, ?, ?, ?, ?)"
+      ).run(matchId, gameId, variantId, startedAt, endedAt);
+      for (const p of players) {
+        db.prepare(
+          "INSERT OR IGNORE INTO match_players (match_id, player_id, nickname, score, is_winner) VALUES (?, ?, ?, ?, ?)"
+        ).run(matchId, p.id, p.nickname, p.score, p.isWinner ? 1 : 0);
+      }
+    },
+
+    getUserHistory(userId, limit = 20) {
+      const rows = db
+        .prepare(
+          `SELECT
+             m.id as matchId, m.game_id as gameId, m.variant_id as variantId,
+             m.ended_at as endedAt,
+             mp.is_winner as isWinner, mp.score
+           FROM matches m
+           JOIN match_players mp ON m.id = mp.match_id
+           WHERE mp.player_id = ?
+           ORDER BY m.ended_at DESC
+           LIMIT ?`
+        )
+        .all(userId, limit) as Array<{
+          matchId: string; gameId: string; variantId: string;
+          endedAt: number; isWinner: number; score: string;
+        }>;
+
+      return rows.map((row) => {
+        const opponents = db
+          .prepare(
+            "SELECT nickname FROM match_players WHERE match_id = ? AND player_id != ?"
+          )
+          .all(row.matchId, userId) as Array<{ nickname: string }>;
+        return {
+          matchId: row.matchId,
+          gameId: row.gameId,
+          variantId: row.variantId,
+          endedAt: row.endedAt,
+          isWinner: row.isWinner === 1,
+          score: row.score,
+          opponents: opponents.map((o) => o.nickname),
+        };
+      });
     },
   };
 }

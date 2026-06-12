@@ -27,7 +27,7 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, Record<string,
 const db = new DatabaseSync(DB_PATH);
 const authStore = createAuthStore(db);
 const roomStore = new RoomStore();
-const gameRunner = new GameRunner(io, roomStore);
+const gameRunner = new GameRunner(io, roomStore, authStore);
 
 registerHandlers(io, authStore, roomStore, gameRunner);
 

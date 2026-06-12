@@ -1,14 +1,18 @@
 import { useEffect } from "react";
 import { createBrowserRouter, RouterProvider, redirect } from "react-router-dom";
 import { SignupScreen } from "../auth/SignupScreen";
+import { SignInScreen } from "../auth/SignInScreen";
 import { HokmGame } from "../games/hokm/HokmGame";
-import { getStoredToken, clearToken } from "../auth/auth-store";
+import { LandingPage } from "../landing/LandingPage";
+import { LobbyScreen } from "../lobby/LobbyScreen";
+import { ProfileScreen } from "../profile/ProfileScreen";
+import { getStoredToken, clearToken, storeUser } from "../auth/auth-store";
 import { socket } from "./socket";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    loader: () => redirect(getStoredToken() ? "/lobby" : "/signup"),
+    element: <LandingPage />,
   },
   {
     path: "/signup",
@@ -16,13 +20,19 @@ const router = createBrowserRouter([
     element: <SignupScreen />,
   },
   {
+    path: "/signin",
+    loader: () => (getStoredToken() ? redirect("/lobby") : null),
+    element: <SignInScreen />,
+  },
+  {
     path: "/lobby",
     loader: () => (!getStoredToken() ? redirect("/signup") : null),
-    element: (
-      <div style={{ padding: "2rem", color: "var(--md-sys-color-on-background)" }}>
-        Lobby — coming soon
-      </div>
-    ),
+    element: <LobbyScreen />,
+  },
+  {
+    path: "/profile",
+    loader: () => (!getStoredToken() ? redirect("/signup") : null),
+    element: <ProfileScreen />,
   },
   {
     path: "/room/:code",
@@ -37,7 +47,11 @@ export function App() {
     const token = getStoredToken();
     if (token) {
       socket.emit("auth:login", { token }, (res) => {
-        if (!res.ok) clearToken();
+        if (!res.ok) {
+          clearToken();
+        } else {
+          storeUser(res.user);
+        }
       });
     }
     return () => void socket.disconnect();

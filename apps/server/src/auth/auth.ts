@@ -9,14 +9,35 @@ export function hashToken(token: string): string {
   return sha256(token);
 }
 
-export function signup(store: AuthStore, nickname: string): { token: string; user: User } {
+export function hashPassword(password: string): string {
+  return sha256(password);
+}
+
+export function signup(
+  store: AuthStore,
+  nickname: string,
+  password?: string,
+): { token: string; user: User } {
   const token = randomBytes(32).toString("hex");
-  const user = store.createUser(nickname, hashToken(token));
+  const passwordHash = password ? hashPassword(password) : undefined;
+  const user = store.createUser(nickname, hashToken(token), passwordHash);
   return { token, user };
 }
 
 export function login(store: AuthStore, token: string): User | null {
   return store.findByTokenHash(hashToken(token)) ?? null;
+}
+
+export function loginWithPassword(
+  store: AuthStore,
+  nickname: string,
+  password: string,
+): { token: string; user: User } | null {
+  const user = store.findByNicknameAndPasswordHash(nickname, hashPassword(password));
+  if (!user) return null;
+  const token = randomBytes(32).toString("hex");
+  store.updateTokenHash(user.id, hashToken(token));
+  return { token, user };
 }
 
 export function recoverWithPin(

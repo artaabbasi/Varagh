@@ -5,10 +5,7 @@ import { socket } from "../app/socket";
 import { storeToken, storeUser } from "./auth-store";
 import styles from "./SignupScreen.module.css";
 
-// 2–20 chars: Persian (U+0600–U+06FF) or Latin letters, digits, spaces
-const NICKNAME_RE = /^[؀-ۿa-zA-Z0-9 ]{2,20}$/;
-
-export function SignupScreen() {
+export function SignInScreen() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [nickname, setNickname] = useState("");
@@ -19,25 +16,17 @@ export function SignupScreen() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const trimmed = nickname.trim();
-    if (!NICKNAME_RE.test(trimmed)) {
-      setError(t("auth.signup.error.invalidNickname"));
-      return;
-    }
-    if (password && password.length < 4) {
-      setError(t("auth.signup.error.shortPassword"));
-      return;
-    }
+    if (!nickname.trim() || !password) return;
     setLoading(true);
     setError(null);
     if (!socket.connected) socket.connect();
     socket.emit(
-      "auth:signup",
-      { nickname: trimmed, password: password || undefined },
+      "auth:loginWithPassword",
+      { nickname: nickname.trim(), password },
       (res) => {
         setLoading(false);
         if (!res.ok) {
-          setError(t("auth.signup.error.serverError"));
+          setError(t("auth.signin.error.invalidCredentials"));
           return;
         }
         storeToken(res.token);
@@ -47,14 +36,14 @@ export function SignupScreen() {
     );
   };
 
-  const isSubmittable = !loading && NICKNAME_RE.test(nickname.trim());
+  const isSubmittable = !loading && nickname.trim().length >= 2 && password.length >= 4;
 
   return (
     <div className={styles.container}>
       <div className={styles.card}>
         <a href="/" className={styles.backLogo} aria-label="Back to home">ورق</a>
-        <h1 className={styles.title}>{t("auth.signup.title")}</h1>
-        <p className={styles.subtitle}>{t("auth.signup.subtitle")}</p>
+        <h1 className={styles.title}>{t("auth.signin.title")}</h1>
+        <p className={styles.subtitle}>{t("auth.signin.subtitle")}</p>
         <form onSubmit={handleSubmit} className={styles.form} noValidate>
           <div className={styles.field}>
             <input
@@ -66,11 +55,8 @@ export function SignupScreen() {
               maxLength={20}
               autoFocus
               disabled={loading}
-              aria-describedby="nickname-help"
+              autoComplete="username"
             />
-            <p id="nickname-help" className={styles.help}>
-              {t("auth.signup.nicknameHelp")}
-            </p>
           </div>
 
           <div className={styles.field}>
@@ -80,9 +66,9 @@ export function SignupScreen() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={t("auth.signup.passwordPlaceholder")}
+                placeholder={t("auth.signin.passwordPlaceholder")}
                 disabled={loading}
-                autoComplete="new-password"
+                autoComplete="current-password"
               />
               <button
                 type="button"
@@ -94,7 +80,6 @@ export function SignupScreen() {
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
-            <p className={styles.help}>{t("auth.signup.passwordHelp")}</p>
           </div>
 
           {error && (
@@ -103,13 +88,13 @@ export function SignupScreen() {
             </p>
           )}
           <button className={styles.submit} type="submit" disabled={!isSubmittable}>
-            {loading ? t("auth.signup.loading") : t("auth.signup.submit")}
+            {loading ? t("auth.signup.loading") : t("auth.signin.submit")}
           </button>
         </form>
 
         <p className={styles.switchLink}>
-          {t("auth.signup.haveAccount")}{" "}
-          <Link to="/signin">{t("auth.signup.signInLink")}</Link>
+          {t("auth.signin.noAccount")}{" "}
+          <Link to="/signup">{t("auth.signin.signUpLink")}</Link>
         </p>
       </div>
     </div>
