@@ -1,7 +1,11 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { HokmView, RoomView } from "@varagh/shared";
 import type { HandOverEventData } from "../hooks/useAnimatedEvents";
 import styles from "./HandOverSheet.module.css";
+
+/** Seconds the hand summary stays up before the next round starts on its own. */
+const NEXT_ROUND_SECONDS = 6;
 
 interface HandOverSheetProps {
   data: HandOverEventData;
@@ -13,6 +17,17 @@ interface HandOverSheetProps {
 
 export function HandOverSheet({ data, view, room, kotIsHakem, onContinue }: HandOverSheetProps) {
   const { t } = useTranslation();
+
+  // Auto-advance to the next round after a short countdown — no button needed.
+  const [remaining, setRemaining] = useState(NEXT_ROUND_SECONDS);
+  useEffect(() => {
+    const tick = setInterval(() => setRemaining((s) => Math.max(0, s - 1)), 1000);
+    const done = setTimeout(onContinue, NEXT_ROUND_SECONDS * 1000);
+    return () => { clearInterval(tick); clearTimeout(done); };
+    // Runs once; onContinue only flips overlay state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const { tricksTaken, winnerTeam, pointsGained, scores } = data;
   const numPlayers = view.players.length;
 
@@ -75,13 +90,23 @@ export function HandOverSheet({ data, view, room, kotIsHakem, onContinue }: Hand
           {t("hokm.handOver.nextHakem", { name: nextHakemName })}
         </p>
 
+        {/* Auto-advance countdown (tap anywhere to skip) */}
         <button
           type="button"
-          className={styles.continueBtn}
+          className={styles.countdown}
           onClick={onContinue}
-          autoFocus
+          aria-label={t("hokm.handOver.skip")}
         >
-          {t("hokm.handOver.continue")}
+          <span className={styles.countdownText}>
+            {t("hokm.handOver.nextRoundIn", { seconds: remaining })}
+          </span>
+          <span className={styles.countdownTrack} aria-hidden="true">
+            <span
+              className={styles.countdownFill}
+              style={{ animationDuration: `${NEXT_ROUND_SECONDS}s` }}
+            />
+          </span>
+          <span className={styles.countdownHint}>{t("hokm.handOver.skipHint")}</span>
         </button>
       </div>
     </div>

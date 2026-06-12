@@ -8,6 +8,8 @@ interface PlayerAvatarProps {
   teamColor?: "primary" | "tertiary" | "none";
   compact?: boolean;
   className?: string;
+  /** Optional photo (data URL). Falls back to the coloured initial. */
+  avatarUrl?: string | null;
 }
 
 /** Stable hue from nickname — used to pick the avatar background. */
@@ -41,6 +43,7 @@ export function PlayerAvatar({
   teamColor = "none",
   compact = false,
   className,
+  avatarUrl,
 }: PlayerAvatarProps) {
   const hue = nicknameHue(nickname);
   const initial = [...nickname].find((c) => /\p{L}/u.test(c)) ?? "?";
@@ -64,9 +67,13 @@ export function PlayerAvatar({
         style={{ "--avatar-hue": hue } as React.CSSProperties}
         aria-label={nickname}
       >
-        <span className={styles.initial} aria-hidden="true">
-          {initial}
-        </span>
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" className={styles.photo} />
+        ) : (
+          <span className={styles.initial} aria-hidden="true">
+            {initial}
+          </span>
+        )}
         {!isConnected && <span className={styles.offlineDot} aria-hidden="true" />}
       </div>
       <span className={styles.name}>

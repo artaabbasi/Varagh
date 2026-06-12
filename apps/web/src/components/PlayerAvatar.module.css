@@ -38,6 +38,14 @@
   height: 36px;
 }
 
+.photo {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+  display: block;
+}
+
 .disconnected {
   opacity: 0.5;
 }

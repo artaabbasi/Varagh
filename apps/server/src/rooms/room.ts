@@ -5,6 +5,10 @@ export interface Seat {
   nickname: string;
   discriminator: string;
   connected: boolean;
+  /** Pre-game lobby ready state. The host is always treated as ready. */
+  ready: boolean;
+  /** Small compressed data-URL avatar, or null/undefined. */
+  avatar?: string | null;
 }
 
 export interface Room {

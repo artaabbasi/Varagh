@@ -15,12 +15,13 @@ export function hashPassword(password: string): string {
 
 export function signup(
   store: AuthStore,
-  nickname: string,
-  password?: string,
+  username: string,
+  displayName: string,
+  password: string,
 ): { token: string; user: User } {
   const token = randomBytes(32).toString("hex");
-  const passwordHash = password ? hashPassword(password) : undefined;
-  const user = store.createUser(nickname, hashToken(token), passwordHash);
+  const passwordHash = hashPassword(password);
+  const user = store.createUser(username, displayName, hashToken(token), passwordHash);
   return { token, user };
 }
 
@@ -30,10 +31,10 @@ export function login(store: AuthStore, token: string): User | null {
 
 export function loginWithPassword(
   store: AuthStore,
-  nickname: string,
+  username: string,
   password: string,
 ): { token: string; user: User } | null {
-  const user = store.findByNicknameAndPasswordHash(nickname, hashPassword(password));
+  const user = store.findByUsernameAndPasswordHash(username, hashPassword(password));
   if (!user) return null;
   const token = randomBytes(32).toString("hex");
   store.updateTokenHash(user.id, hashToken(token));

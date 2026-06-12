@@ -15,6 +15,7 @@ interface OpponentSeatProps {
   isHakem: boolean;
   isConnected: boolean;
   isTurn: boolean;
+  avatarUrl?: string | null;
   handSize: number;
   trickCount: number;
   teamColor: "primary" | "tertiary" | "none";
@@ -29,6 +30,7 @@ export function OpponentSeat({
   isHakem,
   isConnected,
   isTurn,
+  avatarUrl,
   handSize,
   trickCount,
   teamColor,
@@ -80,6 +82,7 @@ export function OpponentSeat({
         isHakem={isHakem}
         isConnected={isConnected}
         teamColor={teamColor}
+        avatarUrl={avatarUrl}
         compact
       />
 

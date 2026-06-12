@@ -8,7 +8,7 @@ import styles from "./SignupScreen.module.css";
 export function SignInScreen() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [nickname, setNickname] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,13 +16,13 @@ export function SignInScreen() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!nickname.trim() || !password) return;
+    if (!username.trim() || !password) return;
     setLoading(true);
     setError(null);
     if (!socket.connected) socket.connect();
     socket.emit(
       "auth:loginWithPassword",
-      { nickname: nickname.trim(), password },
+      { username: username.trim().toLowerCase(), password },
       (res) => {
         setLoading(false);
         if (!res.ok) {
@@ -36,7 +36,7 @@ export function SignInScreen() {
     );
   };
 
-  const isSubmittable = !loading && nickname.trim().length >= 2 && password.length >= 4;
+  const isSubmittable = !loading && username.trim().length >= 3 && password.length >= 4;
 
   return (
     <div className={styles.container}>
@@ -49,13 +49,15 @@ export function SignInScreen() {
             <input
               className={styles.input}
               type="text"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder={t("auth.signup.nicknamePlaceholder")}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder={t("auth.signin.usernamePlaceholder")}
               maxLength={20}
               autoFocus
               disabled={loading}
               autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
             />
           </div>
 

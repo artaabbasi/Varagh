@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { HokmMove } from "@varagh/shared";
@@ -12,6 +12,7 @@ import { DrawPhase } from "./phases/DrawPhase";
 import { HandOverSheet } from "./phases/HandOverSheet";
 import { GameOverSheet } from "./phases/GameOverSheet";
 import { WaitingRoom } from "./WaitingRoom";
+import { TRICK_REVIEW_MS, TRICK_SWEEP_MS } from "./timing";
 import { socket } from "../../app/socket";
 import styles from "./HokmGame.module.css";
 
@@ -22,8 +23,9 @@ export function HokmGame() {
   const { view, room, events, sendMove, moveError, clearMoveError } = useHokmSocket();
 
   const [confirmLeave, setConfirmLeave] = useState(false);
-  // undefined = game running; null = ended (leaver unknown); string = leaver name
-  const [endedBy, setEndedBy] = useState<string | null | undefined>(undefined);
+  const [confirmEnd, setConfirmEnd] = useState(false);
+  // null while the game is running; set once it has been ended early.
+  const [ended, setEnded] = useState<{ reason: "playerLeft" | "hostEnded"; by: string | null } | null>(null);
 
   // Join (or rejoin) the room on mount so direct URL access works.
   useEffect(() => {
@@ -34,10 +36,10 @@ export function HokmGame() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
-  // A player left mid-game → the server ended it for everyone.
+  // The game was ended early (a player left, or the host ended it).
   useEffect(() => {
-    const onAborted = (data: { reason: "playerLeft"; by: string | null }) => {
-      setEndedBy(data.by ?? null);
+    const onAborted = (data: { reason: "playerLeft" | "hostEnded"; by: string | null }) => {
+      setEnded({ reason: data.reason, by: data.by });
     };
     socket.on("game:aborted", onAborted);
     return () => { socket.off("game:aborted", onAborted); };
@@ -66,11 +68,24 @@ export function HokmGame() {
   const [kotIsHakem, setKotIsHakem] = useState(false);
   const [showKotBurst, setShowKotBurst] = useState(false);
   const [drawFeedback, setDrawFeedback] = useState<{ playerId: string; action: string } | null>(null);
+  const sweepTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    const timers = sweepTimersRef.current;
+    return () => { timers.forEach(clearTimeout); };
+  }, []);
 
   useAnimatedEvents(events, {
     onTrickWon: (winnerId) => {
-      setSweepingWinner(winnerId);
-      setTimeout(() => setSweepingWinner(null), 900);
+      // Hold the completed trick in the centre (review), THEN sweep it to the
+      // winner. The point is revealed by HokmTable as the sweep lands.
+      setSweepingWinner(null);
+      const reviewTimer = setTimeout(() => {
+        setSweepingWinner(winnerId);
+        const sweepTimer = setTimeout(() => setSweepingWinner(null), TRICK_SWEEP_MS);
+        sweepTimersRef.current.push(sweepTimer);
+      }, TRICK_REVIEW_MS);
+      sweepTimersRef.current.push(reviewTimer);
     },
     onTrumpChosen: (suit) => {
       setTrumpRevealSuit(suit);
@@ -105,6 +120,13 @@ export function HokmGame() {
     });
   };
 
+  // Host deliberately ends the match for everyone, then returns to lobby.
+  const handleEndGameConfirmed = () => {
+    socket.emit("room:endGame", {}, () => {
+      goToLobby();
+    });
+  };
+
   // Room is in pre-game lobby — show waiting room UI.
   if (room?.phase === "lobby") {
     return <WaitingRoom room={room} />;
@@ -113,7 +135,12 @@ export function HokmGame() {
   if (!view) {
     return (
       <div className={styles.loading} aria-live="polite">
-        <div className={styles.spinner} aria-hidden="true" />
+        <div className={styles.loadingCards} aria-hidden="true">
+          <span className={styles.loadingCard} data-suit="spades">♠</span>
+          <span className={styles.loadingCard} data-suit="hearts">♥</span>
+          <span className={styles.loadingCard} data-suit="diamonds">♦</span>
+          <span className={styles.loadingCard} data-suit="clubs">♣</span>
+        </div>
         <p>{t("hokm.loading")}</p>
       </div>
     );
@@ -121,12 +148,25 @@ export function HokmGame() {
 
   const localPlayer = view.forPlayer;
   const isHakem = view.players[view.hakemIndex] === localPlayer;
+  const isHost = room?.seats.find((s) => s.playerId === localPlayer)?.isHost ?? false;
   const lang = i18n.language as "fa" | "en";
 
   // ── Phase overlay ─────────────────────────────────────────────
   let phaseOverlay: React.ReactNode = null;
 
-  if (showHandOver && handOverData) {
+  // Game over takes priority: on the final hand we skip the hand-over
+  // countdown entirely and go straight to the results — there is no next round.
+  if (view.phase === "gameOver") {
+    phaseOverlay = (
+      <GameOverSheet
+        view={view}
+        room={room}
+        onRematch={() => {
+          /* lobby will handle this */
+        }}
+      />
+    );
+  } else if (showHandOver && handOverData) {
     phaseOverlay = (
       <HandOverSheet
         data={handOverData}
@@ -136,16 +176,6 @@ export function HokmGame() {
         onContinue={() => {
           setShowHandOver(false);
           setHandOverData(null);
-        }}
-      />
-    );
-  } else if (view.phase === "gameOver") {
-    phaseOverlay = (
-      <GameOverSheet
-        view={view}
-        room={room}
-        onRematch={() => {
-          /* lobby will handle this */
         }}
       />
     );
@@ -183,16 +213,26 @@ export function HokmGame() {
         onClearMoveError={clearMoveError}
       />
 
-      {/* Exit button — always visible during an active game */}
-      {view.phase !== "gameOver" && !confirmLeave && (
-        <button
-          className={styles.exitBtn}
-          onClick={() => setConfirmLeave(true)}
-          aria-label={t("room.leave.leaveGame")}
-          title={t("room.leave.leaveGame")}
-        >
-          <ExitIcon />
-        </button>
+      {/* Top controls — exit (everyone) + end game (host only) */}
+      {view.phase !== "gameOver" && !confirmLeave && !confirmEnd && (
+        <div className={styles.topControls}>
+          <button
+            className={styles.exitBtn}
+            onClick={() => setConfirmLeave(true)}
+            aria-label={t("room.leave.leaveGame")}
+            title={t("room.leave.leaveGame")}
+          >
+            <ExitIcon />
+          </button>
+          {isHost && (
+            <button
+              className={styles.endGameBtn}
+              onClick={() => setConfirmEnd(true)}
+            >
+              {t("hokm.endGame.button")}
+            </button>
+          )}
+        </div>
       )}
 
       {/* Leave confirmation dialog */}
@@ -213,13 +253,35 @@ export function HokmGame() {
         </div>
       )}
 
-      {/* Game ended early because a player left */}
-      {endedBy !== undefined && (
+      {/* Host end-game confirmation dialog */}
+      {confirmEnd && (
+        <div className={styles.leaveOverlay} role="alertdialog" aria-modal="true">
+          <div className={styles.leaveDialog}>
+            <p className={styles.leaveDialogTitle}>{t("hokm.endGame.confirm")}</p>
+            <p className={styles.leaveDialogSub}>{t("hokm.endGame.confirmSub")}</p>
+            <div className={styles.leaveDialogActions}>
+              <button className={styles.leaveCancelBtn} onClick={() => setConfirmEnd(false)}>
+                {t("room.leave.cancel")}
+              </button>
+              <button className={styles.leaveConfirmBtn} onClick={handleEndGameConfirmed}>
+                {t("hokm.endGame.button")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Game ended early (a player left, or the host ended it) */}
+      {ended && (
         <div className={styles.leaveOverlay} role="alertdialog" aria-modal="true">
           <div className={styles.leaveDialog}>
             <p className={styles.leaveDialogTitle}>{t("hokm.aborted.title")}</p>
             <p className={styles.leaveDialogSub}>
-              {endedBy ? t("hokm.aborted.descBy", { name: endedBy }) : t("hokm.aborted.desc")}
+              {ended.reason === "hostEnded"
+                ? t("hokm.aborted.descHost")
+                : ended.by
+                  ? t("hokm.aborted.descBy", { name: ended.by })
+                  : t("hokm.aborted.desc")}
             </p>
             <div className={styles.leaveDialogActions}>
               <button className={styles.toLobbyBtn} onClick={goToLobby}>

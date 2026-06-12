@@ -17,6 +17,9 @@ function getNickname(room: RoomView | null, playerId: string) {
 interface ScorePanelProps {
   view: HokmView;
   room: RoomView | null;
+  /** Trick counts to display; defaults to view.tricksTaken. Lets the table
+   *  delay the count so the point lands in time with the sweep animation. */
+  tricksOverride?: [number, number];
   className?: string;
 }
 
@@ -38,9 +41,10 @@ function TrumpBadge({ trump, t }: { trump: string; t: (k: string) => string }) {
   );
 }
 
-export function ScorePanel({ view, room, className }: ScorePanelProps) {
+export function ScorePanel({ view, room, tricksOverride, className }: ScorePanelProps) {
   const { t } = useTranslation();
-  const { players, scores, tricksTaken, hakemIndex } = view;
+  const { players, scores, hakemIndex } = view;
+  const tricksTaken = tricksOverride ?? view.tricksTaken;
   const numPlayers = players.length;
 
   if (numPlayers === 4) {

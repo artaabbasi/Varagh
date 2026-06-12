@@ -50,11 +50,22 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
     });
   };
 
+  const [settingReady, setSettingReady] = useState(false);
+
   const isHost = room.seats.some(
     (s) => s.playerId === user?.id && s.isHost,
   );
   const minPlayers = minPlayersForVariant(room.variantId);
-  const canStart = isHost && room.seats.length >= minPlayers;
+  const enoughPlayers = room.seats.length >= minPlayers;
+  const myReady = room.seats.find((s) => s.playerId === user?.id)?.ready ?? false;
+  // Host always counts as ready (server-side too), so this covers everyone.
+  const allReady = room.seats.every((s) => s.ready);
+  const canStart = isHost && enoughPlayers && allReady;
+
+  const toggleReady = () => {
+    setSettingReady(true);
+    socket.emit("room:setReady", { ready: !myReady }, () => setSettingReady(false));
+  };
 
   const handleStart = () => {
     setStarting(true);
@@ -151,7 +162,11 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
             {room.seats.map((seat) => (
               <li key={seat.playerId} className={styles.playerItem}>
                 <div className={styles.avatar} aria-hidden="true">
-                  {seat.nickname.slice(0, 1).toUpperCase()}
+                  {seat.avatar ? (
+                    <img src={seat.avatar} alt="" className={styles.avatarImg} />
+                  ) : (
+                    seat.nickname.slice(0, 1).toUpperCase()
+                  )}
                 </div>
                 <div className={styles.playerInfo}>
                   <span className={styles.playerName}>
@@ -168,6 +183,13 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
                     </span>
                   )}
                 </div>
+                {!seat.isHost && (
+                  <span
+                    className={`${styles.readyBadge} ${seat.ready ? styles.isReady : styles.notReady}`}
+                  >
+                    {seat.ready ? t("room.waiting.ready") : t("room.waiting.notReady")}
+                  </span>
+                )}
                 <div
                   className={`${styles.statusDot} ${seat.connected ? styles.connected : styles.disconnected}`}
                   aria-label={seat.connected ? "Online" : "Offline"}
@@ -193,15 +215,32 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
         )}
 
         {isHost ? (
-          <button
-            className={styles.startBtn}
-            onClick={handleStart}
-            disabled={!canStart || starting}
-          >
-            {starting ? "…" : t("room.waiting.startGame")}
-          </button>
+          <>
+            <button
+              className={styles.startBtn}
+              onClick={handleStart}
+              disabled={!canStart || starting}
+            >
+              {starting ? "…" : t("room.waiting.startGame")}
+            </button>
+            {enoughPlayers && !allReady && (
+              <p className={styles.waitHint}>{t("room.waiting.waitingReady")}</p>
+            )}
+          </>
         ) : (
-          <p className={styles.waitHint}>{t("room.waiting.waitHint")}</p>
+          <>
+            <button
+              className={`${styles.readyToggle} ${myReady ? styles.readyToggleOn : ""}`}
+              onClick={toggleReady}
+              disabled={settingReady}
+              aria-pressed={myReady}
+            >
+              {myReady ? t("room.waiting.cancelReady") : t("room.waiting.readyUp")}
+            </button>
+            <p className={styles.waitHint}>
+              {myReady ? t("room.waiting.waitHint") : t("room.waiting.readyHint")}
+            </p>
+          </>
         )}
 
         {/* Leave — with inline confirmation */}

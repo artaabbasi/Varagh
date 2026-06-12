@@ -82,18 +82,19 @@
   inset-inline-end: 0;
 }
 
-/* ── Trick sweep out ────────────────────────────────────────────── */
+/* ── Trick sweep out — cards gather and fly to the winner's seat ──── */
 @keyframes sweepCard {
-  0% { transform: scale(1); opacity: 1; }
-  60% { opacity: 0.8; }
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  18% { transform: translate(0, 0) scale(1.06); opacity: 1; }
+  70% { opacity: 0.9; }
   100% {
-    transform: translate(var(--sweep-x, 0px), var(--sweep-y, 0px)) scale(0.3);
+    transform: translate(var(--sweep-x, 0px), var(--sweep-y, 0px)) scale(0.32) rotate(8deg);
     opacity: 0;
   }
 }
 
 .sweeping {
-  animation: sweepCard 0.55s var(--md-sys-motion-easing-accelerate) forwards;
+  animation: sweepCard 0.6s var(--md-sys-motion-easing-accelerate) forwards;
 }
 
 /* ── Reduced motion ─────────────────────────────────────────────── */

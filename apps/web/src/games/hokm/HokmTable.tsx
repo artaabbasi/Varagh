@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import type { HokmView } from "@varagh/shared";
 import type { Card } from "@varagh/shared";
 import type { RoomView } from "@varagh/shared";
@@ -6,7 +7,39 @@ import { OpponentSeat } from "./OpponentSeat";
 import { LocalHand } from "./LocalHand";
 import { TrickArea } from "./TrickArea";
 import { ScorePanel } from "./ScorePanel";
+import { POINT_DELAY_MS } from "./timing";
 import styles from "./HokmTable.module.css";
+
+/**
+ * The raw view increments tricksTaken the instant a trick completes, but we
+ * want the point to land only once the cards have swept to the winner. This
+ * holds the previous counts for POINT_DELAY_MS after they rise, so the trick
+ * piles and score panel tick up in time with the sweep animation.
+ */
+function useDelayedTricks(tricksTaken: [number, number]): [number, number] {
+  const [shown, setShown] = useState<[number, number]>(tricksTaken);
+  const prevRef = useRef<[number, number]>(tricksTaken);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const prev = prevRef.current;
+    const rose = tricksTaken[0] > prev[0] || tricksTaken[1] > prev[1];
+    if (rose) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        prevRef.current = tricksTaken;
+        setShown(tricksTaken);
+      }, POINT_DELAY_MS);
+    } else {
+      // Reset (new hand) or unchanged — reveal immediately.
+      prevRef.current = tricksTaken;
+      setShown(tricksTaken);
+    }
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [tricksTaken[0], tricksTaken[1]]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return shown;
+}
 
 export type SeatPosition = "bottom" | "top" | "left" | "right" | "top-left" | "top-right";
 
@@ -54,6 +87,10 @@ function isConnected(room: RoomView | null, playerId: string): boolean {
   return seat?.connected ?? true;
 }
 
+function getAvatar(room: RoomView | null, playerId: string): string | null {
+  return room?.seats.find((s) => s.playerId === playerId)?.avatar ?? null;
+}
+
 interface HokmTableProps {
   view: HokmView;
   room: RoomView | null;
@@ -82,6 +119,9 @@ export function HokmTable({
 
   const opponents = players.filter((p) => p !== forPlayer);
 
+  // Trick counts that lag the raw view so the "point" lands with the sweep.
+  const shownTricks = useDelayedTricks(view.tricksTaken);
+
   const isPlaying = phase === "playing";
   const isMyTurn = view.currentTurn === forPlayer;
   const validCards =
@@ -109,7 +149,7 @@ export function HokmTable({
         </div>
       </div>
 
-      <ScorePanel view={view} room={room} className={styles.scorePanel} />
+      <ScorePanel view={view} room={room} tricksOverride={shownTricks} className={styles.scorePanel} />
 
       {opponents.map((playerId) => {
         const seatIdx = players.indexOf(playerId);
@@ -129,8 +169,9 @@ export function HokmTable({
             isHakem={view.hakemIndex === seatIdx}
             isConnected={isConnected(room, playerId)}
             isTurn={isTurn}
+            avatarUrl={getAvatar(room, playerId)}
             handSize={view.handSizes[seatIdx]}
-            trickCount={view.tricksTaken[trickSide]}
+            trickCount={shownTricks[trickSide]}
             teamColor={teamColor}
             position={position}
             className={styles[`seat_${position.replace("-", "_")}`]}
@@ -152,13 +193,14 @@ export function HokmTable({
         moveError={moveError}
         onPlay={onPlay}
         onClearError={onClearMoveError}
-        trickCount={view.tricksTaken[
+        trickCount={shownTricks[
           numPlayers === 4
             ? (localIdx % 2 as 0 | 1)
             : (view.players[view.hakemIndex] === forPlayer ? 0 : 1)
         ]}
         teamColor={getTeamColor(localIdx, numPlayers)}
         isHakem={view.hakemIndex === localIdx}
+        avatarUrl={getAvatar(room, forPlayer)}
         className={styles.localHand}
       />
     </div>

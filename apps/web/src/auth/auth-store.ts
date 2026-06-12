@@ -3,8 +3,10 @@ const USER_KEY = "varagh-user";
 
 export interface StoredUser {
   id: string;
+  username: string;
   nickname: string;
   discriminator: string;
+  avatar: string | null;
 }
 
 export function getStoredToken(): string | null {

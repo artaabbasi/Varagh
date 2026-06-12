@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import type { HokmView, TrickPlay } from "@varagh/shared";
 import type { SeatPosition } from "./HokmTable";
 import { PlayingCard } from "../../components/PlayingCard";
+import { TRICK_HOLD_MS } from "./timing";
 import styles from "./TrickArea.module.css";
 
-const SWEEP_DELAY_MS = 800;
+const SWEEP_DELAY_MS = TRICK_HOLD_MS;
 
 function positionToAnimateFrom(pos: SeatPosition) {
   // The card flies in FROM the seat's position — i.e., if the seat is at "top",

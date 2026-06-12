@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { LobbyStats } from "@varagh/shared";
 import { socket } from "../app/socket";
-import { getStoredToken } from "../auth/auth-store";
+import { getStoredToken, getStoredUser } from "../auth/auth-store";
 import { useTheme } from "../theme/ThemeProvider";
 import styles from "./LandingPage.module.css";
 
@@ -48,10 +48,6 @@ function IconVariants() {
 const FEATURE_ICONS = [IconBolt, IconDevice, IconLock, IconVariants];
 const FEATURE_KEYS = ["f1", "f2", "f3", "f4"] as const;
 
-const prefersReducedMotion = () =>
-  typeof window !== "undefined" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 /** A suit on a card — drives the four-colour palette via a data attribute. */
 type Suit = "spades" | "hearts" | "diamonds" | "clubs";
 const SUIT_SYMBOL: Record<Suit, string> = {
@@ -86,10 +82,6 @@ function useCountUp(target: number | undefined): number {
   const [value, setValue] = useState(0);
   useEffect(() => {
     if (target === undefined) return;
-    if (prefersReducedMotion()) {
-      setValue(target);
-      return;
-    }
     let raf: number;
     const start = performance.now();
     const from = 0;
@@ -117,6 +109,7 @@ export function LandingPage() {
   const { t, i18n } = useTranslation();
   const { theme, toggle } = useTheme();
   const isRtl = i18n.language === "fa";
+  const user = getStoredUser();
 
   const [stats, setStats] = useState<LobbyStats | null>(null);
   const revealRefs = useRef<(HTMLElement | null)[]>([]);
@@ -163,11 +156,6 @@ export function LandingPage() {
       });
     };
 
-    if (prefersReducedMotion()) {
-      setFlips(1); // show all faces, no motion
-      return;
-    }
-
     let raf = 0;
     const onScroll = () => {
       if (raf) return;
@@ -210,7 +198,9 @@ export function LandingPage() {
           }
         });
       },
-      { threshold: 0.08 },
+      // Fire as soon as a sliver enters, and a touch before it's fully on
+      // screen, so sections glide in instead of popping in late.
+      { threshold: 0, rootMargin: "0px 0px -12% 0px" },
     );
     revealRefs.current.forEach((el) => { if (el) observer.observe(el); });
     return () => observer.disconnect();
@@ -249,9 +239,32 @@ export function LandingPage() {
                 </svg>
               )}
             </button>
-            <button className={styles.playBtn} onClick={handlePlay}>
-              {t("landing.hero.cta")}
-            </button>
+            {user ? (
+              <>
+                <Link to="/profile" className={styles.navUser} title={t("profile.player")}>
+                  <span className={styles.navUserAvatar} aria-hidden="true">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt="" className={styles.navUserPhoto} />
+                    ) : (
+                      user.nickname.slice(0, 1).toUpperCase()
+                    )}
+                  </span>
+                  <span className={styles.navUserName}>{user.nickname}</span>
+                </Link>
+                <button className={styles.playBtn} onClick={handlePlay}>
+                  {t("landing.hero.cta")}
+                </button>
+              </>
+            ) : (
+              <>
+                <button className={styles.navBtn} onClick={() => void navigate("/signin")}>
+                  {t("landing.nav.login")}
+                </button>
+                <button className={styles.playBtn} onClick={() => void navigate("/signup")}>
+                  {t("landing.nav.signup")}
+                </button>
+              </>
+            )}
           </div>
         </nav>
       </header>

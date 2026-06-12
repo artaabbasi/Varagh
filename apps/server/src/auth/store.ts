@@ -4,8 +4,11 @@ import type { MatchHistoryEntry } from "@varagh/shared";
 
 export interface User {
   id: string;
+  username: string;
   nickname: string;
   discriminator: string;
+  /** Small compressed data-URL avatar, or null. */
+  avatar: string | null;
 }
 
 export interface FriendRow {
@@ -17,13 +20,17 @@ export interface FriendRow {
 }
 
 export interface AuthStore {
-  createUser(nickname: string, tokenHash: string, passwordHash?: string): User;
+  createUser(username: string, nickname: string, tokenHash: string, passwordHash: string): User;
   findByTokenHash(tokenHash: string): User | undefined;
+  findByUsername(username: string): User | undefined;
+  findByUsernameAndPasswordHash(username: string, passwordHash: string): User | undefined;
   updateTokenHash(userId: string, tokenHash: string): void;
   setPin(userId: string, pinHash: string): void;
   findByNicknameAndPinHash(nickname: string, pinHash: string): User | undefined;
-  findByNicknameAndPasswordHash(nickname: string, passwordHash: string): User | undefined;
   updatePasswordHash(userId: string, passwordHash: string): void;
+  verifyPassword(userId: string, passwordHash: string): boolean;
+  updateDisplayName(userId: string, nickname: string): User | undefined;
+  updateAvatar(userId: string, avatar: string | null): User | undefined;
   getTotalUsers(): number;
   findByNicknameAndDiscriminator(nickname: string, discriminator: string): User | undefined;
 
@@ -47,11 +54,13 @@ export function createAuthStore(db: DatabaseSync): AuthStore {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id            TEXT PRIMARY KEY,
+      username      TEXT,
       nickname      TEXT NOT NULL,
       discriminator TEXT NOT NULL,
       token_hash    TEXT UNIQUE NOT NULL,
       pin_hash      TEXT,
-      password_hash TEXT
+      password_hash TEXT,
+      avatar        TEXT
     )
   `);
 
@@ -60,6 +69,14 @@ export function createAuthStore(db: DatabaseSync): AuthStore {
   if (!userColumns.includes("password_hash")) {
     db.exec("ALTER TABLE users ADD COLUMN password_hash TEXT");
   }
+  if (!userColumns.includes("username")) {
+    db.exec("ALTER TABLE users ADD COLUMN username TEXT");
+  }
+  if (!userColumns.includes("avatar")) {
+    db.exec("ALTER TABLE users ADD COLUMN avatar TEXT");
+  }
+  // Case-insensitive uniqueness for usernames (NULLs allowed for legacy rows).
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users (username COLLATE NOCASE)");
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS friends (
@@ -93,19 +110,54 @@ export function createAuthStore(db: DatabaseSync): AuthStore {
   `);
 
   return {
-    createUser(nickname, tokenHash, passwordHash?) {
+    createUser(username, nickname, tokenHash, passwordHash) {
       const id = randomUUID();
       const discriminator = String(randomInt(1000, 9999));
       db.prepare(
-        "INSERT INTO users (id, nickname, discriminator, token_hash, password_hash) VALUES (?, ?, ?, ?, ?)"
-      ).run(id, nickname, discriminator, tokenHash, passwordHash ?? null);
-      return { id, nickname, discriminator };
+        "INSERT INTO users (id, username, nickname, discriminator, token_hash, password_hash) VALUES (?, ?, ?, ?, ?, ?)"
+      ).run(id, username, nickname, discriminator, tokenHash, passwordHash);
+      return { id, username, nickname, discriminator, avatar: null };
     },
 
     findByTokenHash(tokenHash) {
       return db
-        .prepare("SELECT id, nickname, discriminator FROM users WHERE token_hash = ?")
+        .prepare("SELECT id, username, nickname, discriminator, avatar FROM users WHERE token_hash = ?")
         .get(tokenHash) as User | undefined;
+    },
+
+    findByUsername(username) {
+      return db
+        .prepare("SELECT id, username, nickname, discriminator, avatar FROM users WHERE username = ? COLLATE NOCASE")
+        .get(username) as User | undefined;
+    },
+
+    findByUsernameAndPasswordHash(username, passwordHash) {
+      return db
+        .prepare(
+          "SELECT id, username, nickname, discriminator, avatar FROM users WHERE username = ? COLLATE NOCASE AND password_hash = ?"
+        )
+        .get(username, passwordHash) as User | undefined;
+    },
+
+    verifyPassword(userId, passwordHash) {
+      const row = db
+        .prepare("SELECT password_hash FROM users WHERE id = ?")
+        .get(userId) as { password_hash: string | null } | undefined;
+      return !!row && row.password_hash === passwordHash;
+    },
+
+    updateDisplayName(userId, nickname) {
+      db.prepare("UPDATE users SET nickname = ? WHERE id = ?").run(nickname, userId);
+      return db
+        .prepare("SELECT id, username, nickname, discriminator, avatar FROM users WHERE id = ?")
+        .get(userId) as User | undefined;
+    },
+
+    updateAvatar(userId, avatar) {
+      db.prepare("UPDATE users SET avatar = ? WHERE id = ?").run(avatar, userId);
+      return db
+        .prepare("SELECT id, username, nickname, discriminator, avatar FROM users WHERE id = ?")
+        .get(userId) as User | undefined;
     },
 
     updateTokenHash(userId, tokenHash) {
@@ -119,21 +171,13 @@ export function createAuthStore(db: DatabaseSync): AuthStore {
     findByNicknameAndPinHash(nickname, pinHash) {
       return db
         .prepare(
-          "SELECT id, nickname, discriminator FROM users WHERE nickname = ? AND pin_hash = ?"
+          "SELECT id, username, nickname, discriminator, avatar FROM users WHERE nickname = ? AND pin_hash = ?"
         )
         .get(nickname, pinHash) as User | undefined;
     },
 
-    findByNicknameAndPasswordHash(nickname, passwordHash) {
-      return db
-        .prepare(
-          "SELECT id, nickname, discriminator FROM users WHERE nickname = ? AND password_hash = ?"
-        )
-        .get(nickname, passwordHash) as User | undefined;
-    },
-
     updatePasswordHash(userId, passwordHash) {
-      db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(userId, passwordHash);
+      db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(passwordHash, userId);
     },
 
     getTotalUsers() {
@@ -143,7 +187,7 @@ export function createAuthStore(db: DatabaseSync): AuthStore {
 
     findByNicknameAndDiscriminator(nickname, discriminator) {
       return db
-        .prepare("SELECT id, nickname, discriminator FROM users WHERE nickname = ? AND discriminator = ?")
+        .prepare("SELECT id, username, nickname, discriminator, avatar FROM users WHERE nickname = ? AND discriminator = ?")
         .get(nickname, discriminator) as User | undefined;
     },
 

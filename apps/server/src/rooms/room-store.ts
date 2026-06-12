@@ -71,6 +71,14 @@ export class RoomStore {
     if (seat) seat.connected = connected;
   }
 
+  setReady(code: string, playerId: string, ready: boolean): Room | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    const seat = room.seats.find((s) => s.playerId === playerId);
+    if (seat) seat.ready = ready;
+    return room;
+  }
+
   listPublic(): Room[] {
     return [...this.rooms.values()].filter((r) => r.isPublic && r.phase === "lobby");
   }

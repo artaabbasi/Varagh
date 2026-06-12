@@ -7,8 +7,13 @@ import type { GameEvent, GameOutcome, PlayerViewBase } from "./engine/game-engin
 
 export interface UserRecord {
   id: string;
+  /** Unique English handle used to sign in (e.g. "sara_k"). */
+  username: string;
+  /** Free-form display name shown to other players. */
   nickname: string;
   discriminator: string;
+  /** Small compressed data-URL avatar, or null. */
+  avatar: string | null;
 }
 
 export interface SeatView {
@@ -17,6 +22,11 @@ export interface SeatView {
   discriminator: string;
   connected: boolean;
   isHost: boolean;
+  /** Whether this player has readied up in the pre-game lobby. The host is
+   *  always considered ready (they press Start). */
+  ready: boolean;
+  /** Small compressed data-URL avatar, or null. */
+  avatar: string | null;
 }
 
 export interface RoomView {
@@ -75,7 +85,7 @@ export interface FriendEntry {
 
 export interface ClientToServerEvents {
   "auth:signup": (
-    data: { nickname: string; password?: string },
+    data: { username: string; displayName: string; password: string },
     cb: (res: { ok: true; token: string; user: UserRecord } | { ok: false; error: string }) => void
   ) => void;
   "auth:login": (
@@ -83,7 +93,7 @@ export interface ClientToServerEvents {
     cb: (res: { ok: true; user: UserRecord } | { ok: false; error: string }) => void
   ) => void;
   "auth:loginWithPassword": (
-    data: { nickname: string; password: string },
+    data: { username: string; password: string },
     cb: (res: { ok: true; token: string; user: UserRecord } | { ok: false; error: string }) => void
   ) => void;
   "room:create": (
@@ -95,6 +105,16 @@ export interface ClientToServerEvents {
     cb: (res: { ok: true; room: RoomView } | { ok: false; error: string }) => void
   ) => void;
   "room:leave": (
+    data: Record<string, never>,
+    cb: (res: { ok: true } | { ok: false; error: string }) => void
+  ) => void;
+  /** Toggle your ready state in the pre-game lobby. */
+  "room:setReady": (
+    data: { ready: boolean },
+    cb: (res: { ok: true } | { ok: false; error: string }) => void
+  ) => void;
+  /** Host-only: end the in-progress game for everyone. */
+  "room:endGame": (
     data: Record<string, never>,
     cb: (res: { ok: true } | { ok: false; error: string }) => void
   ) => void;
@@ -113,6 +133,21 @@ export interface ClientToServerEvents {
   "user:getActiveRooms": (
     data: Record<string, never>,
     cb: (res: { ok: true; rooms: ActiveRoomEntry[] }) => void
+  ) => void;
+  /** Change your display name. */
+  "user:updateDisplayName": (
+    data: { displayName: string },
+    cb: (res: { ok: true; user: UserRecord } | { ok: false; error: string }) => void
+  ) => void;
+  /** Change your password (requires the current one). */
+  "user:changePassword": (
+    data: { currentPassword: string; newPassword: string },
+    cb: (res: { ok: true } | { ok: false; error: string }) => void
+  ) => void;
+  /** Set or clear your avatar (a small compressed data URL, or null). */
+  "user:updateAvatar": (
+    data: { avatar: string | null },
+    cb: (res: { ok: true; user: UserRecord } | { ok: false; error: string }) => void
   ) => void;
   /** Host starts the game (lobby → playing transition). */
   "game:start": (
@@ -163,10 +198,11 @@ export interface ServerToClientEvents {
   /** Emitted once when the game is over. */
   "game:ended": (data: { outcome: GameOutcome }) => void;
   /**
-   * Emitted to the remaining players when an in-progress game is ended early
-   * because a player left. The game is over; clients should return to lobby.
+   * Emitted when an in-progress game is ended early — either because a player
+   * left ("playerLeft") or the host deliberately ended it ("hostEnded"). The
+   * game is over; clients should return to lobby.
    */
-  "game:aborted": (data: { reason: "playerLeft"; by: string | null }) => void;
+  "game:aborted": (data: { reason: "playerLeft" | "hostEnded"; by: string | null }) => void;
   /** Someone sent you a friend request. */
   "friend:request": (data: { from: { userId: string; nickname: string; discriminator: string } }) => void;
   /** A friend request you sent was accepted. */
@@ -179,5 +215,6 @@ export interface SocketData {
   userId: string | null;
   nickname: string | null;
   discriminator: string | null;
+  avatar: string | null;
   currentRoomCode: string | null;
 }

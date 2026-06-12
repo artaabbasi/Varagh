@@ -24,6 +24,7 @@ interface LocalHandProps {
   trickCount: number;
   teamColor: "primary" | "tertiary" | "none";
   isHakem: boolean;
+  avatarUrl?: string | null;
   className?: string;
 }
 
@@ -36,6 +37,7 @@ export function LocalHand({
   trickCount,
   teamColor,
   isHakem,
+  avatarUrl,
   className,
 }: LocalHandProps) {
   const { t } = useTranslation();
@@ -86,6 +88,7 @@ export function LocalHand({
             nickname={t("hokm.you")}
             isHakem={isHakem}
             teamColor={teamColor}
+            avatarUrl={avatarUrl}
             compact
           />
           <TrickPile count={trickCount} teamColor={teamColor} />

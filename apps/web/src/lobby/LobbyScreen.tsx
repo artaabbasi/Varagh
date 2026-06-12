@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { LobbyEntry, ActiveRoomEntry } from "@varagh/shared";
 import { socket } from "../app/socket";
-import { getStoredUser, clearToken } from "../auth/auth-store";
+import { getStoredUser } from "../auth/auth-store";
 import { useTheme } from "../theme/ThemeProvider";
 import { FriendsPanel } from "./FriendsPanel";
 import styles from "./LobbyScreen.module.css";
@@ -73,6 +73,7 @@ export function LobbyScreen() {
   const [showCreate, setShowCreate] = useState(false);
   const [variant, setVariant] = useState<Variant>("4p");
   const [isPublic, setIsPublic] = useState(false);
+  const [targetScore, setTargetScore] = useState(7);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -113,7 +114,7 @@ export function LobbyScreen() {
     setCreateError(null);
     socket.emit(
       "room:create",
-      { gameId: "hokm", variantId: VARIANT_ID[variant], options: {}, isPublic },
+      { gameId: "hokm", variantId: VARIANT_ID[variant], options: { targetScore }, isPublic },
       (res) => {
         setCreating(false);
         if (!res.ok) {
@@ -148,8 +149,7 @@ export function LobbyScreen() {
     handleJoin(joinCode);
   };
 
-  const handleLeaveSite = () => {
-    clearToken();
+  const handleHome = () => {
     void navigate("/");
   };
 
@@ -182,8 +182,8 @@ export function LobbyScreen() {
           <button className={styles.iconBtn} onClick={toggle} aria-label="Toggle theme">
             {theme === "dark" ? <SunIcon /> : <MoonIcon />}
           </button>
-          <button className={styles.ghostBtn} onClick={handleLeaveSite}>
-            {t("landing.hero.cta")}
+          <button className={styles.ghostBtn} onClick={handleHome}>
+            {t("lobby.home")}
           </button>
         </div>
       </header>
@@ -266,6 +266,33 @@ export function LobbyScreen() {
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Points to win */}
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.label}>{t("lobby.create.targetScore")}</label>
+                    <div className={styles.stepper}>
+                      <button
+                        type="button"
+                        className={styles.stepperBtn}
+                        onClick={() => setTargetScore((s) => Math.max(1, s - 1))}
+                        disabled={targetScore <= 1}
+                        aria-label={t("lobby.create.targetScoreDec")}
+                      >
+                        −
+                      </button>
+                      <span className={styles.stepperValue} aria-live="polite">{targetScore}</span>
+                      <button
+                        type="button"
+                        className={styles.stepperBtn}
+                        onClick={() => setTargetScore((s) => Math.min(13, s + 1))}
+                        disabled={targetScore >= 13}
+                        aria-label={t("lobby.create.targetScoreInc")}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <p className={styles.stepperHint}>{t("lobby.create.targetScoreHint")}</p>
                   </div>
 
                   {/* Visibility */}

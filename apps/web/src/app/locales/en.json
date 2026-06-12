@@ -4,33 +4,38 @@
   },
   "auth": {
     "signup": {
-      "title": "Welcome to Varagh",
-      "subtitle": "Choose a nickname to get started",
-      "nicknamePlaceholder": "Your nickname",
-      "nicknameHelp": "2–20 characters. Persian or Latin letters, digits, spaces.",
-      "passwordPlaceholder": "Password (optional)",
-      "passwordHelp": "Set a password to sign in from other devices.",
+      "title": "Create your account",
+      "subtitle": "Pick a username, then a display name",
+      "usernamePlaceholder": "Username",
+      "usernameHelp": "3–20 characters. English letters, digits, underscore. Used to sign in.",
+      "nicknamePlaceholder": "Display name",
+      "nicknameHelp": "Shown to other players. Persian or Latin letters, digits, spaces.",
+      "passwordPlaceholder": "Password",
+      "passwordHelp": "At least 4 characters. You'll need it to sign in.",
       "showPassword": "Show password",
       "hidePassword": "Hide password",
-      "submit": "Let's Play",
+      "submit": "Create Account",
       "loading": "...",
       "haveAccount": "Already have an account?",
       "signInLink": "Sign in",
       "error": {
-        "invalidNickname": "Nickname must be 2–20 characters (letters, digits, spaces only).",
+        "invalidUsername": "Username must be 3–20 characters: English letters, digits, underscore, starting with a letter.",
+        "invalidNickname": "Display name must be 2–20 characters (letters, digits, spaces).",
         "shortPassword": "Password must be at least 4 characters.",
+        "usernameTaken": "That username is already taken.",
         "serverError": "Something went wrong. Please try again."
       }
     },
     "signin": {
       "title": "Sign in to Varagh",
-      "subtitle": "Enter your nickname and password",
+      "subtitle": "Enter your username and password",
+      "usernamePlaceholder": "Username",
       "passwordPlaceholder": "Password",
       "submit": "Sign in",
       "noAccount": "New here?",
       "signUpLink": "Create account",
       "error": {
-        "invalidCredentials": "Nickname or password is incorrect."
+        "invalidCredentials": "Username or password is incorrect."
       }
     }
   },
@@ -39,6 +44,10 @@
       "tagline": "Play Persian card games with friends — online and free.",
       "cta": "Play Now",
       "scrollCue": "Scroll to explore"
+    },
+    "nav": {
+      "login": "Log in",
+      "signup": "Sign up"
     },
     "deck": {
       "title": "Turn the cards",
@@ -76,6 +85,7 @@
   },
   "lobby": {
     "title": "Lobby",
+    "home": "Home",
     "greeting": "Hi, {{name}}",
     "discriminator": "#{{disc}}",
     "createGame": "Create Game",
@@ -95,6 +105,10 @@
       "visibility": "Visibility",
       "public": "Public",
       "private": "Private",
+      "targetScore": "Points to win",
+      "targetScoreHint": "First to this many points wins the game.",
+      "targetScoreInc": "Increase points to win",
+      "targetScoreDec": "Decrease points to win",
       "submit": "Create Room",
       "loading": "Creating..."
     },
@@ -117,6 +131,12 @@
       "startGame": "Start Game",
       "startHint": "Need {{min}} players to start",
       "waitHint": "Waiting for host to start…",
+      "ready": "Ready",
+      "notReady": "Not ready",
+      "readyUp": "I'm Ready",
+      "cancelReady": "Cancel Ready",
+      "readyHint": "Tap ready when you're set to play",
+      "waitingReady": "Waiting for all players to be ready…",
       "leave": "Leave Room",
       "copyCode": "Copy",
       "copied": "Copied!",
@@ -143,6 +163,30 @@
   },
   "profile": {
     "player": "Player",
+    "logout": "Log out",
+    "edit": {
+      "title": "Edit",
+      "displayName": "Display name",
+      "password": "Password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "changePassword": "Change password",
+      "changePhoto": "Change photo",
+      "removePhoto": "Remove photo",
+      "save": "Save",
+      "saved": "Saved!",
+      "passwordChanged": "Password changed.",
+      "error": {
+        "invalidNickname": "Display name must be 2–20 characters (letters, digits, spaces).",
+        "shortPassword": "Password must be at least 4 characters.",
+        "passwordMismatch": "New passwords don't match.",
+        "wrongPassword": "Current password is incorrect.",
+        "imageTooLarge": "Image is too large. Try a smaller one.",
+        "invalidImage": "That file isn't a valid image.",
+        "generic": "Something went wrong. Please try again."
+      }
+    },
     "stats": {
       "games": "Games",
       "wins": "Wins",
@@ -226,7 +270,10 @@
       "kot": "Kot! {{score}}",
       "hakemKot": "Hakem Kot!",
       "nextHakem": "Next Hakem: {{name}}",
-      "continue": "Continue"
+      "continue": "Continue",
+      "nextRoundIn": "Next round in {{seconds}}s",
+      "skip": "Skip to next round",
+      "skipHint": "Tap to continue now"
     },
     "gameOver": {
       "title": "Game Over",
@@ -240,7 +287,13 @@
       "title": "Game ended",
       "desc": "A player left the game.",
       "descBy": "{{name}} left the game.",
+      "descHost": "The host ended the game.",
       "toLobby": "Back to Lobby"
+    },
+    "endGame": {
+      "button": "End Game",
+      "confirm": "End the game for everyone?",
+      "confirmSub": "This finishes the match for all players and returns everyone to the lobby."
     }
   }
 }

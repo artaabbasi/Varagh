@@ -7,10 +7,20 @@ import styles from "./SignupScreen.module.css";
 
 // 2–20 chars: Persian (U+0600–U+06FF) or Latin letters, digits, spaces
 const NICKNAME_RE = /^[؀-ۿa-zA-Z0-9 ]{2,20}$/;
+// Username: 3–20 chars, must start with a letter, then letters/digits/underscore
+const USERNAME_RE = /^[a-zA-Z][a-zA-Z0-9_]{2,19}$/;
+
+const SIGNUP_ERROR_KEYS: Record<string, string> = {
+  invalid_username: "auth.signup.error.invalidUsername",
+  invalid_nickname: "auth.signup.error.invalidNickname",
+  short_password: "auth.signup.error.shortPassword",
+  username_taken: "auth.signup.error.usernameTaken",
+};
 
 export function SignupScreen() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [username, setUsername] = useState("");
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -19,12 +29,17 @@ export function SignupScreen() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const trimmed = nickname.trim();
-    if (!NICKNAME_RE.test(trimmed)) {
+    const uname = username.trim().toLowerCase();
+    const display = nickname.trim();
+    if (!USERNAME_RE.test(uname)) {
+      setError(t("auth.signup.error.invalidUsername"));
+      return;
+    }
+    if (!NICKNAME_RE.test(display)) {
       setError(t("auth.signup.error.invalidNickname"));
       return;
     }
-    if (password && password.length < 4) {
+    if (password.length < 4) {
       setError(t("auth.signup.error.shortPassword"));
       return;
     }
@@ -33,11 +48,12 @@ export function SignupScreen() {
     if (!socket.connected) socket.connect();
     socket.emit(
       "auth:signup",
-      { nickname: trimmed, password: password || undefined },
+      { username: uname, displayName: display, password },
       (res) => {
         setLoading(false);
         if (!res.ok) {
-          setError(t("auth.signup.error.serverError"));
+          const key = SIGNUP_ERROR_KEYS[res.error] ?? "auth.signup.error.serverError";
+          setError(t(key));
           return;
         }
         storeToken(res.token);
@@ -47,7 +63,11 @@ export function SignupScreen() {
     );
   };
 
-  const isSubmittable = !loading && NICKNAME_RE.test(nickname.trim());
+  const isSubmittable =
+    !loading &&
+    USERNAME_RE.test(username.trim().toLowerCase()) &&
+    NICKNAME_RE.test(nickname.trim()) &&
+    password.length >= 4;
 
   return (
     <div className={styles.container}>
@@ -60,11 +80,30 @@ export function SignupScreen() {
             <input
               className={styles.input}
               type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder={t("auth.signup.usernamePlaceholder")}
+              maxLength={20}
+              autoFocus
+              disabled={loading}
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-describedby="username-help"
+            />
+            <p id="username-help" className={styles.help}>
+              {t("auth.signup.usernameHelp")}
+            </p>
+          </div>
+
+          <div className={styles.field}>
+            <input
+              className={styles.input}
+              type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               placeholder={t("auth.signup.nicknamePlaceholder")}
               maxLength={20}
-              autoFocus
               disabled={loading}
               aria-describedby="nickname-help"
             />

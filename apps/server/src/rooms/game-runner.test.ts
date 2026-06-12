@@ -54,7 +54,7 @@ function create4pRoom(roomStore: RoomStore): Room {
     variantId: "hokm-4p",
     options: {},
     isPublic: false,
-    host: { playerId: "Alice", nickname: "Alice", discriminator: "0001", connected: true },
+    host: { playerId: "Alice", nickname: "Alice", discriminator: "0001", connected: true, ready: true },
   });
   for (const p of SEATS_4P.slice(1)) {
     roomStore.join(room.code, {
@@ -62,6 +62,7 @@ function create4pRoom(roomStore: RoomStore): Room {
       nickname: p,
       discriminator: "0000",
       connected: true,
+      ready: true,
     });
   }
   return roomStore.get(room.code)!;
@@ -156,13 +157,14 @@ describe("GameRunner — view redaction", () => {
       variantId: "hokm-2p",
       options: {},
       isPublic: false,
-      host: { playerId: "X", nickname: "X", discriminator: "0001", connected: true },
+      host: { playerId: "X", nickname: "X", discriminator: "0001", connected: true, ready: true },
     });
     roomStore.join(room2p.code, {
       playerId: "Y",
       nickname: "Y",
       discriminator: "0002",
       connected: true,
+      ready: true,
     });
     const room = roomStore.get(room2p.code)!;
 
@@ -237,7 +239,7 @@ describe("GameRunner — move validation", () => {
       variantId: "hokm-4p",
       options: {},
       isPublic: false,
-      host: { playerId: "Solo", nickname: "Solo", discriminator: "0001", connected: true },
+      host: { playerId: "Solo", nickname: "Solo", discriminator: "0001", connected: true, ready: true },
     });
     const result = gameRunner.startGame(roomStore.get(room.code)!);
     expect(result.ok).toBe(false);
@@ -250,7 +252,7 @@ describe("GameRunner — move validation", () => {
       variantId: "nonexistent-4p",
       options: {},
       isPublic: false,
-      host: { playerId: "P0", nickname: "P0", discriminator: "0001", connected: true },
+      host: { playerId: "P0", nickname: "P0", discriminator: "0001", connected: true, ready: true },
     });
     const result = gameRunner.startGame(roomStore.get(room.code)!);
     expect(result.ok).toBe(false);
@@ -364,6 +366,26 @@ describe("GameRunner — turn timer and disconnect grace", () => {
     for (const p of SEATS_4P) {
       expect(stateUpdates(emitted, p).length).toBeGreaterThan(0);
     }
+  });
+
+  it("closes the game when two players are disconnected past grace", () => {
+    const room = create4pRoom(roomStore);
+    gameRunner.startGame(room);
+    expect(room.phase).toBe("playing");
+
+    // One disconnect past grace: game continues (auto-play), not aborted.
+    gameRunner.handleDisconnect(room.code, "Bob");
+    vi.advanceTimersByTime(GRACE_MS + 1);
+    expect(room.phase).toBe("playing");
+
+    // A second disconnect past grace: the game is abandoned for everyone.
+    gameRunner.handleDisconnect(room.code, "Carol");
+    vi.advanceTimersByTime(GRACE_MS + 1);
+
+    expect(room.phase).toBe("finished");
+    expect(gameRunner.getGame(room.code)).toBeUndefined();
+    const aborted = (emitted.get(room.code) ?? []).filter((e) => e.event === "game:aborted");
+    expect(aborted.length).toBe(1);
   });
 });
 

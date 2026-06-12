@@ -39,6 +39,13 @@ export const TURN_MS = 30_000;
 export const GRACE_MS = 10_000;
 
 /**
+ * If this many players are disconnected past their grace period at once, the
+ * game is abandoned and closed for everyone — a hand can't meaningfully
+ * continue with multiple absent seats.
+ */
+export const ABANDON_THRESHOLD = 2;
+
+/**
  * Safety limit: if this many consecutive auto-moves fire without a real
  * player move, we abandon the game to prevent runaway loops.
  */
@@ -189,9 +196,20 @@ export class GameRunner {
     const timer = setTimeout(() => {
       game.graceTimers.delete(playerId);
       game.disconnectedPastGrace.add(playerId);
-      // If it's currently this player's turn, reschedule at 0 ms delay.
+
       const room = this.roomStore.get(roomCode);
-      if (room?.phase === "playing" && getCurrentPlayer(room) === playerId) {
+      if (!room || room.phase !== "playing") return;
+
+      // Too many players gone for too long — close the game for everyone
+      // rather than auto-playing multiple absent seats.
+      if (game.disconnectedPastGrace.size >= ABANDON_THRESHOLD) {
+        this.abortGame(room);
+        this.io.to(roomCode).emit("game:aborted", { reason: "playerLeft", by: null });
+        return;
+      }
+
+      // If it's currently this player's turn, reschedule at 0 ms delay.
+      if (getCurrentPlayer(room) === playerId) {
         this.scheduleTurn(room, game);
       }
     }, GRACE_MS);
