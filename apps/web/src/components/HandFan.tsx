@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Card } from "@varagh/shared";
 import { PlayingCard } from "./PlayingCard";
 import styles from "./HandFan.module.css";
@@ -34,6 +34,30 @@ export function HandFan({
 }: HandFanProps) {
   const [shakingCard, setShakingCard] = useState<string | null>(null);
   const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fanRef = useRef<HTMLDivElement>(null);
+
+  // Dynamically tighten card overlap so the fan always fits its container.
+  // Without this, 13 cards at the default 30px-visible-per-card = 412px which
+  // overflows a 375px phone screen.
+  useEffect(() => {
+    if (!faceUp) return;
+    const el = fanRef.current;
+    if (!el) return;
+    const CARD_W = 52;
+    const update = () => {
+      const n = cards.length;
+      if (n <= 1) { el.style.removeProperty("--card-margin"); return; }
+      const w = el.getBoundingClientRect().width;
+      if (w === 0) return;
+      // How many px of each card should peek out from behind the next?
+      const visible = Math.max(10, Math.min(30, (w - CARD_W) / (n - 1)));
+      el.style.setProperty("--card-margin", `-${(CARD_W - visible).toFixed(1)}px`);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [faceUp, cards.length]);
 
   const handlePlay = useCallback(
     (card: Card) => {
@@ -81,6 +105,7 @@ export function HandFan({
 
   return (
     <div
+      ref={fanRef}
       className={[styles.fan, styles.faceUp, compact ? styles.compact : null, className]
         .filter(Boolean)
         .join(" ")}

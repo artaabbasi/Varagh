@@ -156,3 +156,19 @@
     animation: none;
   }
 }
+
+/* ── Mobile layout fixes ────────────────────────────────────────── */
+@media (max-width: 480px) {
+  /* Cap side-seat columns so the center trick area always has room */
+  .table4p {
+    grid-template-columns: minmax(0, 76px) 1fr minmax(0, 76px);
+    gap: 4px;
+    padding: 6px;
+  }
+
+  .table3p,
+  .table2p {
+    gap: 4px;
+    padding: 6px;
+  }
+}

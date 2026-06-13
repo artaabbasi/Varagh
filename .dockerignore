@@ -1,0 +1,33 @@
+# ── Node modules (Docker installs these fresh inside the image) ───────────────
+node_modules/
+**/node_modules/
+
+# ── Build artefacts (Docker builds from source) ───────────────────────────────
+**/dist/
+
+# ── Local env files (contain machine-specific / secret values) ────────────────
+# .env.production IS intentionally kept (safe production defaults committed)
+.env
+.env.local
+.env.*.local
+apps/web/.env
+
+# ── Version control ───────────────────────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+
+# ── Editor & IDE ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.code-workspace
+
+# ── Logs & temp files ─────────────────────────────────────────────────────────
+*.log
+*.local
+npm-debug.log*
+
+# ── Project meta (not needed inside the image) ────────────────────────────────
+.claude/
+CLAUDE.md
+README.md

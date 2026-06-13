@@ -14,7 +14,7 @@
 }
 
 .faceUp .cardSlot {
-  margin-inline-start: -22px;
+  margin-inline-start: var(--card-margin, -22px);
   transition: transform var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-spring);
   position: relative;
   /* subtle arc: each card rotates slightly from center */

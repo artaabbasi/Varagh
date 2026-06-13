@@ -1,0 +1,45 @@
+name: varagh
+
+# Run with:  docker compose up --build -d
+# Stop with: docker compose down
+# Logs:      docker compose logs -f
+# Rebuild:   docker compose up --build -d
+
+services:
+
+  # ── Node.js game server ─────────────────────────────────────────────────────
+  server:
+    build:
+      context: .
+      target: server
+    restart: unless-stopped
+    environment:
+      NODE_ENV:     production
+      PORT:         "3001"
+      HOST:         "0.0.0.0"
+      DATABASE_URL: /data/varagh.db
+      WEB_ORIGIN:   "${WEB_ORIGIN:-*}"   # override in root .env for production
+    volumes:
+      - db_data:/data        # SQLite database persisted across restarts
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null 'http://localhost:3001/socket.io/?EIO=4&transport=polling'"]
+      interval: 30s
+      timeout:  10s
+      retries:  5
+      start_period: 15s
+
+  # ── Nginx — serves the PWA and proxies Socket.IO to the server ──────────────
+  web:
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    ports:
+      - "${PORT:-80}:80"     # override with PORT=8080 docker compose up
+    depends_on:
+      server:
+        condition: service_healthy
+
+volumes:
+  db_data:          # persistent SQLite storage
+    driver: local

@@ -97,6 +97,19 @@
   animation: sweepCard 0.6s var(--md-sys-motion-easing-accelerate) forwards;
 }
 
+/* ── Mobile: scale trick grid to fit the narrowed center column ─── */
+@media (max-width: 480px) {
+  .area {
+    min-height: unset;
+  }
+
+  .trickGrid {
+    width: min(180px, 100%);
+    height: auto;
+    aspect-ratio: 180 / 150;
+  }
+}
+
 /* ── Reduced motion ─────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .sweeping {

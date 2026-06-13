@@ -76,3 +76,12 @@
     animation: none;
   }
 }
+
+/* ── Mobile: tighter seats to match the capped grid column ─────── */
+@media (max-width: 480px) {
+  .seat {
+    max-width: 76px;
+    padding: 6px 4px;
+    gap: 3px;
+  }
+}
