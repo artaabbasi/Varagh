@@ -11,8 +11,9 @@ import { GameRunner } from "./rooms/game-runner";
 import { registerHandlers } from "./transport/handlers";
 
 const PORT = Number(process.env.PORT ?? 3001);
+const HOST = process.env.HOST ?? "0.0.0.0";
 const DB_PATH = process.env.DATABASE_URL ?? "data/varagh.db";
-const WEB_ORIGIN = process.env.WEB_ORIGIN ?? "http://localhost:5173";
+const WEB_ORIGIN = process.env.WEB_ORIGIN ?? "*";
 
 mkdirSync(dirname(DB_PATH), { recursive: true });
 
@@ -31,6 +32,6 @@ const gameRunner = new GameRunner(io, roomStore, authStore);
 
 registerHandlers(io, authStore, roomStore, gameRunner);
 
-httpServer.listen(PORT, () => {
-  console.log(`Varagh server listening on :${PORT}  (db: ${DB_PATH})`);
+httpServer.listen(PORT, HOST, () => {
+  console.log(`Varagh server listening on ${HOST}:${PORT}  (db: ${DB_PATH})`);
 });
