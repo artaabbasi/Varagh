@@ -1,15 +1,9 @@
-import { useEffect, useRef, useState } from "react";
 import type { HokmView, TrickPlay } from "@varagh/shared";
 import type { SeatPosition } from "./HokmTable";
 import { PlayingCard } from "../../components/PlayingCard";
-import { TRICK_HOLD_MS } from "./timing";
 import styles from "./TrickArea.module.css";
 
-const SWEEP_DELAY_MS = TRICK_HOLD_MS;
-
 function positionToAnimateFrom(pos: SeatPosition) {
-  // The card flies in FROM the seat's position — i.e., if the seat is at "top",
-  // the card animates in from above.
   const map: Record<SeatPosition, "bottom" | "top" | "left" | "right"> = {
     bottom: "bottom",
     top: "top",
@@ -23,6 +17,7 @@ function positionToAnimateFrom(pos: SeatPosition) {
 
 interface TrickAreaProps {
   view: HokmView;
+  trickOverride: TrickPlay[];
   seatPositions: Map<number, SeatPosition>;
   sweepingWinner: string | null;
   reviewingWinner: string | null;
@@ -32,41 +27,14 @@ interface TrickAreaProps {
 
 export function TrickArea({
   view,
+  trickOverride,
   seatPositions,
   sweepingWinner,
   reviewingWinner,
   trumpRevealSuit,
   className,
 }: TrickAreaProps) {
-  const { players, currentTrick } = view;
-
-  // Buffer trick for sweep animation: keep showing old trick during sweep
-  const [displayTrick, setDisplayTrick] = useState<TrickPlay[]>([]);
-  const prevLengthRef = useRef(0);
-  const sweepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isSweepingRef = useRef(false);
-
-  useEffect(() => {
-    const prev = prevLengthRef.current;
-    const curr = currentTrick.length;
-
-    if (curr === 0 && prev >= players.length && !isSweepingRef.current) {
-      // Trick was just completed — hold the display, let CSS animate sweep
-      isSweepingRef.current = true;
-      sweepTimerRef.current = setTimeout(() => {
-        setDisplayTrick([]);
-        isSweepingRef.current = false;
-      }, SWEEP_DELAY_MS);
-    } else if (!isSweepingRef.current) {
-      setDisplayTrick(currentTrick);
-    }
-
-    prevLengthRef.current = curr;
-
-    return () => {
-      if (sweepTimerRef.current) clearTimeout(sweepTimerRef.current);
-    };
-  }, [currentTrick, players.length]);
+  const { players } = view;
 
   return (
     <div className={[styles.area, className].filter(Boolean).join(" ")}>
@@ -94,7 +62,7 @@ export function TrickArea({
         ].filter(Boolean).join(" ")}
         data-num-players={players.length}
       >
-        {displayTrick.map((play, i) => {
+        {trickOverride.map((play, i) => {
           const seatIdx = players.indexOf(play.playerId);
           const pos = seatPositions.get(seatIdx) ?? "bottom";
           const animateFrom = positionToAnimateFrom(pos);

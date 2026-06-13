@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { HokmMove } from "@varagh/shared";
+import type { HokmMove, TrickPlay } from "@varagh/shared";
 import type { HandOverEventData } from "./hooks/useAnimatedEvents";
 import { useHokmSocket } from "./hooks/useHokmSocket";
 import { useAnimatedEvents } from "./hooks/useAnimatedEvents";
 import { HokmTable } from "./HokmTable";
+import { CardLoadingScreen } from "../../components/CardLoadingScreen";
 import { TrumpSelector } from "./phases/TrumpSelector";
 import { TrumpWaiting } from "./phases/TrumpWaiting";
 import { DrawPhase } from "./phases/DrawPhase";
@@ -23,7 +24,6 @@ export function HokmGame() {
   const { view, room, events, sendMove, moveError, clearMoveError } = useHokmSocket();
 
   const [confirmLeave, setConfirmLeave] = useState(false);
-  const [confirmEnd, setConfirmEnd] = useState(false);
   // null while the game is running; set once it has been ended early.
   const [ended, setEnded] = useState<{ reason: "playerLeft" | "hostEnded"; by: string | null } | null>(null);
 
@@ -71,22 +71,52 @@ export function HokmGame() {
   const [drawFeedback, setDrawFeedback] = useState<{ playerId: string; action: string } | null>(null);
   const sweepTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  // ── Trick display (event-driven, not state-driven) ────────────
+  // currentTrickRef accumulates cards as they are played.
+  // isTrickCompleteRef gates display updates during the review/sweep animation
+  // so the completed trick stays visible until the sweep finishes.
+  const currentTrickRef = useRef<TrickPlay[]>([]);
+  const isTrickCompleteRef = useRef(false);
+  const [displayTrick, setDisplayTrick] = useState<TrickPlay[]>([]);
+
   useEffect(() => {
     const timers = sweepTimersRef.current;
     return () => { timers.forEach(clearTimeout); };
   }, []);
 
   useAnimatedEvents(events, {
+    onCardPlayed: (playerId, card) => {
+      const updated = [...currentTrickRef.current, { playerId, card }];
+      currentTrickRef.current = updated;
+      // Only push to display while no animation is in flight;
+      // during review/sweep we keep the completed trick frozen on screen.
+      if (!isTrickCompleteRef.current) {
+        setDisplayTrick(updated);
+      }
+    },
     onTrickWon: (winnerId) => {
-      // Phase 1 — REVIEW: all cards sit in centre, winner card highlighted.
-      // Phase 2 — SWEEP:  cards fly to the winner's seat.
+      // Lock display so new cards from the next trick don't overwrite
+      // the completed trick during review/sweep.
+      isTrickCompleteRef.current = true;
+      currentTrickRef.current = []; // ready for next trick's accumulation
+      // Phase 1 — REVIEW: all cards visible, winner highlighted + ring.
+      // Phase 2 — SWEEP:  cards fly to winner's seat.
       // Phase 3 — CLEAR:  trick area empties, trick count ticks up.
       setSweepingWinner(null);
       setReviewingWinner(winnerId);
       const reviewTimer = setTimeout(() => {
         setReviewingWinner(null);
         setSweepingWinner(winnerId);
-        const sweepTimer = setTimeout(() => setSweepingWinner(null), TRICK_SWEEP_MS);
+        const sweepTimer = setTimeout(() => {
+          setSweepingWinner(null);
+          isTrickCompleteRef.current = false;
+          // Flush any cards that arrived during animation, or clear.
+          if (currentTrickRef.current.length > 0) {
+            setDisplayTrick([...currentTrickRef.current]);
+          } else {
+            setDisplayTrick([]);
+          }
+        }, TRICK_SWEEP_MS);
         sweepTimersRef.current.push(sweepTimer);
       }, TRICK_REVIEW_MS);
       sweepTimersRef.current.push(reviewTimer);
@@ -96,6 +126,10 @@ export function HokmGame() {
       setTimeout(() => setTrumpRevealSuit(null), 2200);
     },
     onHandOver: (data) => {
+      // Reset trick tracking for the new hand.
+      currentTrickRef.current = [];
+      isTrickCompleteRef.current = false;
+      setDisplayTrick([]);
       setHandOverData(data);
       setShowHandOver(true);
     },
@@ -124,35 +158,17 @@ export function HokmGame() {
     });
   };
 
-  // Host deliberately ends the match for everyone, then returns to lobby.
-  const handleEndGameConfirmed = () => {
-    socket.emit("room:endGame", {}, () => {
-      goToLobby();
-    });
-  };
-
   // Room is in pre-game lobby — show waiting room UI.
   if (room?.phase === "lobby") {
     return <WaitingRoom room={room} />;
   }
 
   if (!view) {
-    return (
-      <div className={styles.loading} aria-live="polite">
-        <div className={styles.loadingCards} aria-hidden="true">
-          <span className={styles.loadingCard} data-suit="spades">♠</span>
-          <span className={styles.loadingCard} data-suit="hearts">♥</span>
-          <span className={styles.loadingCard} data-suit="diamonds">♦</span>
-          <span className={styles.loadingCard} data-suit="clubs">♣</span>
-        </div>
-        <p>{t("hokm.loading")}</p>
-      </div>
-    );
+    return <CardLoadingScreen />;
   }
 
   const localPlayer = view.forPlayer;
   const isHakem = view.players[view.hakemIndex] === localPlayer;
-  const isHost = room?.seats.find((s) => s.playerId === localPlayer)?.isHost ?? false;
   const lang = i18n.language as "fa" | "en";
 
   // ── Phase overlay ─────────────────────────────────────────────
@@ -209,6 +225,7 @@ export function HokmGame() {
       <HokmTable
         view={view}
         room={room}
+        trickOverride={displayTrick}
         sweepingWinner={sweepingWinner}
         reviewingWinner={reviewingWinner}
         trumpRevealSuit={trumpRevealSuit}
@@ -218,8 +235,8 @@ export function HokmGame() {
         onClearMoveError={clearMoveError}
       />
 
-      {/* Top controls — exit (everyone) + end game (host only) */}
-      {view.phase !== "gameOver" && !confirmLeave && !confirmEnd && (
+      {/* Top controls — exit */}
+      {view.phase !== "gameOver" && !confirmLeave && (
         <div className={styles.topControls}>
           <button
             className={styles.exitBtn}
@@ -229,14 +246,6 @@ export function HokmGame() {
           >
             <ExitIcon />
           </button>
-          {isHost && (
-            <button
-              className={styles.endGameBtn}
-              onClick={() => setConfirmEnd(true)}
-            >
-              {t("hokm.endGame.button")}
-            </button>
-          )}
         </div>
       )}
 
@@ -252,24 +261,6 @@ export function HokmGame() {
               </button>
               <button className={styles.leaveConfirmBtn} onClick={handleLeaveConfirmed}>
                 {t("room.leave.leaveGame")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Host end-game confirmation dialog */}
-      {confirmEnd && (
-        <div className={styles.leaveOverlay} role="alertdialog" aria-modal="true">
-          <div className={styles.leaveDialog}>
-            <p className={styles.leaveDialogTitle}>{t("hokm.endGame.confirm")}</p>
-            <p className={styles.leaveDialogSub}>{t("hokm.endGame.confirmSub")}</p>
-            <div className={styles.leaveDialogActions}>
-              <button className={styles.leaveCancelBtn} onClick={() => setConfirmEnd(false)}>
-                {t("room.leave.cancel")}
-              </button>
-              <button className={styles.leaveConfirmBtn} onClick={handleEndGameConfirmed}>
-                {t("hokm.endGame.button")}
               </button>
             </div>
           </div>

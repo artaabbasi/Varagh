@@ -78,7 +78,10 @@
     "left center right"
     "bottom bottom bottom";
   grid-template-rows: auto auto 1fr auto;
-  grid-template-columns: auto 1fr auto;
+  /* Fixed symmetric side columns so the center never drifts off-axis
+     when left/right player nicknames differ in length. 132px matches
+     the max-width cap on OpponentSeat. */
+  grid-template-columns: minmax(0, 132px) 1fr minmax(0, 132px);
   gap: 8px;
   padding: 12px;
 }
@@ -159,7 +162,7 @@
 
 /* ── Mobile layout fixes ────────────────────────────────────────── */
 @media (max-width: 480px) {
-  /* Cap side-seat columns so the center trick area always has room */
+  /* Tighter symmetric side columns on small screens */
   .table4p {
     grid-template-columns: minmax(0, 76px) 1fr minmax(0, 76px);
     gap: 4px;

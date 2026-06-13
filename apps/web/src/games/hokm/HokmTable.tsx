@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { HokmView } from "@varagh/shared";
+import type { HokmView, TrickPlay } from "@varagh/shared";
 import type { Card } from "@varagh/shared";
 import type { RoomView } from "@varagh/shared";
 import { legalPlays } from "@varagh/shared";
@@ -94,6 +94,7 @@ function getAvatar(room: RoomView | null, playerId: string): string | null {
 interface HokmTableProps {
   view: HokmView;
   room: RoomView | null;
+  trickOverride: TrickPlay[];
   sweepingWinner: string | null;
   reviewingWinner: string | null;
   trumpRevealSuit: string | null;
@@ -106,6 +107,7 @@ interface HokmTableProps {
 export function HokmTable({
   view,
   room,
+  trickOverride,
   sweepingWinner,
   reviewingWinner,
   trumpRevealSuit,
@@ -183,6 +185,7 @@ export function HokmTable({
 
       <TrickArea
         view={view}
+        trickOverride={trickOverride}
         seatPositions={seatPositions}
         sweepingWinner={sweepingWinner}
         reviewingWinner={reviewingWinner}

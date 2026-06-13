@@ -85,12 +85,14 @@
   45% { transform: translateY(0) rotate(0deg); }
 }
 
-/* ─── Top controls (exit + host end-game) ─────────────────────── */
+/* ─── Top controls (exit) ──────────────────────────────────────── */
+/* z-index 55: above the phase overlay (50) so the exit button is
+   always reachable during trump-pick, draw phase, etc. */
 .topControls {
   position: absolute;
   top: 0.75rem;
   inset-inline-start: 0.75rem;
-  z-index: 40;
+  z-index: 55;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -119,32 +121,6 @@
   border-color: transparent;
 }
 
-.endGameBtn {
-  display: flex;
-  align-items: center;
-  height: 40px;
-  padding: 0 0.9rem;
-  background: color-mix(in srgb, var(--md-sys-color-error-container) 85%, transparent);
-  backdrop-filter: blur(4px);
-  border: 1px solid color-mix(in srgb, var(--md-sys-color-error) 40%, transparent);
-  border-radius: var(--md-sys-shape-corner-full);
-  color: var(--md-sys-color-on-error-container);
-  font-size: var(--md-sys-typescale-label-large-size);
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  transition:
-    background var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard),
-    transform var(--md-sys-motion-dur-short3) var(--md-sys-motion-easing-spring);
-}
-
-.endGameBtn:hover {
-  background: var(--md-sys-color-error);
-  color: var(--md-sys-color-on-error);
-  border-color: transparent;
-}
-
-.endGameBtn:active { transform: scale(0.97); }
 
 /* ─── Leave confirmation overlay ─────────────────────────────── */
 .leaveOverlay {

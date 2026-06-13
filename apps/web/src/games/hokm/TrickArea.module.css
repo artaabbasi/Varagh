@@ -9,6 +9,9 @@
 /* ── Center trump indicator ─────────────────────────────────────── */
 .trumpIndicator {
   position: absolute;
+  /* inset:0 + margin:auto = bulletproof centering for abs-pos element */
+  inset: 0;
+  margin: auto;
   display: flex;
   align-items: center;
   justify-content: center;

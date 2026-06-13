@@ -10,6 +10,10 @@
   /* keeps the hand visually above the felt */
   position: relative;
   z-index: 10;
+  /* clip horizontal overflow so cards never escape the tray on narrow screens;
+     clip (not hidden) avoids creating a scroll container so lifted cards still
+     show above the top edge */
+  overflow-x: clip;
   transition: background var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard);
 }
 

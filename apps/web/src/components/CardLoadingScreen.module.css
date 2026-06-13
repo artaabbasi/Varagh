@@ -1,0 +1,178 @@
+/* ── Full-screen backdrop ──────────────────────────────────────── */
+.screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5rem;
+  height: 100dvh;
+  background: var(--md-sys-color-surface-container-lowest);
+  background-image: radial-gradient(
+    ellipse at 50% 50%,
+    color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent),
+    transparent 72%
+  );
+}
+
+/* ── Card deck area ────────────────────────────────────────────── */
+.deck {
+  position: relative;
+  width: 220px;
+  height: 160px;
+}
+
+/* ── Single playing card ───────────────────────────────────────── */
+.card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 68px;
+  height: 96px;
+  margin-top: -48px;
+  margin-inline-start: -34px;
+  background: #ffffff;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.22),
+    0 2px 8px rgba(0, 0, 0, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  animation: dealCard 2.6s var(--md-sys-motion-easing-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) infinite;
+  animation-delay: var(--delay, 0ms);
+  will-change: transform, opacity;
+}
+
+[data-theme="dark"] .card {
+  background: #f0eaf5;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Card anatomy ──────────────────────────────────────────────── */
+.corner {
+  position: absolute;
+  inset-block-start: 5px;
+  inset-inline-start: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.cornerBr {
+  inset-block-start: auto;
+  inset-inline-start: auto;
+  inset-block-end: 5px;
+  inset-inline-end: 6px;
+  transform: rotate(180deg);
+}
+
+.rank {
+  font-size: 13px;
+  font-weight: 800;
+  font-family: var(--md-sys-typescale-font, system-ui);
+  line-height: 1.1;
+  display: block;
+}
+
+.suitSmall {
+  font-size: 10px;
+  line-height: 1;
+  display: block;
+}
+
+.centerSuit {
+  font-size: 2.2rem;
+  line-height: 1;
+  display: block;
+}
+
+/* ── Suit colours ──────────────────────────────────────────────── */
+.black  { color: #1c1b1f; }
+.red    { color: #e11d48; }
+.blue   { color: #2563eb; }
+.green  { color: #059669; }
+
+/* ── Deal animation ────────────────────────────────────────────── */
+/*
+ * Each card starts off-screen (top-right), deals into the centre spread,
+ * pauses, then sweeps away (bottom-left). Stagger via --delay makes all
+ * four cards visibly overlap in the spread at the hold point.
+ */
+@keyframes dealCard {
+  0% {
+    transform: translate(150px, -180px) rotate(0deg) scale(0.28);
+    opacity: 0;
+  }
+  6% { opacity: 0; }
+  28% {
+    transform: translate(var(--land-x, 0px), var(--land-y, 0px)) rotate(var(--land-rot, 0deg)) scale(1.1);
+    opacity: 1;
+  }
+  38% {
+    transform: translate(var(--land-x, 0px), var(--land-y, 0px)) rotate(var(--land-rot, 0deg)) scale(1);
+    opacity: 1;
+  }
+  70% {
+    transform: translate(var(--land-x, 0px), var(--land-y, 0px)) rotate(var(--land-rot, 0deg)) scale(1);
+    opacity: 1;
+  }
+  88% {
+    transform: translate(-150px, 180px) rotate(180deg) scale(0.22);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(150px, -180px) rotate(0deg) scale(0.28);
+    opacity: 0;
+  }
+}
+
+/* ── Brand ─────────────────────────────────────────────────────── */
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  animation: fadeUp 0.8s var(--md-sys-motion-easing-decelerate, ease-out) 0.25s both;
+}
+
+.brandFa {
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--md-sys-color-primary);
+  font-family: var(--md-sys-typescale-font, system-ui);
+  direction: rtl;
+}
+
+.brandEn {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: var(--md-sys-typescale-font, system-ui);
+}
+
+/* ── Status line ───────────────────────────────────────────────── */
+.status {
+  margin: 0;
+  font-size: var(--md-sys-typescale-body-medium-size, 0.875rem);
+  color: var(--md-sys-color-on-surface-variant);
+  opacity: 0.65;
+  animation: fadeUp 0.8s var(--md-sys-motion-easing-decelerate, ease-out) 0.5s both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── Reduced motion ────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .card { animation: none; opacity: 1; }
+  .brand, .status { animation: none; }
+}
