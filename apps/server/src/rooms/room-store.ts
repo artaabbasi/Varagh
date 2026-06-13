@@ -56,13 +56,39 @@ export class RoomStore {
     const room = this.rooms.get(code);
     if (!room) return null;
     room.seats = room.seats.filter((s) => s.playerId !== playerId);
-    if (room.seats.length === 0) {
+
+    // A room with no humans left (only bots, or empty) is discarded — bots
+    // fill seats for real players, they never keep a room alive on their own.
+    const humans = room.seats.filter((s) => !s.isBot);
+    if (humans.length === 0) {
       this.rooms.delete(code);
       return null;
     }
+    // Host must always be a real player; never hand the room to a bot.
     if (room.hostPlayerId === playerId) {
-      room.hostPlayerId = room.seats[0].playerId;
+      room.hostPlayerId = humans[0].playerId;
     }
+    return room;
+  }
+
+  /** Add a bot seat. Only allowed in the lobby and up to `capacity` seats. */
+  addBot(code: string, bot: Seat, capacity: number): Room | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    if (room.phase !== "lobby") return null;
+    if (room.seats.length >= capacity) return null;
+    room.seats.push({ ...bot, isBot: true });
+    return room;
+  }
+
+  /** Remove a bot seat by id. Only bots may be removed, and only in the lobby. */
+  removeBot(code: string, botId: string): Room | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    if (room.phase !== "lobby") return null;
+    const seat = room.seats.find((s) => s.playerId === botId);
+    if (!seat || !seat.isBot) return null;
+    room.seats = room.seats.filter((s) => s.playerId !== botId);
     return room;
   }
 

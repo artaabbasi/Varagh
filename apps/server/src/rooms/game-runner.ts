@@ -6,8 +6,9 @@
  *  - Hold the seeded RNG and live game state (non-serializable parts).
  *  - Broadcast per-player views with visibility-filtered events.
  *  - Run per-turn timers (TURN_MS) and play getDefaultMove on expiry.
+ *  - Auto-play bot seats and absent players after a short, human-like pause.
  *  - Run disconnect grace timers (GRACE_MS); after expiry, future turns
- *    for that player are auto-played immediately (0 ms delay).
+ *    for that player are auto-played on the same short delay.
  *
  * What it does NOT do: auth, join-code generation, lobby management.
  * Transport stays thin; this class only needs the io reference for emitting.
@@ -33,6 +34,18 @@ import type { AuthStore } from "../auth/store";
 
 /** Milliseconds before an idle turn is auto-played with getDefaultMove. */
 export const TURN_MS = 30_000;
+
+/**
+ * Human-like "thinking" pause before a bot — or an absent player's seat — is
+ * auto-played. A small random delay so machine plays don't snap instantly and
+ * the table feels like real people are taking their turns.
+ */
+export const AUTO_THINK_MIN_MS = 700;
+export const AUTO_THINK_MAX_MS = 2200;
+
+function autoThinkDelay(): number {
+  return AUTO_THINK_MIN_MS + Math.floor(Math.random() * (AUTO_THINK_MAX_MS - AUTO_THINK_MIN_MS));
+}
 
 /** Milliseconds a disconnected player has to reconnect before their turns
  *  start being auto-played immediately. */
@@ -85,6 +98,10 @@ function isVisibleTo(event: GameEvent, playerId: string): boolean {
 
 function getCurrentPlayer(room: Room): string | null {
   return (room.gameState as { currentTurn?: string | null } | null)?.currentTurn ?? null;
+}
+
+function isBotPlayer(room: Room, playerId: string): boolean {
+  return room.seats.find((s) => s.playerId === playerId)?.isBot ?? false;
 }
 
 // ── GameRunner ─────────────────────────────────────────────────────────────
@@ -200,9 +217,14 @@ export class GameRunner {
       const room = this.roomStore.get(roomCode);
       if (!room || room.phase !== "playing") return;
 
-      // Too many players gone for too long — close the game for everyone
-      // rather than auto-playing multiple absent seats.
-      if (game.disconnectedPastGrace.size >= ABANDON_THRESHOLD) {
+      // Close the game for everyone when either too many players are gone, or
+      // every *human* seat is absent (a bots-only table has no one left to
+      // play for — bots fill seats, they don't keep a dead room alive).
+      const humanSeats = room.seats.filter((s) => !s.isBot);
+      const allHumansAbsent =
+        humanSeats.length > 0 &&
+        humanSeats.every((s) => game.disconnectedPastGrace.has(s.playerId));
+      if (game.disconnectedPastGrace.size >= ABANDON_THRESHOLD || allHumansAbsent) {
         this.abortGame(room);
         this.io.to(roomCode).emit("game:aborted", { reason: "playerLeft", by: null });
         return;
@@ -320,7 +342,11 @@ export class GameRunner {
     const validMoves = game.engine.getValidMoves(room.gameState, currentPlayer);
     if (validMoves.length === 0) return; // nothing to auto-play
 
-    const delay = game.disconnectedPastGrace.has(currentPlayer) ? 0 : TURN_MS;
+    // Bots and absent players are auto-played after a short human-like pause;
+    // a present human gets the full turn timer to act themselves.
+    const isAuto =
+      isBotPlayer(room, currentPlayer) || game.disconnectedPastGrace.has(currentPlayer);
+    const delay = isAuto ? autoThinkDelay() : TURN_MS;
 
     game.turnTimer = setTimeout(() => {
       game.turnTimer = undefined;
@@ -336,7 +362,10 @@ export class GameRunner {
    * players simultaneously disconnected).
    */
   private playDefaultMove(room: Room, game: RoomGame, playerId: string): void {
-    if (++game.autoMoveCount > MAX_AUTO_MOVES) {
+    // Bot moves are legitimate gameplay, not a stalled table, so they don't
+    // count toward the runaway-auto-play circuit breaker. Only absent/idle
+    // human seats being auto-played advance the counter.
+    if (!isBotPlayer(room, playerId) && ++game.autoMoveCount > MAX_AUTO_MOVES) {
       this.cleanup(room.code);
       return;
     }

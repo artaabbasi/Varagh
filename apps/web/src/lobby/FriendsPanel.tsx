@@ -61,6 +61,17 @@ export function FriendsPanel({ onInviteToJoin }: FriendsPanelProps) {
     };
   }, [onInviteToJoin]);
 
+  // Re-poll the friend list every few seconds so online/offline status stays
+  // current while the lobby is open (only while visible + connected).
+  useEffect(() => {
+    const POLL_MS = 5000;
+    const id = setInterval(() => {
+      if (document.hidden || !socket.connected) return;
+      socket.emit("friend:list", {}, (res) => setFriends(res.friends));
+    }, POLL_MS);
+    return () => clearInterval(id);
+  }, []);
+
   const handleAdd = (e: FormEvent) => {
     e.preventDefault();
     setAddError(null);

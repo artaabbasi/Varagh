@@ -27,6 +27,9 @@ export interface SeatView {
   ready: boolean;
   /** Small compressed data-URL avatar, or null. */
   avatar: string | null;
+  /** A computer-controlled seat. Bots are always connected + ready and the
+   *  server plays their turns for them. */
+  isBot: boolean;
 }
 
 export interface RoomView {
@@ -117,6 +120,16 @@ export interface ClientToServerEvents {
   "room:endGame": (
     data: Record<string, never>,
     cb: (res: { ok: true } | { ok: false; error: string }) => void
+  ) => void;
+  /** Host-only: add a computer-controlled player to an empty seat (lobby only). */
+  "room:addBot": (
+    data: Record<string, never>,
+    cb: (res: { ok: true; room: RoomView } | { ok: false; error: string }) => void
+  ) => void;
+  /** Host-only: remove a bot seat by its playerId (lobby only). */
+  "room:removeBot": (
+    data: { playerId: string },
+    cb: (res: { ok: true; room: RoomView } | { ok: false; error: string }) => void
   ) => void;
   "room:list": (
     data: Record<string, never>,

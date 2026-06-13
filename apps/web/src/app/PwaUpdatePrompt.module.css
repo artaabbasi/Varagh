@@ -1,0 +1,76 @@
+.toast {
+  position: fixed;
+  inset-block-end: max(1rem, env(safe-area-inset-bottom));
+  inset-inline: 1rem;
+  margin-inline: auto;
+  z-index: 1000;
+  width: min(440px, calc(100% - 2rem));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1rem 0.875rem 1.25rem;
+  background: var(--md-sys-color-inverse-surface, #313033);
+  color: var(--md-sys-color-inverse-on-surface, #f4eff4);
+  border-radius: var(--md-sys-shape-corner-large);
+  box-shadow: var(--md-sys-elevation-3, 0 8px 28px rgba(0, 0, 0, 0.28));
+  animation: toastRise var(--md-sys-motion-dur-medium2, 280ms) var(--md-sys-motion-easing-decelerate, cubic-bezier(0.05, 0.7, 0.1, 1)) both;
+}
+
+@keyframes toastRise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.msg {
+  font-size: var(--md-sys-typescale-body-medium-size, 0.875rem);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.later {
+  min-height: 36px;
+  padding: 0.375rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-inverse-on-surface, #f4eff4);
+  opacity: 0.85;
+  font-family: inherit;
+  font-size: var(--md-sys-typescale-label-large-size, 0.875rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--md-sys-motion-dur-short4, 200ms) var(--md-sys-motion-easing-standard, ease);
+}
+
+.later:hover { opacity: 1; }
+
+.reload {
+  min-height: 36px;
+  padding: 0.375rem 1.125rem;
+  background: var(--md-sys-color-inverse-primary, #d0bcff);
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-on-primary-container, #21005d);
+  font-family: inherit;
+  font-size: var(--md-sys-typescale-label-large-size, 0.875rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    filter var(--md-sys-motion-dur-short4, 200ms) var(--md-sys-motion-easing-standard, ease),
+    transform var(--md-sys-motion-dur-short3, 150ms) var(--md-sys-motion-easing-spring, ease);
+}
+
+.reload:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.reload:active { transform: scale(0.97); }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}

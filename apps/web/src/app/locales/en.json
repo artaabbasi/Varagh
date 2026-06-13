@@ -68,14 +68,14 @@
     "comingSoon": "Coming soon",
     "features": {
       "title": "Why Varagh?",
-      "f1": "No sign-up — pick a nickname and play instantly",
+      "f1": "Free forever — sign up with just a username, no email or phone",
       "f2": "Works on any device, any screen size",
       "f3": "Private rooms — share a 6-letter code with friends",
       "f4": "2, 3, and 4 player variants of Hokm"
     },
     "howto": {
       "title": "How to Play",
-      "s1": { "title": "Pick a nickname", "desc": "No email or password needed" },
+      "s1": { "title": "Create an account", "desc": "Just a username and password — no email needed" },
       "s2": { "title": "Create or join a room", "desc": "Share the 6-letter code with friends" },
       "s3": { "title": "Play!", "desc": "First team to 7 points wins the game" }
     },
@@ -143,7 +143,10 @@
       "copyLink": "Copy Invite Link",
       "inviteFriends": "Invite Friends",
       "invite": "Invite",
-      "invited": "Invited!"
+      "invited": "Invited!",
+      "addBot": "Add Bot",
+      "removeBot": "Remove bot",
+      "bot": "Bot"
     },
     "leave": {
       "confirm": "Leave this game?",
@@ -230,6 +233,11 @@
     "activeGames": "Active Games",
     "publicRooms": "Open Rooms",
     "totalUsers": "Players"
+  },
+  "pwa": {
+    "updateAvailable": "A new version of Varagh is available.",
+    "reload": "Update",
+    "later": "Later"
   },
   "error": {
     "notFound": "Page not found",

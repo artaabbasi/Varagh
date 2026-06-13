@@ -62,15 +62,19 @@
   width: fit-content;
 }
 
+/* Physical left/right (not logical inset-inline) so the played card lands in
+   front of the same seat in both LTR and RTL. The opponent avatars are pinned
+   to physical sides via grid-area overrides, and the sweep vectors below use
+   physical pixels — the trick slots must match. */
 .slot_left {
-  inset-inline-start: 0;
+  left: 0;
   inset-block: 0;
   margin: auto;
   height: fit-content;
 }
 
 .slot_right {
-  inset-inline-end: 0;
+  right: 0;
   inset-block: 0;
   margin: auto;
   height: fit-content;
@@ -78,12 +82,12 @@
 
 .slot_top_left {
   inset-block-start: 0;
-  inset-inline-start: 0;
+  left: 0;
 }
 
 .slot_top_right {
   inset-block-start: 0;
-  inset-inline-end: 0;
+  right: 0;
 }
 
 /* ── Review phase — golden ring pulses around the trick grid ─────── */

@@ -9,6 +9,9 @@ export interface Seat {
   ready: boolean;
   /** Small compressed data-URL avatar, or null/undefined. */
   avatar?: string | null;
+  /** A computer-controlled seat. Bots stay connected + ready and the server
+   *  plays their turns on a short human-like delay. */
+  isBot?: boolean;
 }
 
 export interface Room {

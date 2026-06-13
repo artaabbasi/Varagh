@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { MatchHistoryEntry } from "@varagh/shared";
 import { socket } from "../app/socket";
@@ -158,7 +158,7 @@ export function ProfileScreen() {
         <button className={styles.backBtn} onClick={() => void navigate("/lobby")}>
           <BackIcon />
         </button>
-        <span className={styles.logo} aria-label="Varagh">ورق</span>
+        <Link to="/" className={styles.logo} aria-label="Varagh">ورق</Link>
         <div className={styles.topActions}>
           <button className={styles.iconBtn} onClick={() => void i18n.changeLanguage(isRtl ? "en" : "fa")}>
             {isRtl ? "EN" : "فا"}
@@ -192,7 +192,7 @@ export function ProfileScreen() {
               onClick={() => { setShowEdit((v) => !v); setDisplayName(user?.nickname ?? ""); }}
               aria-expanded={showEdit}
             >
-              <EditIcon />
+              <ProfileEditIcon />
               <span className={styles.editLabel}>{t("profile.edit.title")}</span>
             </button>
             <button className={styles.logoutBtn} onClick={handleLogout}>
@@ -374,11 +374,12 @@ function BackIcon() {
   );
 }
 
-function EditIcon() {
+function ProfileEditIcon() {
+  // Person/profile glyph — this button edits the user's profile.
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-      <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
     </svg>
   );
 }

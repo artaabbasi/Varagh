@@ -348,6 +348,71 @@
   color: var(--md-sys-color-on-surface-variant);
 }
 
+/* ── Bot seat affordances ───────────────────────────────────────── */
+.botBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--md-sys-typescale-label-small-size);
+  font-weight: 700;
+  color: var(--md-sys-color-on-tertiary-container);
+  background: var(--md-sys-color-tertiary-container);
+  padding: 0.1rem 0.45rem 0.1rem 0.35rem;
+  border-radius: var(--md-sys-shape-corner-full);
+}
+
+.removeBotBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  transition:
+    background var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard),
+    color var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard);
+}
+
+.removeBotBtn:hover {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+  border-color: transparent;
+}
+
+.addBotBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 36px;
+  padding: 0.35rem 0.9rem;
+  background: color-mix(in srgb, var(--varagh-grad-1) 12%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--varagh-grad-1) 40%, transparent);
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-primary);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard),
+    transform var(--md-sys-motion-dur-short3) var(--md-sys-motion-easing-spring);
+}
+
+.addBotBtn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--varagh-grad-1) 20%, transparent);
+  transform: translateY(-1px);
+}
+
+.addBotBtn:disabled { opacity: 0.55; cursor: default; }
+
+/* The empty slot holding an Add-bot button should read as actionable, not faded. */
+.emptySlot:has(.addBotBtn) { opacity: 1; }
+
 .emptyLabel {
   font-size: var(--md-sys-typescale-body-small-size);
   color: var(--md-sys-color-on-surface-variant);
