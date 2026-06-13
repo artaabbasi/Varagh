@@ -25,6 +25,7 @@ interface TrickAreaProps {
   view: HokmView;
   seatPositions: Map<number, SeatPosition>;
   sweepingWinner: string | null;
+  reviewingWinner: string | null;
   trumpRevealSuit: string | null;
   className?: string;
 }
@@ -33,6 +34,7 @@ export function TrickArea({
   view,
   seatPositions,
   sweepingWinner,
+  reviewingWinner,
   trumpRevealSuit,
   className,
 }: TrickAreaProps) {
@@ -85,14 +87,21 @@ export function TrickArea({
       )}
 
       {/* Played cards */}
-      <div className={styles.trickGrid} data-num-players={players.length}>
+      <div
+        className={[
+          styles.trickGrid,
+          reviewingWinner !== null ? styles.reviewing : null,
+        ].filter(Boolean).join(" ")}
+        data-num-players={players.length}
+      >
         {displayTrick.map((play, i) => {
           const seatIdx = players.indexOf(play.playerId);
           const pos = seatPositions.get(seatIdx) ?? "bottom";
           const animateFrom = positionToAnimateFrom(pos);
           const isSweeping = sweepingWinner !== null;
+          const isWinnerCard = play.playerId === reviewingWinner;
 
-          // Sweep direction — card flies toward winner's seat
+          // All cards sweep toward the winner's seat
           const winnerIdx = sweepingWinner ? players.indexOf(sweepingWinner) : -1;
           const winnerPos = winnerIdx >= 0 ? seatPositions.get(winnerIdx) : undefined;
 
@@ -103,16 +112,19 @@ export function TrickArea({
                 styles.cardSlot,
                 styles[`slot_${pos.replace("-", "_")}`],
                 isSweeping ? styles.sweeping : null,
+                isWinnerCard ? styles.winnerHighlight : null,
               ]
                 .filter(Boolean)
                 .join(" ")}
               style={
-                winnerPos
-                  ? ({
-                      "--sweep-x": SWEEP_VECTOR[winnerPos].x,
-                      "--sweep-y": SWEEP_VECTOR[winnerPos].y,
-                    } as React.CSSProperties)
-                  : undefined
+                {
+                  ...(winnerPos ? {
+                    "--sweep-x": SWEEP_VECTOR[winnerPos].x,
+                    "--sweep-y": SWEEP_VECTOR[winnerPos].y,
+                  } : {}),
+                  // Stagger: first card flies out first, last card last
+                  "--sweep-delay": `${i * 55}ms`,
+                } as React.CSSProperties
               }
             >
               <PlayingCard
@@ -137,10 +149,10 @@ const SUIT_SYMBOL: Record<string, string> = {
 };
 
 const SWEEP_VECTOR: Record<SeatPosition, { x: string; y: string }> = {
-  bottom: { x: "0px", y: "120px" },
-  top: { x: "0px", y: "-120px" },
-  left: { x: "-120px", y: "0px" },
-  right: { x: "120px", y: "0px" },
-  "top-left": { x: "-80px", y: "-80px" },
-  "top-right": { x: "80px", y: "-80px" },
+  bottom:     { x: "0px",    y: "240px"  },
+  top:        { x: "0px",    y: "-240px" },
+  left:       { x: "-240px", y: "0px"    },
+  right:      { x: "240px",  y: "0px"    },
+  "top-left":  { x: "-170px", y: "-170px" },
+  "top-right": { x: "170px",  y: "-170px" },
 };

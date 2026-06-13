@@ -64,6 +64,7 @@ export function HokmGame() {
   const [showHandOver, setShowHandOver] = useState(false);
   const [handOverData, setHandOverData] = useState<HandOverEventData | null>(null);
   const [sweepingWinner, setSweepingWinner] = useState<string | null>(null);
+  const [reviewingWinner, setReviewingWinner] = useState<string | null>(null);
   const [trumpRevealSuit, setTrumpRevealSuit] = useState<string | null>(null);
   const [kotIsHakem, setKotIsHakem] = useState(false);
   const [showKotBurst, setShowKotBurst] = useState(false);
@@ -77,10 +78,13 @@ export function HokmGame() {
 
   useAnimatedEvents(events, {
     onTrickWon: (winnerId) => {
-      // Hold the completed trick in the centre (review), THEN sweep it to the
-      // winner. The point is revealed by HokmTable as the sweep lands.
+      // Phase 1 — REVIEW: all cards sit in centre, winner card highlighted.
+      // Phase 2 — SWEEP:  cards fly to the winner's seat.
+      // Phase 3 — CLEAR:  trick area empties, trick count ticks up.
       setSweepingWinner(null);
+      setReviewingWinner(winnerId);
       const reviewTimer = setTimeout(() => {
+        setReviewingWinner(null);
         setSweepingWinner(winnerId);
         const sweepTimer = setTimeout(() => setSweepingWinner(null), TRICK_SWEEP_MS);
         sweepTimersRef.current.push(sweepTimer);
@@ -206,6 +210,7 @@ export function HokmGame() {
         view={view}
         room={room}
         sweepingWinner={sweepingWinner}
+        reviewingWinner={reviewingWinner}
         trumpRevealSuit={trumpRevealSuit}
         showKotBurst={showKotBurst}
         moveError={moveError}

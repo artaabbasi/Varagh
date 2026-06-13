@@ -11,7 +11,7 @@
  * the cards on screen) and HokmTable (delays the trick-count reveal) so the
  * three stay in lock-step.
  */
-export const TRICK_REVIEW_MS = 750;
+export const TRICK_REVIEW_MS = 1000;
 export const TRICK_SWEEP_MS = 600;
 
 /** How long the completed trick stays on screen before it is cleared. */

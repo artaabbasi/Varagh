@@ -95,6 +95,7 @@ interface HokmTableProps {
   view: HokmView;
   room: RoomView | null;
   sweepingWinner: string | null;
+  reviewingWinner: string | null;
   trumpRevealSuit: string | null;
   showKotBurst: boolean;
   moveError: string | null;
@@ -106,6 +107,7 @@ export function HokmTable({
   view,
   room,
   sweepingWinner,
+  reviewingWinner,
   trumpRevealSuit,
   showKotBurst,
   moveError,
@@ -183,6 +185,7 @@ export function HokmTable({
         view={view}
         seatPositions={seatPositions}
         sweepingWinner={sweepingWinner}
+        reviewingWinner={reviewingWinner}
         trumpRevealSuit={trumpRevealSuit}
         className={styles.trickArea}
       />
