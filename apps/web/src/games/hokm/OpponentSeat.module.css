@@ -21,49 +21,50 @@
 /* Active turn glow — clearly highlights whose turn it is for everyone */
 .activeTurn {
   background: color-mix(in srgb, var(--md-sys-color-primary) 16%, var(--md-sys-color-surface-container));
-  box-shadow: 0 0 0 2px var(--md-sys-color-primary),
-    0 6px 22px color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+}
+
+/* Countdown ring: a conic-gradient arc depletes from full to empty
+   over 30 s (TURN_SECONDS). @property lets the angle value animate. */
+@property --ring-progress {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 360deg;
+}
+
+@keyframes ring-countdown {
+  from { --ring-progress: 360deg; }
+  to   { --ring-progress: 0deg; }
 }
 
 .activeTurn::after {
   content: "";
   position: absolute;
-  inset: -3px;
+  inset: -5px;
   border-radius: inherit;
-  border: 2px solid var(--md-sys-color-primary);
-  animation: pulseRing 1.4s ease infinite;
+  /* Conic arc from top (−90°), fills clockwise until --ring-progress,
+     then fades to a dim track for the remaining arc. */
+  background: conic-gradient(
+    from -90deg,
+    var(--md-sys-color-primary) 0deg,
+    var(--md-sys-color-primary) var(--ring-progress),
+    color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent) var(--ring-progress)
+  );
+  /* Mask keeps only the ring border (5 px wide); the centre is transparent. */
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 5px;
   pointer-events: none;
-}
-
-@keyframes pulseRing {
-  0%, 100% { opacity: 0.9; transform: scale(1); }
-  50% { opacity: 0.3; transform: scale(1.05); }
+  animation: ring-countdown 30s linear forwards;
 }
 
 /* Team color underline */
 .team_primary { border-block-end: 3px solid var(--md-sys-color-primary); }
 .team_tertiary { border-block-end: 3px solid var(--md-sys-color-tertiary); }
 
-/* ── Prominent turn-timer badge ─────────────────────────────────── */
-.timerBadge {
-  position: absolute;
-  inset-block-start: -22px;
-  inset-inline-start: 50%;
-  transform: translateX(-50%);
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  background: var(--md-sys-color-surface-container-highest);
-  box-shadow:
-    0 2px 10px rgba(0, 0, 0, 0.28),
-    0 0 0 2px color-mix(in srgb, var(--md-sys-color-primary) 45%, transparent);
-}
-
-[dir="rtl"] .timerBadge { transform: translateX(50%); }
 
 /* ── Seats keep a tidy centred column in every position ─────────── */
 .handFan,
@@ -74,6 +75,7 @@
 @media (prefers-reduced-motion: reduce) {
   .activeTurn::after {
     animation: none;
+    --ring-progress: 360deg;
   }
 }
 

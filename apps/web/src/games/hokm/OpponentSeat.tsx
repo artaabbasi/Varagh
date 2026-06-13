@@ -1,12 +1,8 @@
-import { useEffect, useRef, useState } from "react";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
 import { HandFan } from "../../components/HandFan";
 import { TrickPile } from "../../components/TrickPile";
-import { CountdownRing } from "../../components/CountdownRing";
 import type { SeatPosition } from "./HokmTable";
 import styles from "./OpponentSeat.module.css";
-
-const TURN_SECONDS = 30;
 
 interface OpponentSeatProps {
   playerId: string;
@@ -37,21 +33,6 @@ export function OpponentSeat({
   position,
   className,
 }: OpponentSeatProps) {
-  const [remaining, setRemaining] = useState(TURN_SECONDS);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    if (!isTurn) { setRemaining(TURN_SECONDS); return; }
-
-    setRemaining(TURN_SECONDS);
-    intervalRef.current = setInterval(() => {
-      setRemaining((s) => Math.max(0, s - 1));
-    }, 1000);
-
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isTurn, playerId]);
-
   return (
     <div
       className={[
@@ -65,17 +46,6 @@ export function OpponentSeat({
         .join(" ")}
       data-position={position}
     >
-      {/* Prominent turn timer badge, centred above the avatar */}
-      {isTurn && (
-        <div className={styles.timerBadge}>
-          <CountdownRing
-            totalSeconds={TURN_SECONDS}
-            remainingSeconds={remaining}
-            size={50}
-          />
-        </div>
-      )}
-
       <PlayerAvatar
         nickname={nickname}
         discriminator={discriminator}

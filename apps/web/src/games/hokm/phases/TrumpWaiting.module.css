@@ -17,21 +17,68 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 24px;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+/* ── Shuffling card deck ─────────────────────────────────────────── */
+.shuffleDeck {
+  position: relative;
+  width: 72px;
+  height: 96px;
 }
 
-.spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid var(--md-sys-color-surface-container-highest);
-  border-block-start-color: var(--md-sys-color-primary);
-  border-radius: var(--md-sys-shape-corner-full);
-  animation: spin 0.9s linear infinite;
+.card {
+  position: absolute;
+  inset: 0;
+  width: 60px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--md-sys-elevation-2);
+  border: 1.5px solid var(--md-sys-color-outline-variant);
 }
+
+.cardRank {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
+.red   { color: #e11d48; }
+.blue  { color: #2563eb; }
+.black { color: var(--md-sys-color-on-surface); }
+
+[data-theme="dark"] .red   { color: #ff6b8a; }
+[data-theme="dark"] .blue  { color: #6ea8ff; }
+
+/* Card 1: starts left, sweeps to center, returns */
+@keyframes shuffle1 {
+  0%, 100% { transform: translate(-18px, 6px) rotate(-12deg); z-index: 1; }
+  33%       { transform: translate(0, 0) rotate(-2deg);        z-index: 3; }
+  66%       { transform: translate(-18px, 6px) rotate(-12deg); z-index: 1; }
+}
+
+/* Card 2: center, lifts and drops */
+@keyframes shuffle2 {
+  0%, 100% { transform: translate(0, 0) scale(1);       z-index: 2; }
+  33%       { transform: translate(0, -10px) scale(1.06); z-index: 1; }
+  66%       { transform: translate(0, 0) scale(1.06);    z-index: 2; }
+}
+
+/* Card 3: starts right, sweeps to center, returns */
+@keyframes shuffle3 {
+  0%, 100% { transform: translate(18px, 6px) rotate(12deg); z-index: 1; }
+  33%       { transform: translate(0, 0) rotate(2deg);       z-index: 1; }
+  66%       { transform: translate(18px, 6px) rotate(12deg); z-index: 3; }
+}
+
+.card1 { animation: shuffle1 1.8s var(--md-sys-motion-easing-standard) infinite; }
+.card2 { animation: shuffle2 1.8s var(--md-sys-motion-easing-standard) infinite 0.15s; }
+.card3 { animation: shuffle3 1.8s var(--md-sys-motion-easing-standard) infinite 0.3s; }
 
 .text {
   font-size: var(--md-sys-typescale-body-large-size);
@@ -41,6 +88,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sheet { animation: none; }
-  .spinner { animation: none; }
+  .sheet  { animation: none; }
+  .card1,
+  .card2,
+  .card3  { animation: none; }
 }

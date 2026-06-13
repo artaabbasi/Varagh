@@ -19,26 +19,37 @@ export function GameOverSheet({ view, room, onRematch }: GameOverSheetProps) {
     .map((s, i) => (s >= maxScore ? i : -1))
     .filter((i) => i >= 0);
 
-  const winnerLabel =
-    numPlayers === 4
-      ? t("hokm.gameOver.teamWins", {
-          name: t(`hokm.team`, { n: winnerIndices[0] % 2 === 0 ? 1 : 2 }),
-        })
-      : t("hokm.gameOver.winner", {
-          name:
-            room?.seats.find((s) => s.playerId === view.players[winnerIndices[0]])
-              ?.nickname ?? "…",
-        });
+  const getNick = (pid: string) =>
+    room?.seats.find((s) => s.playerId === pid)?.nickname ?? pid.slice(0, 8);
+
+  let winnerLabel: string;
+  let winnerNames: string | null = null;
+
+  if (numPlayers === 4) {
+    const winningTeamIdx = winnerIndices[0] % 2; // 0 = team1 (seats 0,2), 1 = team2 (seats 1,3)
+    winnerLabel = t("hokm.gameOver.teamWins", {
+      name: t("hokm.team", { n: winningTeamIdx === 0 ? 1 : 2 }),
+    });
+    winnerNames = [winningTeamIdx, winningTeamIdx + 2]
+      .map((i) => getNick(view.players[i]))
+      .join(" & ");
+  } else {
+    winnerLabel = t("hokm.gameOver.winner", {
+      name: getNick(view.players[winnerIndices[0]]),
+    });
+  }
 
   const scoreRows =
     numPlayers === 4
-      ? [
-          { label: t("hokm.team", { n: 1 }), score: view.scores[0] },
-          { label: t("hokm.team", { n: 2 }), score: view.scores[1] },
-        ]
+      ? [0, 1].map((teamIdx) => ({
+          label: t("hokm.team", { n: teamIdx + 1 }),
+          sublabel: [teamIdx, teamIdx + 2].map((i) => getNick(view.players[i])).join(" & "),
+          score: view.scores[teamIdx],
+          isWinner: winnerIndices.some((wi) => wi % 2 === teamIdx),
+        }))
       : view.players.map((p, i) => ({
-          label:
-            room?.seats.find((s) => s.playerId === p)?.nickname ?? p.slice(0, 8),
+          label: getNick(p),
+          sublabel: null as string | null,
           score: view.scores[i],
           isWinner: winnerIndices.includes(i),
         }));
@@ -66,6 +77,7 @@ export function GameOverSheet({ view, room, onRematch }: GameOverSheetProps) {
 
         <h2 className={styles.title}>{t("hokm.gameOver.title")}</h2>
         <p className={styles.winnerText}>{winnerLabel}</p>
+        {winnerNames && <p className={styles.winnerNames}>{winnerNames}</p>}
 
         {/* Scores */}
         <div className={styles.scores}>
@@ -75,12 +87,17 @@ export function GameOverSheet({ view, room, onRematch }: GameOverSheetProps) {
               key={i}
               className={[
                 styles.scoreRow,
-                "isWinner" in row && row.isWinner ? styles.winnerRow : null,
+                row.isWinner ? styles.winnerRow : null,
               ]
                 .filter(Boolean)
                 .join(" ")}
             >
-              <span className={styles.scoreName}>{row.label}</span>
+              <div className={styles.scoreNameGroup}>
+                <span className={styles.scoreName}>{row.label}</span>
+                {row.sublabel && (
+                  <span className={styles.scoreSublabel}>{row.sublabel}</span>
+                )}
+              </div>
               <span className={styles.scoreVal}>{row.score}</span>
             </div>
           ))}

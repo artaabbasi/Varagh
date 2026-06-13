@@ -55,6 +55,13 @@
   text-align: center;
 }
 
+.winnerNames {
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface-variant);
+  margin: -8px 0 0;
+  text-align: center;
+}
+
 .scores {
   width: 100%;
   background: var(--md-sys-color-surface-container);
@@ -87,9 +94,21 @@
   margin-inline: -8px;
 }
 
+.scoreNameGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
 .scoreName {
   font-size: var(--md-sys-typescale-body-medium-size);
   color: var(--md-sys-color-on-surface-variant);
+}
+
+.scoreSublabel {
+  font-size: var(--md-sys-typescale-label-small-size);
+  color: var(--md-sys-color-on-surface-variant);
+  opacity: 0.7;
 }
 
 .scoreVal {

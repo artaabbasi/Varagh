@@ -8,12 +8,26 @@
 }
 
 /* Grid content sits above the decorative felt (z-index:-1 below). */
-.table > .scorePanel,
-.table > .trickArea,
 .table > .localHand,
 .table > [class*="seat_"] {
   position: relative;
   z-index: 1;
+}
+
+/* Score panel above the phase overlay (z-index 50) so the exit button
+   is always reachable during trump-pick and draw phases. Overlays are
+   flex-end (slide up from bottom) so the top score bar is never hidden. */
+.table > .scorePanel {
+  position: relative;
+  z-index: 55;
+}
+
+/* Trick area above localHand so card fly-in animations are not clipped
+   by the local hand tray which is later in DOM order (same z-index wins
+   for the later element, which would be localHand). */
+.table > .trickArea {
+  position: relative;
+  z-index: 2;
 }
 
 /* ── Decorative felt table + centre emblem ──────────────────────── */

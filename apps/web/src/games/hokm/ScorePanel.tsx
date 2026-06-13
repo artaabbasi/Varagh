@@ -20,7 +20,18 @@ interface ScorePanelProps {
   /** Trick counts to display; defaults to view.tricksTaken. Lets the table
    *  delay the count so the point lands in time with the sweep animation. */
   tricksOverride?: [number, number];
+  onLeave?: () => void;
   className?: string;
+}
+
+function ExitIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
 }
 
 function TrumpBadge({ trump, t }: { trump: string; t: (k: string) => string }) {
@@ -41,7 +52,7 @@ function TrumpBadge({ trump, t }: { trump: string; t: (k: string) => string }) {
   );
 }
 
-export function ScorePanel({ view, room, tricksOverride, className }: ScorePanelProps) {
+export function ScorePanel({ view, room, tricksOverride, onLeave, className }: ScorePanelProps) {
   const { t } = useTranslation();
   const { players, scores, hakemIndex } = view;
   const tricksTaken = tricksOverride ?? view.tricksTaken;
@@ -69,6 +80,11 @@ export function ScorePanel({ view, room, tricksOverride, className }: ScorePanel
           <span className={styles.gameScore}>{scores[1]}</span>
           <span className={styles.label}>{t("hokm.score")}</span>
         </div>
+        {onLeave && (
+          <button className={styles.exitBtn} onClick={onLeave} aria-label={t("room.leave.leaveGame")}>
+            <ExitIcon />
+          </button>
+        )}
       </div>
     );
   }
@@ -87,6 +103,11 @@ export function ScorePanel({ view, room, tricksOverride, className }: ScorePanel
           ? <TrumpBadge trump={view.trump} t={t} />
           : <span className={styles.trumpUnknown}>?</span>}
       </div>
+      {onLeave && (
+        <button className={styles.exitBtn} onClick={onLeave} aria-label={t("room.leave.leaveGame")}>
+          <ExitIcon />
+        </button>
+      )}
     </div>
   );
 }

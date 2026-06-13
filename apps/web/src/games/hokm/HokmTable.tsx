@@ -102,6 +102,7 @@ interface HokmTableProps {
   moveError: string | null;
   onPlay: (card: Card) => void;
   onClearMoveError: () => void;
+  onLeave?: () => void;
 }
 
 export function HokmTable({
@@ -115,6 +116,7 @@ export function HokmTable({
   moveError,
   onPlay,
   onClearMoveError,
+  onLeave,
 }: HokmTableProps) {
   const { players, forPlayer, phase } = view;
   const numPlayers = players.length;
@@ -153,13 +155,13 @@ export function HokmTable({
         </div>
       </div>
 
-      <ScorePanel view={view} room={room} tricksOverride={shownTricks} className={styles.scorePanel} />
+      <ScorePanel view={view} room={room} tricksOverride={shownTricks} onLeave={onLeave} className={styles.scorePanel} />
 
       {opponents.map((playerId) => {
         const seatIdx = players.indexOf(playerId);
         const position = seatPositions.get(seatIdx)!;
         const teamColor = getTeamColor(seatIdx, numPlayers);
-        const isTurn = view.currentTurn === playerId;
+        const isTurn = phase === "playing" && view.currentTurn === playerId;
         const trickSide = numPlayers === 4
           ? (seatIdx % 2 as 0 | 1)
           : (view.players[view.hakemIndex] === playerId ? 0 : 1);

@@ -22,6 +22,31 @@
   background: color-mix(in srgb, var(--md-sys-color-primary-container) 30%, var(--md-sys-color-surface-container-low) 70%);
 }
 
+/* Depleting progress bar along the top edge of the tray — mirrors the
+   countdown ring on opponent seats so all timers share the same language. */
+@keyframes timerBarShrink {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+.myTurn::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 4px;
+  background: var(--md-sys-color-primary);
+  border-radius: var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large) 0 0;
+  transform-origin: left center;
+  animation: timerBarShrink 30s linear forwards;
+  pointer-events: none;
+  z-index: 1;
+}
+
+[dir="rtl"] .myTurn::before {
+  transform-origin: right center;
+}
+
 .team_primary {
   border-block-start: 2px solid var(--md-sys-color-primary);
 }
@@ -138,6 +163,9 @@
   }
   .errorToast,
   .timerArea {
+    animation: none;
+  }
+  .myTurn::before {
     animation: none;
   }
 }

@@ -135,6 +135,30 @@
   font-size: 10px;
 }
 
+/* ── In-panel exit button ── */
+.exitBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-highest) 80%, transparent);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  transition:
+    background var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard),
+    color var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard);
+}
+
+.exitBtn:hover {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+  border-color: transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .trumpBadge {
     animation: none;
