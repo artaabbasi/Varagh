@@ -6,13 +6,17 @@
     "dev": "concurrently -n server,web -c cyan,magenta \"pnpm --filter @varagh/server dev\" \"pnpm --filter @varagh/web dev\"",
     "build": "pnpm --filter @varagh/shared build && pnpm --filter @varagh/server build && pnpm --filter @varagh/web build",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "build:server": "esbuild apps/server/src/index.ts --bundle --platform=node --target=node24 --format=cjs --outfile=dist-server/server.cjs --external:bufferutil --external:utf-8-validate"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
+    "esbuild": "^0.28.1",
     "typescript": "^5.3.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }
