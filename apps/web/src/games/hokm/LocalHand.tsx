@@ -91,18 +91,21 @@ export function LocalHand({
         .filter(Boolean)
         .join(" ")}
     >
-      {sticker && <StickerBubble key={sticker.nonce} stickerId={sticker.id} />}
-
       {/* Player info row */}
       <div className={styles.playerRow}>
         <div className={styles.playerInfo}>
-          <PlayerAvatar
-            nickname={t("hokm.you")}
-            isHakem={isHakem}
-            teamColor={teamColor}
-            avatarUrl={avatarUrl}
-            compact
-          />
+          <div className={styles.avatarWrap}>
+            {sticker && (
+              <StickerBubble key={sticker.nonce} stickerId={sticker.id} placement="above" />
+            )}
+            <PlayerAvatar
+              nickname={t("hokm.you")}
+              isHakem={isHakem}
+              teamColor={teamColor}
+              avatarUrl={avatarUrl}
+              compact
+            />
+          </div>
           <TrickPile count={trickCount} teamColor={teamColor} />
         </div>
 

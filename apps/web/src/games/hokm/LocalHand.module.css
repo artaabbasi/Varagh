@@ -69,6 +69,14 @@
   gap: 10px;
 }
 
+/* Anchor point for the sticker speech bubble so it pops from the avatar. */
+.avatarWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .playerRowRight {
   display: flex;
   align-items: center;

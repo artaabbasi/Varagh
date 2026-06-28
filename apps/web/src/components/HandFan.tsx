@@ -44,13 +44,18 @@ export function HandFan({
     const el = fanRef.current;
     if (!el) return;
     const CARD_W = 52;
+    // The end cards are rotated outward by the arc, so their corners stick out
+    // past the flex box. Reserve a little horizontal room for that spread so
+    // the fan always sits centred and fully inside the tray (never clipped or
+    // shoved to one side) on narrow screens.
+    const SAFETY = 20;
     const update = () => {
       const n = cards.length;
       if (n <= 1) { el.style.removeProperty("--card-margin"); return; }
-      const w = el.getBoundingClientRect().width;
-      if (w === 0) return;
+      const w = el.getBoundingClientRect().width - SAFETY;
+      if (w <= 0) return;
       // How many px of each card should peek out from behind the next?
-      const visible = Math.max(10, Math.min(30, (w - CARD_W) / (n - 1)));
+      const visible = Math.max(9, Math.min(28, (w - CARD_W) / (n - 1)));
       el.style.setProperty("--card-margin", `-${(CARD_W - visible).toFixed(1)}px`);
     };
     update();

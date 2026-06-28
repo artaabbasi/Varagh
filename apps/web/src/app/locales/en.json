@@ -42,17 +42,11 @@
   "landing": {
     "hero": {
       "tagline": "Play Persian card games with friends — online and free.",
-      "cta": "Play Now",
-      "scrollCue": "Scroll to explore"
+      "cta": "Play Now"
     },
     "nav": {
       "login": "Log in",
       "signup": "Sign up"
-    },
-    "deck": {
-      "title": "Turn the cards",
-      "subtitle": "Scroll to deal a full Persian deck — four suits, endless games.",
-      "hint": "Keep scrolling to flip them all"
     },
     "liveTag": "Live now",
     "games": {
@@ -68,7 +62,7 @@
     "comingSoon": "Coming soon",
     "features": {
       "title": "Why Varagh?",
-      "f1": "Free forever — sign up with just a username, no email or phone",
+      "f1": "Sign up with just a username — no email or phone",
       "f2": "Works on any device, any screen size",
       "f3": "Private rooms — share a 6-letter code with friends",
       "f4": "2, 3, and 4 player variants of Hokm"
@@ -78,6 +72,14 @@
       "s1": { "title": "Create an account", "desc": "Just a username and password — no email needed" },
       "s2": { "title": "Create or join a room", "desc": "Share the 6-letter code with friends" },
       "s3": { "title": "Play!", "desc": "First team to 7 points wins the game" }
+    },
+    "contact": {
+      "title": "Get in touch",
+      "subtitle": "Questions, feedback, or want to say hi? Reach out.",
+      "telegram": "Telegram",
+      "email": "Email",
+      "instagram": "Instagram",
+      "madeBy": "Built by {{name}}"
     },
     "cta": {
       "title": "Ready to play?"

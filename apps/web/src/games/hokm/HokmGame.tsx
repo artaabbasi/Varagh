@@ -17,7 +17,7 @@ import { HandOverSheet } from "./phases/HandOverSheet";
 import { GameOverSheet } from "./phases/GameOverSheet";
 import { WaitingRoom } from "./WaitingRoom";
 import { TRICK_REVIEW_MS, TRICK_SWEEP_MS, TRICK_HOLD_MS } from "./timing";
-import { socket } from "../../app/socket";
+import { socket, setActiveRoom } from "../../app/socket";
 import styles from "./HokmGame.module.css";
 
 export function HokmGame() {
@@ -30,12 +30,17 @@ export function HokmGame() {
   // null while the game is running; set once it has been ended early.
   const [ended, setEnded] = useState<{ reason: "playerLeft" | "hostEnded"; by: string | null } | null>(null);
 
-  // Join (or rejoin) the room on mount so direct URL access works.
+  // Join (or rejoin) the room on mount so direct URL access works. Registering
+  // the room as "active" means socket.ts re-joins it automatically after any
+  // reconnect (network drop, PWA waking from background), so the player drops
+  // straight back into the live game instead of having to reload.
   useEffect(() => {
     if (!code) return;
+    setActiveRoom(code);
     socket.emit("room:join", { joinCode: code.toUpperCase() }, (res) => {
       if (!res.ok) void navigate("/lobby");
     });
+    return () => setActiveRoom(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 

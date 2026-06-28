@@ -66,6 +66,14 @@
 .team_tertiary { border-block-end: 3px solid var(--md-sys-color-tertiary); }
 
 
+/* Anchor point for the sticker speech bubble so it pops from the avatar. */
+.avatarWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 /* ── Seats keep a tidy centred column in every position ─────────── */
 .handFan,
 .trickPile {

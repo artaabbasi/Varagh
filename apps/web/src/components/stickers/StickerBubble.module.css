@@ -1,41 +1,98 @@
+/* Anchored to a relatively-positioned avatar wrapper. The bubble points back
+   at the avatar with a small tail so it reads as coming from that player. */
 .bubble {
   position: absolute;
-  inset-block-start: -8px;
-  inset-inline-start: 50%;
-  transform: translateX(-50%);
   z-index: 30;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 2px;
-  padding: 6px 8px;
+  gap: 8px;
+  padding: 6px 12px 6px 8px;
   background: var(--md-sys-color-surface-container-highest);
-  border: 1px solid var(--md-sys-color-outline-variant);
+  border: 1.5px solid color-mix(in srgb, var(--md-sys-color-primary) 30%, var(--md-sys-color-outline-variant));
   border-radius: var(--md-sys-shape-corner-large);
-  box-shadow: var(--md-sys-elevation-2);
+  box-shadow:
+    0 6px 18px color-mix(in srgb, var(--md-sys-color-primary) 22%, rgba(0, 0, 0, 0.28)),
+    0 1px 3px rgba(0, 0, 0, 0.2);
   pointer-events: none;
   white-space: nowrap;
-  animation: stickerPop 0.4s var(--md-sys-motion-easing-spring) both,
-             stickerFade 0.4s ease-in 3.4s both;
+}
+
+/* Above the avatar (local player) — the avatar sits in the bottom corner of a
+   clip-overflow tray, so the bubble anchors at the avatar and grows toward the
+   table centre (inline-end) instead of centring, which would be clipped. */
+.above {
+  inset-block-end: calc(100% + 12px);
+  inset-inline-start: 50%;
+  transform-origin: bottom left;
+  animation: popAbove 0.36s var(--md-sys-motion-easing-spring) both,
+             fadeAbove 0.4s ease-in 3.4s both;
+}
+
+.above .tail {
+  inset-block-end: -8px;
+  inset-inline-start: 6px;
+  border-block-start: none;
+  border-inline-start: none;
+}
+
+/* Below the avatar (opponents up top) — centred on the avatar, tail pointing up. */
+.below {
+  inset-block-start: calc(100% + 12px);
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  transform-origin: top center;
+  animation: popBelow 0.36s var(--md-sys-motion-easing-spring) both,
+             fadeBelow 0.4s ease-in 3.4s both;
+}
+
+.below .tail {
+  inset-block-start: -8px;
+  inset-inline-start: 50%;
+  margin-inline-start: -7px;
+  border-block-end: none;
+  border-inline-end: none;
 }
 
 .label {
-  font-size: var(--md-sys-typescale-label-small-size);
+  font-size: var(--md-sys-typescale-label-medium-size);
   font-weight: 700;
   color: var(--md-sys-color-on-surface);
 }
 
-@keyframes stickerPop {
-  0%   { opacity: 0; transform: translateX(-50%) scale(0.4) translateY(10px); }
-  60%  { opacity: 1; transform: translateX(-50%) scale(1.12) translateY(-2px); }
+/* ── Tail (a rotated square sharing the bubble's fill + border) ─────────── */
+.tail {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: var(--md-sys-color-surface-container-highest);
+  border: 1.5px solid color-mix(in srgb, var(--md-sys-color-primary) 30%, var(--md-sys-color-outline-variant));
+  transform: rotate(45deg);
+}
+
+@keyframes popAbove {
+  0%   { opacity: 0; transform: scale(0.4) translateY(8px); }
+  60%  { opacity: 1; transform: scale(1.08) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes popBelow {
+  0%   { opacity: 0; transform: translateX(-50%) scale(0.4) translateY(-8px); }
+  60%  { opacity: 1; transform: translateX(-50%) scale(1.08) translateY(2px); }
   100% { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); }
 }
 
-@keyframes stickerFade {
+@keyframes fadeAbove {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-12px); }
+}
+
+@keyframes fadeBelow {
   from { opacity: 1; transform: translateX(-50%) translateY(0); }
-  to   { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+  to   { opacity: 0; transform: translateX(-50%) translateY(12px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bubble { animation: stickerFade 0.3s ease-in 3.4s both; }
+  .above { animation: fadeAbove 0.3s ease-in 3.4s both; }
+  .below { animation: fadeBelow 0.3s ease-in 3.4s both; }
 }

@@ -7,6 +7,17 @@ import { getStoredToken, getStoredUser } from "../auth/auth-store";
 import { useTheme } from "../theme/ThemeProvider";
 import styles from "./LandingPage.module.css";
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * Contact details — EDIT THESE with your own handles. Placeholders for now.
+ * `telegram` / `instagram` are usernames without the leading "@".
+ * ────────────────────────────────────────────────────────────────────────── */
+const CONTACT = {
+  name: "Your Name",
+  telegram: "your_telegram",
+  email: "you@example.com",
+  instagram: "your_instagram",
+};
+
 function IconBolt() {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -45,6 +56,31 @@ function IconVariants() {
   );
 }
 
+function IconTelegram() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+    </svg>
+  );
+}
+
+function IconInstagram() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm7.846-10.405a1.441 1.441 0 1 1-2.883 0 1.441 1.441 0 0 1 2.883 0z" />
+    </svg>
+  );
+}
+
+function IconMail() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </svg>
+  );
+}
+
 const FEATURE_ICONS = [IconBolt, IconDevice, IconLock, IconVariants];
 const FEATURE_KEYS = ["f1", "f2", "f3", "f4"] as const;
 
@@ -56,17 +92,6 @@ const SUIT_SYMBOL: Record<Suit, string> = {
   diamonds: "♦",
   clubs: "♣",
 };
-
-/** Cards revealed in the scroll-flip showcase (rank + suit). */
-const DECK: { rank: string; suit: Suit }[] = [
-  { rank: "A", suit: "spades" },
-  { rank: "K", suit: "hearts" },
-  { rank: "Q", suit: "diamonds" },
-  { rank: "J", suit: "clubs" },
-  { rank: "10", suit: "hearts" },
-  { rank: "9", suit: "spades" },
-  { rank: "A", suit: "diamonds" },
-];
 
 /** Floating hero cards — colourful four-suit set. */
 const HERO_CARDS: { rank: string; suit: Suit; cls: string }[] = [
@@ -113,8 +138,6 @@ export function LandingPage() {
 
   const [stats, setStats] = useState<LobbyStats | null>(null);
   const revealRefs = useRef<(HTMLElement | null)[]>([]);
-  const heroCardsRef = useRef<HTMLDivElement>(null);
-  const deckRef = useRef<HTMLDivElement>(null);
 
   const handlePlay = () => {
     void navigate(getStoredToken() ? "/lobby" : "/signup");
@@ -138,91 +161,6 @@ export function LandingPage() {
     }
   }, []);
 
-  // Single rAF loop drives BOTH the hero scatter (--sp) and the per-card
-  // deck-flip progress (--p). Scroll updates only the *target* values; an
-  // eased follow-loop lerps the rendered values toward them so the motion
-  // glides smoothly instead of snapping frame-to-frame with raw scroll
-  // deltas (which look steppy, especially on mouse-wheel scrolling).
-  useEffect(() => {
-    const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
-    const FOLLOW = 0.18; // per-frame easing toward target (lower = smoother)
-    const EPS = 0.0008;
-
-    let targetSp = 0;
-    let curSp = 0;
-    const targetFlips: number[] = [];
-    const curFlips: number[] = [];
-
-    const computeTargets = () => {
-      const vh = window.innerHeight;
-      targetSp = Math.min(window.scrollY / vh, 1);
-
-      const deck = deckRef.current;
-      if (deck) {
-        const rect = deck.getBoundingClientRect();
-        // 0 as the section enters from the bottom → 1 as it leaves the top.
-        const reveal = clamp01((vh - rect.top) / (vh + rect.height));
-        const flippers = deck.querySelectorAll<HTMLElement>("[data-flipper]");
-        flippers.forEach((_el, i) => {
-          const start = 0.1 + i * 0.08; // staggered deal
-          targetFlips[i] = clamp01((reveal - start) / 0.32);
-        });
-      }
-    };
-
-    const apply = () => {
-      const hero = heroCardsRef.current;
-      if (hero) hero.style.setProperty("--sp", String(curSp));
-      const deck = deckRef.current;
-      if (deck) {
-        const flippers = deck.querySelectorAll<HTMLElement>("[data-flipper]");
-        flippers.forEach((el, i) => el.style.setProperty("--p", String(curFlips[i] ?? 0)));
-      }
-    };
-
-    let raf = 0;
-    let running = false;
-    const tick = () => {
-      let moving = false;
-
-      const dSp = targetSp - curSp;
-      if (Math.abs(dSp) > EPS) { curSp += dSp * FOLLOW; moving = true; } else curSp = targetSp;
-
-      for (let i = 0; i < targetFlips.length; i++) {
-        const cur = curFlips[i] ?? 0;
-        const d = (targetFlips[i] ?? 0) - cur;
-        if (Math.abs(d) > EPS) { curFlips[i] = cur + d * FOLLOW; moving = true; }
-        else curFlips[i] = targetFlips[i] ?? 0;
-      }
-
-      apply();
-      if (moving) {
-        raf = requestAnimationFrame(tick);
-      } else {
-        running = false;
-      }
-    };
-
-    const start = () => {
-      if (!running) { running = true; raf = requestAnimationFrame(tick); }
-    };
-    const onScroll = () => { computeTargets(); start(); };
-
-    // Snap to the correct values on first paint (no entry animation on load).
-    computeTargets();
-    curSp = targetSp;
-    for (let i = 0; i < targetFlips.length; i++) curFlips[i] = targetFlips[i];
-    apply();
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
-
   // Reveal-on-scroll for content sections
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -233,8 +171,6 @@ export function LandingPage() {
           }
         });
       },
-      // Fire as soon as a sliver enters, and a touch before it's fully on
-      // screen, so sections glide in instead of popping in late.
       { threshold: 0, rootMargin: "0px 0px -12% 0px" },
     );
     revealRefs.current.forEach((el) => { if (el) observer.observe(el); });
@@ -276,19 +212,16 @@ export function LandingPage() {
             </button>
             {user ? (
               <>
-                <Link to="/profile" className={styles.navUser} title={t("profile.player")}>
-                  <span className={styles.navUserAvatar} aria-hidden="true">
-                    {user.avatar ? (
-                      <img src={user.avatar} alt="" className={styles.navUserPhoto} />
-                    ) : (
-                      user.nickname.slice(0, 1).toUpperCase()
-                    )}
-                  </span>
-                  <span className={styles.navUserName}>{user.nickname}</span>
-                </Link>
                 <button className={styles.playBtn} onClick={handlePlay}>
                   {t("landing.hero.cta")}
                 </button>
+                <Link to="/profile" className={styles.navAvatar} title={user.nickname} aria-label={t("profile.player")}>
+                  {user.avatar ? (
+                    <img src={user.avatar} alt="" className={styles.navAvatarPhoto} />
+                  ) : (
+                    <span aria-hidden="true">{user.nickname.slice(0, 1).toUpperCase()}</span>
+                  )}
+                </Link>
               </>
             ) : (
               <>
@@ -308,7 +241,7 @@ export function LandingPage() {
         {/* ── Hero ── */}
         <section className={styles.hero} aria-labelledby="hero-title">
           <div className={styles.heroGlow} aria-hidden="true" />
-          <div className={styles.heroCards} aria-hidden="true" ref={heroCardsRef}>
+          <div className={styles.heroCards} aria-hidden="true">
             {HERO_CARDS.map((c) => (
               <div
                 key={c.cls}
@@ -328,13 +261,6 @@ export function LandingPage() {
             <button className={styles.heroCta} onClick={handlePlay}>
               {t("landing.hero.cta")}
             </button>
-          </div>
-
-          <div className={styles.scrollCue} aria-hidden="true">
-            <span>{t("landing.hero.scrollCue")}</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
           </div>
         </section>
 
@@ -359,41 +285,6 @@ export function LandingPage() {
               </div>
             ))}
           </div>
-        </section>
-
-        {/* ── Scroll card-flip showcase ── */}
-        <section className={styles.deckSection} aria-labelledby="deck-title">
-          <div className={styles.inner}>
-            <h2 id="deck-title" className={styles.sectionTitle}>{t("landing.deck.title")}</h2>
-            <p className={styles.deckSubtitle}>{t("landing.deck.subtitle")}</p>
-          </div>
-          <div className={styles.deckStage} ref={deckRef} aria-hidden="true">
-            {DECK.map((c, i) => (
-              <div
-                key={`${c.rank}-${c.suit}-${i}`}
-                className={styles.flipCard}
-                style={{ "--n": i - (DECK.length - 1) / 2 } as React.CSSProperties}
-              >
-                <div className={styles.flipper} data-flipper>
-                  <div className={styles.flipCover}>
-                    <span className={styles.coverGlyph}>ورق</span>
-                  </div>
-                  <div className={styles.flipFace} data-suit={c.suit}>
-                    <span className={styles.faceCorner}>
-                      <span className={styles.faceRank}>{c.rank}</span>
-                      <span className={styles.faceSuitSm}>{SUIT_SYMBOL[c.suit]}</span>
-                    </span>
-                    <span className={styles.faceCenter}>{SUIT_SYMBOL[c.suit]}</span>
-                    <span className={`${styles.faceCorner} ${styles.faceCornerBr}`}>
-                      <span className={styles.faceRank}>{c.rank}</span>
-                      <span className={styles.faceSuitSm}>{SUIT_SYMBOL[c.suit]}</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className={styles.deckHint} aria-hidden="true">{t("landing.deck.hint")}</p>
         </section>
 
         {/* ── Games ── */}
@@ -482,8 +373,55 @@ export function LandingPage() {
           </div>
         </section>
 
+        {/* ── Contact ── */}
+        <section className={`${styles.section} ${styles.contactSection}`} ref={setRevealRef(3)} aria-labelledby="contact-title">
+          <div className={styles.inner}>
+            <h2 id="contact-title" className={styles.sectionTitle}>{t("landing.contact.title")}</h2>
+            <p className={styles.contactSubtitle}>{t("landing.contact.subtitle")}</p>
+            <div className={styles.contactGrid}>
+              <a
+                className={`${styles.contactCard} ${styles.contactTelegram}`}
+                href={`https://t.me/${CONTACT.telegram}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className={styles.contactIcon}><IconTelegram /></span>
+                <span className={styles.contactBody}>
+                  <span className={styles.contactLabel}>{t("landing.contact.telegram")}</span>
+                  <span className={styles.contactValue}>@{CONTACT.telegram}</span>
+                </span>
+              </a>
+
+              <a
+                className={`${styles.contactCard} ${styles.contactInstagram}`}
+                href={`https://instagram.com/${CONTACT.instagram}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className={styles.contactIcon}><IconInstagram /></span>
+                <span className={styles.contactBody}>
+                  <span className={styles.contactLabel}>{t("landing.contact.instagram")}</span>
+                  <span className={styles.contactValue}>@{CONTACT.instagram}</span>
+                </span>
+              </a>
+
+              <a
+                className={`${styles.contactCard} ${styles.contactEmail}`}
+                href={`mailto:${CONTACT.email}`}
+              >
+                <span className={styles.contactIcon}><IconMail /></span>
+                <span className={styles.contactBody}>
+                  <span className={styles.contactLabel}>{t("landing.contact.email")}</span>
+                  <span className={styles.contactValue}>{CONTACT.email}</span>
+                </span>
+              </a>
+            </div>
+            <p className={styles.contactMadeBy}>{t("landing.contact.madeBy", { name: CONTACT.name })}</p>
+          </div>
+        </section>
+
         {/* ── Bottom CTA ── */}
-        <section className={`${styles.section} ${styles.ctaSection}`} ref={setRevealRef(3)} aria-labelledby="cta-title">
+        <section className={`${styles.section} ${styles.ctaSection}`} ref={setRevealRef(4)} aria-labelledby="cta-title">
           <div className={styles.inner}>
             <h2 id="cta-title" className={styles.ctaTitle}>{t("landing.cta.title")}</h2>
             <button className={styles.heroCta} onClick={handlePlay}>

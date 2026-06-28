@@ -6,7 +6,7 @@ import { HokmGame } from "../games/hokm/HokmGame";
 import { LandingPage } from "../landing/LandingPage";
 import { LobbyScreen } from "../lobby/LobbyScreen";
 import { ProfileScreen } from "../profile/ProfileScreen";
-import { getStoredToken, clearToken, storeUser } from "../auth/auth-store";
+import { getStoredToken } from "../auth/auth-store";
 import { socket } from "./socket";
 import { PwaUpdatePrompt } from "./PwaUpdatePrompt";
 
@@ -44,17 +44,10 @@ const router = createBrowserRouter([
 
 export function App() {
   useEffect(() => {
+    // Connecting triggers the "connect" handler in socket.ts, which
+    // authenticates with the stored token and re-joins any active room.
+    // This same path runs on every automatic reconnect after a drop.
     socket.connect();
-    const token = getStoredToken();
-    if (token) {
-      socket.emit("auth:login", { token }, (res) => {
-        if (!res.ok) {
-          clearToken();
-        } else {
-          storeUser(res.user);
-        }
-      });
-    }
     return () => void socket.disconnect();
   }, []);
 

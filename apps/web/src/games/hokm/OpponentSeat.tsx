@@ -50,17 +50,20 @@ export function OpponentSeat({
         .join(" ")}
       data-position={position}
     >
-      {sticker && <StickerBubble key={sticker.nonce} stickerId={sticker.id} />}
-
-      <PlayerAvatar
-        nickname={nickname}
-        discriminator={discriminator}
-        isHakem={isHakem}
-        isConnected={isConnected}
-        teamColor={teamColor}
-        avatarUrl={avatarUrl}
-        compact
-      />
+      <div className={styles.avatarWrap}>
+        {sticker && (
+          <StickerBubble key={sticker.nonce} stickerId={sticker.id} placement="below" />
+        )}
+        <PlayerAvatar
+          nickname={nickname}
+          discriminator={discriminator}
+          isHakem={isHakem}
+          isConnected={isConnected}
+          teamColor={teamColor}
+          avatarUrl={avatarUrl}
+          compact
+        />
+      </div>
 
       <HandFan
         cards={Array.from({ length: handSize }, (_, i) => ({ suit: "spades" as const, rank: "2" as const }))}
