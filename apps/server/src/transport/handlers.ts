@@ -299,6 +299,20 @@ export function registerHandlers(
       cb({ ok: true, friends });
     });
 
+    socket.on("friend:recentlyPlayed", (_, cb) => {
+      const { userId } = socket.data;
+      if (!userId) return cb({ ok: true, players: [] });
+      const rows = authStore.getRecentlyPlayed(userId);
+      const players = rows.map((r) => ({
+        userId: r.userId,
+        nickname: r.nickname,
+        discriminator: r.discriminator,
+        lastPlayedAt: r.lastPlayedAt,
+        online: io.sockets.adapter.rooms.has(r.userId),
+      }));
+      cb({ ok: true, players });
+    });
+
     socket.on("room:inviteFriend", ({ userId: targetId }, cb) => {
       const { userId, currentRoomCode } = socket.data;
       if (!userId || !currentRoomCode) return cb({ ok: false, error: "Not in a room" });

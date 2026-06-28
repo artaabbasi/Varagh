@@ -215,6 +215,8 @@
     "decline": "Decline",
     "remove": "Remove",
     "cancel": "Cancel",
+    "recentlyPlayed": "Recently Played",
+    "addFriend": "Add",
     "add": {
       "label": "Add friend",
       "placeholder": "nickname#1234",

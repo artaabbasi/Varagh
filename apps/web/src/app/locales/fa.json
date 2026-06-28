@@ -215,6 +215,8 @@
     "decline": "رد",
     "remove": "حذف",
     "cancel": "لغو",
+    "recentlyPlayed": "هم‌بازی‌های اخیر",
+    "addFriend": "افزودن",
     "add": {
       "label": "افزودن دوست",
       "placeholder": "nickname#1234",

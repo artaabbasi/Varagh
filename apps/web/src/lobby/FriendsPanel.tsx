@@ -1,7 +1,8 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import type { FriendEntry } from "@varagh/shared";
+import type { FriendEntry, RecentPlayer } from "@varagh/shared";
 import { socket } from "../app/socket";
+import { playSound } from "../app/sound";
 import styles from "./FriendsPanel.module.css";
 
 interface FriendsPanelProps {
@@ -20,6 +21,7 @@ function OnlineDot({ online }: { online: boolean }) {
 export function FriendsPanel({ onInviteToJoin }: FriendsPanelProps) {
   const { t } = useTranslation();
   const [friends, setFriends] = useState<FriendEntry[]>([]);
+  const [recent, setRecent] = useState<RecentPlayer[]>([]);
   const [addInput, setAddInput] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
   const [addSuccess, setAddSuccess] = useState(false);
@@ -29,12 +31,16 @@ export function FriendsPanel({ onInviteToJoin }: FriendsPanelProps) {
     socket.emit("friend:list", {}, (res) => {
       setFriends(res.friends);
     });
+    socket.emit("friend:recentlyPlayed", {}, (res) => {
+      if (res.ok) setRecent(res.players);
+    });
   };
 
   useEffect(() => {
     refresh();
 
     const onRequest = ({ from }: { from: { userId: string; nickname: string; discriminator: string } }) => {
+      playSound("friendRequest");
       setFriends((prev) => {
         if (prev.some((f) => f.userId === from.userId)) return prev;
         return [...prev, { ...from, status: "pending", incoming: true, online: true }];
@@ -81,6 +87,22 @@ export function FriendsPanel({ onInviteToJoin }: FriendsPanelProps) {
         setAddInput("");
         setTimeout(() => setAddSuccess(false), 2000);
         refresh();
+      }
+    });
+  };
+
+  const handleAddRecent = (p: RecentPlayer) => {
+    setBusy((b) => ({ ...b, [p.userId]: true }));
+    socket.emit("friend:add", { nickname: p.nickname, discriminator: p.discriminator }, (res) => {
+      setBusy((b) => ({ ...b, [p.userId]: false }));
+      if (res.ok) {
+        // Move them out of "recently played" and into the (pending) friends list.
+        setRecent((prev) => prev.filter((r) => r.userId !== p.userId));
+        setFriends((prev) =>
+          prev.some((f) => f.userId === p.userId)
+            ? prev
+            : [...prev, { userId: p.userId, nickname: p.nickname, discriminator: p.discriminator, status: "pending", incoming: false, online: p.online }],
+        );
       }
     });
   };
@@ -220,7 +242,31 @@ export function FriendsPanel({ onInviteToJoin }: FriendsPanelProps) {
         </section>
       )}
 
-      {friends.length === 0 && (
+      {/* Recently played (not friends yet) */}
+      {recent.length > 0 && (
+        <section className={styles.section}>
+          <span className={styles.sectionLabel}>{t("friends.recentlyPlayed")}</span>
+          <ul className={styles.list}>
+            {recent.map((p) => (
+              <li key={p.userId} className={styles.item}>
+                <OnlineDot online={p.online} />
+                <span className={styles.name}>{p.nickname}<span className={styles.disc}>#{p.discriminator}</span></span>
+                <button
+                  className={styles.acceptBtn}
+                  onClick={() => handleAddRecent(p)}
+                  disabled={busy[p.userId]}
+                  aria-label={t("friends.addFriend")}
+                  title={t("friends.addFriend")}
+                >
+                  {t("friends.addFriend")}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {friends.length === 0 && recent.length === 0 && (
         <p className={styles.empty}>{t("friends.noFriends")}</p>
       )}
     </div>

@@ -83,6 +83,16 @@ export interface FriendEntry {
   incoming: boolean;
 }
 
+/** A player you recently finished a game with, who isn't a friend (or pending) yet. */
+export interface RecentPlayer {
+  userId: string;
+  nickname: string;
+  discriminator: string;
+  online: boolean;
+  /** Epoch ms of the most recent shared finished game. */
+  lastPlayedAt: number;
+}
+
 export interface ClientToServerEvents {
   "auth:signup": (
     data: { username: string; displayName: string; password: string },

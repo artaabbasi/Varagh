@@ -19,6 +19,13 @@ export interface FriendRow {
   incoming: boolean;
 }
 
+export interface RecentPlayerRow {
+  userId: string;
+  nickname: string;
+  discriminator: string;
+  lastPlayedAt: number;
+}
+
 export interface AuthStore {
   createUser(username: string, nickname: string, tokenHash: string, passwordHash: string): User;
   findByTokenHash(tokenHash: string): User | undefined;
@@ -38,6 +45,8 @@ export interface AuthStore {
   acceptFriendRequest(requesterId: string, targetId: string): void;
   removeFriend(userId: string, otherId: string): void;
   getFriends(userId: string): FriendRow[];
+  /** Co-players from this user's finished games who aren't friends/pending yet. */
+  getRecentlyPlayed(userId: string, limit?: number): RecentPlayerRow[];
 
   saveMatch(
     matchId: string,
@@ -232,6 +241,32 @@ export function createAuthStore(db: DatabaseSync): AuthStore {
           incoming: row.incoming === 1,
         };
       }).filter((r): r is FriendRow => r !== null);
+    },
+
+    getRecentlyPlayed(userId, limit = 12) {
+      const rows = db.prepare(`
+        SELECT
+          mp.player_id   AS userId,
+          u.nickname     AS nickname,
+          u.discriminator AS discriminator,
+          MAX(m.ended_at) AS lastPlayedAt
+        FROM match_players mp
+        JOIN matches m ON m.id = mp.match_id
+        JOIN users   u ON u.id = mp.player_id
+        WHERE mp.match_id IN (SELECT match_id FROM match_players WHERE player_id = ?)
+          AND mp.player_id != ?
+          AND mp.player_id NOT IN (
+            SELECT CASE WHEN requester_id = ? THEN target_id ELSE requester_id END
+            FROM friends
+            WHERE requester_id = ? OR target_id = ?
+          )
+        GROUP BY mp.player_id
+        ORDER BY lastPlayedAt DESC
+        LIMIT ?
+      `).all(userId, userId, userId, userId, userId, limit) as Array<{
+        userId: string; nickname: string; discriminator: string; lastPlayedAt: number;
+      }>;
+      return rows;
     },
 
     saveMatch(matchId, gameId, variantId, startedAt, endedAt, players) {
