@@ -53,7 +53,12 @@ export function LocalHand({
 
     setRemaining(TURN_SECONDS);
     intervalRef.current = setInterval(() => {
-      setRemaining((s) => Math.max(0, s - 1));
+      setRemaining((s) => {
+        const next = Math.max(0, s - 1);
+        // Urgent tick over the final 5 seconds of your turn.
+        if (next > 0 && next <= 5) playSound("turnTick");
+        return next;
+      });
     }, 1000);
 
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };

@@ -5,6 +5,7 @@ import type { LobbyEntry, ActiveRoomEntry } from "@varagh/shared";
 import { socket } from "../app/socket";
 import { getStoredUser } from "../auth/auth-store";
 import { useTheme } from "../theme/ThemeProvider";
+import { SoundToggle } from "../components/SoundToggle";
 import { FriendsPanel } from "./FriendsPanel";
 import styles from "./LobbyScreen.module.css";
 
@@ -182,6 +183,7 @@ export function LobbyScreen() {
           <button className={styles.iconBtn} onClick={toggle} aria-label="Toggle theme">
             {theme === "dark" ? <SunIcon /> : <MoonIcon />}
           </button>
+          <SoundToggle className={styles.iconBtn} />
           <button className={styles.ghostBtn} onClick={handleHome}>
             {t("lobby.home")}
           </button>

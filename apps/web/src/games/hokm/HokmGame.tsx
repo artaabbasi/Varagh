@@ -100,6 +100,7 @@ export function HokmGame() {
 
   useAnimatedEvents(events, {
     onCardPlayed: (playerId, card) => {
+      playSound("playCard");
       const updated = [...currentTrickRef.current, { playerId, card }];
       currentTrickRef.current = updated;
       // Only push to display while no animation is in flight;
@@ -109,6 +110,7 @@ export function HokmGame() {
       }
     },
     onTrickWon: (winnerId) => {
+      playSound("trickWin");
       // Lock display so new cards from the next trick don't overwrite
       // the completed trick during review/sweep.
       isTrickCompleteRef.current = true;
@@ -136,6 +138,7 @@ export function HokmGame() {
       sweepTimersRef.current.push(reviewTimer);
     },
     onTrumpChosen: (suit) => {
+      playSound("trumpChosen");
       setTrumpRevealSuit(suit);
       setTimeout(() => setTrumpRevealSuit(null), 2200);
     },

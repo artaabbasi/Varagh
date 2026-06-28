@@ -48,6 +48,7 @@ export function FriendsPanel({ onInviteToJoin }: FriendsPanelProps) {
     };
 
     const onInvite = ({ from, roomCode }: { from: { userId: string; nickname: string; discriminator: string }; roomCode: string }) => {
+      playSound("invite");
       onInviteToJoin?.(roomCode, `${from.nickname}#${from.discriminator}`);
     };
 
