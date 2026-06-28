@@ -1,26 +1,20 @@
 [Unit]
-Description=Varagh game server (Node + Socket.IO)
+Description=Varagh game server
 After=network.target
 
 [Service]
 Type=simple
+User=varagh
 WorkingDirectory=/opt/varagh
-# Requires Node.js >= 22 (uses the built-in node:sqlite module).
-ExecStart=/usr/bin/node /opt/varagh/server.cjs
-Restart=on-failure
-RestartSec=3
-
-# Listen only on loopback — nginx terminates TLS and proxies /socket.io/.
 Environment=NODE_ENV=production
 Environment=PORT=3001
 Environment=HOST=127.0.0.1
+Environment=WEB_ORIGIN=https://varagh.artanova.top
 Environment=DATABASE_URL=/opt/varagh/data/varagh.db
-# Set this to your public origin in production, e.g. https://varagh.example.com
-Environment=WEB_ORIGIN=*
-
-# Run as an unprivileged user that owns /opt/varagh.
-User=www-data
-Group=www-data
+Environment=NODE_OPTIONS=--disable-warning=ExperimentalWarning
+ExecStart=/usr/local/bin/node /opt/varagh/server.cjs
+Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
