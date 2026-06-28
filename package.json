@@ -8,8 +8,7 @@
     "build:server": "pnpm --filter @varagh/server build:bundle",
     "deploy": "bash scripts/deploy.sh",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck",
-    "build:server": "esbuild apps/server/src/index.ts --bundle --platform=node --target=node24 --format=cjs --outfile=dist-server/server.cjs --external:bufferutil --external:utf-8-validate"
+    "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
