@@ -12,10 +12,10 @@ import styles from "./LandingPage.module.css";
  * `telegram` / `instagram` are usernames without the leading "@".
  * ────────────────────────────────────────────────────────────────────────── */
 const CONTACT = {
-  name: "Your Name",
-  telegram: "your_telegram",
-  email: "you@example.com",
-  instagram: "your_instagram",
+  name: "Arta",
+  telegram: "novabtw",
+  email: "notartaabbasi@gmail.com",
+  instagram: "artaeabbasi",
 };
 
 function IconBolt() {
