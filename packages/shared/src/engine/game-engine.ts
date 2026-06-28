@@ -186,6 +186,21 @@ export interface GameDefinition<
    * (e.g. lowest legal card) so the table isn't blocked.
    */
   getDefaultMove(state: TState, player: PlayerId): TMove;
+
+  /**
+   * OPTIONAL bot brain. When present, the platform's generic bot-takeover hook
+   * uses this to play computer seats and to substitute for a human who has
+   * disconnected past the grace period — instead of the blunt getDefaultMove.
+   * Games that omit it fall back to getDefaultMove, so existing games keep
+   * working unchanged.
+   *
+   * MUST obey the same purity rules as the rest of the engine and, like a real
+   * client, may only look at what {@link getPlayerView} would expose to this
+   * player — never another seat's hand or the undealt deck. The returned move
+   * MUST be one of {@link getValidMoves}. The human-like "thinking" pacing is
+   * the platform's job (server timer layer), never the engine's.
+   */
+  getBotMove?(state: TState, player: PlayerId, rng: Rng): TMove;
 }
 
 // ---------------------------------------------------------------------------

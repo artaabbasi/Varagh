@@ -257,6 +257,13 @@ export class GameRunner {
     const room = this.roomStore.get(roomCode);
     if (!room) return;
 
+    // The seat silently reverts to the human: if it is currently their turn,
+    // reschedule it so they get a full turn timer (instead of the bot/auto move
+    // that was queued while they were gone) the moment they return.
+    if (getCurrentPlayer(room) === playerId) {
+      this.scheduleTurn(room, game);
+    }
+
     // Send the player their current view with no events (they missed those).
     const view = game.engine.getPlayerView(room.gameState, playerId);
     this.io.to(playerId).emit("game:stateUpdate", { view, events: [] });
@@ -352,16 +359,19 @@ export class GameRunner {
       game.turnTimer = undefined;
       const freshRoom = this.roomStore.get(room.code);
       if (!freshRoom || freshRoom.phase !== "playing") return;
-      this.playDefaultMove(freshRoom, game, currentPlayer);
+      this.playAutoMove(freshRoom, game, currentPlayer);
     }, delay);
   }
 
   /**
-   * Apply getDefaultMove on behalf of the given player, then continue the
-   * turn loop. A circuit-breaker prevents infinite auto-play (e.g. all
-   * players simultaneously disconnected).
+   * Generic bot-takeover hook: play a seat automatically — a bot seat, or a
+   * human who has disconnected past grace, or any seat whose turn timer expired.
+   * If the game ships a bot brain (engine.getBotMove) it plays that; otherwise
+   * it falls back to the engine's getDefaultMove. Either way the move is then
+   * applied and the turn loop continues. A circuit-breaker prevents infinite
+   * auto-play (e.g. all players simultaneously disconnected).
    */
-  private playDefaultMove(room: Room, game: RoomGame, playerId: string): void {
+  private playAutoMove(room: Room, game: RoomGame, playerId: string): void {
     // Bot moves are legitimate gameplay, not a stalled table, so they don't
     // count toward the runaway-auto-play circuit breaker. Only absent/idle
     // human seats being auto-played advance the counter.
@@ -373,9 +383,12 @@ export class GameRunner {
     const validMoves = game.engine.getValidMoves(room.gameState, playerId);
     if (validMoves.length === 0) return;
 
-    const defaultMove = game.engine.getDefaultMove(room.gameState, playerId);
+    // Prefer the game's bot brain; fall back to the blunt forced move.
+    const autoMove = game.engine.getBotMove
+      ? game.engine.getBotMove(room.gameState, playerId, game.rng)
+      : game.engine.getDefaultMove(room.gameState, playerId);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = game.engine.applyMove(room.gameState, playerId, defaultMove as any, game.rng);
+    const result = game.engine.applyMove(room.gameState, playerId, autoMove as any, game.rng);
     if (!result.ok) return;
 
     room.gameState = result.state;
