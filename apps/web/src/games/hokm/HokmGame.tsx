@@ -1,11 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { HokmMove, TrickPlay } from "@varagh/shared";
+import type { HokmMove, TrickPlay, Card } from "@varagh/shared";
 import type { HandOverEventData } from "./hooks/useAnimatedEvents";
 import { useHokmSocket } from "./hooks/useHokmSocket";
 import { useAnimatedEvents } from "./hooks/useAnimatedEvents";
+import { playSound } from "../../app/sound";
 import { HokmTable } from "./HokmTable";
+import { StickerWheel } from "./StickerWheel";
 import { CardLoadingScreen } from "../../components/CardLoadingScreen";
 import { TrumpSelector } from "./phases/TrumpSelector";
 import { TrumpWaiting } from "./phases/TrumpWaiting";
@@ -75,6 +77,13 @@ export function HokmGame() {
   const [kotIsHakem, setKotIsHakem] = useState(false);
   const [showKotBurst, setShowKotBurst] = useState(false);
   const [drawFeedback, setDrawFeedback] = useState<{ playerId: string; action: string } | null>(null);
+  // 2p: what you just took / burned during the draw (private reveal panel).
+  const [drawReveal, setDrawReveal] = useState<{ earned: Card; burned: Card | null; kept: boolean } | null>(null);
+  const drawRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Stickers currently floating over each seat: playerId → { id, nonce }.
+  const [stickers, setStickers] = useState<Record<string, { id: string; nonce: number }>>({});
+  const stickerNonceRef = useRef(0);
+  const stickerTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const sweepTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // ── Trick display (event-driven, not state-driven) ────────────
@@ -88,6 +97,31 @@ export function HokmGame() {
   useEffect(() => {
     const timers = sweepTimersRef.current;
     return () => { timers.forEach(clearTimeout); };
+  }, []);
+
+  // Incoming stickers from anyone in the room (including our own echo).
+  useEffect(() => {
+    const onSticker = ({ from, stickerId }: { from: string; stickerId: string }) => {
+      const nonce = ++stickerNonceRef.current;
+      setStickers((prev) => ({ ...prev, [from]: { id: stickerId, nonce } }));
+      playSound("sticker");
+      if (stickerTimersRef.current[from]) clearTimeout(stickerTimersRef.current[from]);
+      stickerTimersRef.current[from] = setTimeout(() => {
+        setStickers((prev) => {
+          // Only clear if this exact sticker is still the active one.
+          if (prev[from]?.nonce !== nonce) return prev;
+          const next = { ...prev };
+          delete next[from];
+          return next;
+        });
+      }, 4000);
+    };
+    socket.on("room:sticker", onSticker);
+    const timers = stickerTimersRef.current;
+    return () => {
+      socket.off("room:sticker", onSticker);
+      Object.values(timers).forEach(clearTimeout);
+    };
   }, []);
 
   // Reveal the game-over sheet only after the final trick has had time to
@@ -254,10 +288,14 @@ export function HokmGame() {
         trumpRevealSuit={trumpRevealSuit}
         showKotBurst={showKotBurst}
         moveError={moveError}
+        stickers={stickers}
         onPlay={(card) => handleSendMove({ type: "playCard", card })}
         onClearMoveError={clearMoveError}
         onLeave={view.phase !== "gameOver" && !confirmLeave ? () => setConfirmLeave(true) : undefined}
       />
+
+      {/* Sticker chat — available whenever the table is up. */}
+      {view.phase !== "gameOver" && <StickerWheel />}
 
       {/* Leave confirmation dialog */}
       {confirmLeave && (

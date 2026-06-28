@@ -7,6 +7,7 @@ import type {
 } from "@varagh/shared";
 import type { AuthStore } from "../auth/store";
 import type { Room } from "../rooms/room";
+import { isStickerId, STICKER_COOLDOWN_MS } from "@varagh/shared";
 import { signup, login, loginWithPassword, hashPassword } from "../auth/auth";
 import { RoomStore } from "../rooms/room-store";
 import { toLobbyEntry } from "../rooms/lobby";
@@ -49,6 +50,8 @@ export function registerHandlers(
 
   io.on("connection", (socket: AppSocket) => {
     socket.data = { userId: null, nickname: null, discriminator: null, avatar: null, currentRoomCode: null };
+    // Last sticker timestamp for this connection — drives the send cooldown.
+    let lastStickerAt = 0;
 
     // ── Auth ──────────────────────────────────────────────────────────────
 
@@ -303,6 +306,21 @@ export function registerHandlers(
         from: { userId, nickname: socket.data.nickname!, discriminator: socket.data.discriminator! },
         roomCode: currentRoomCode,
       });
+      cb({ ok: true });
+    });
+
+    socket.on("room:sticker", ({ stickerId }, cb) => {
+      const { userId, currentRoomCode } = socket.data;
+      if (!userId || !currentRoomCode) return cb({ ok: false, error: "Not in a room" });
+      if (!isStickerId(stickerId)) return cb({ ok: false, error: "Unknown sticker" });
+      const now = Date.now();
+      if (now - lastStickerAt < STICKER_COOLDOWN_MS) {
+        return cb({ ok: false, error: "Slow down" });
+      }
+      lastStickerAt = now;
+      // Relay to everyone in the room (including the sender, so their own
+      // sticker animates over their seat too).
+      io.to(currentRoomCode).emit("room:sticker", { from: userId, stickerId });
       cb({ ok: true });
     });
 

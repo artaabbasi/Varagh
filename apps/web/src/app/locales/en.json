@@ -236,6 +236,14 @@
     "roomNotFound": "Room not found",
     "roomNotFoundDesc": "This room may have ended or the code is incorrect."
   },
+  "sound": {
+    "mute": "Mute sounds",
+    "unmute": "Unmute sounds"
+  },
+  "stickers": {
+    "title": "Stickers",
+    "open": "Send a sticker"
+  },
   "hokm": {
     "loading": "Connecting to game…",
     "you": "You",

@@ -7,6 +7,8 @@ import { HandFan } from "../../components/HandFan";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
 import { TrickPile } from "../../components/TrickPile";
 import { CountdownRing } from "../../components/CountdownRing";
+import { StickerBubble } from "../../components/stickers/StickerBubble";
+import { playSound } from "../../app/sound";
 import styles from "./LocalHand.module.css";
 
 const TURN_SECONDS = 30;
@@ -25,6 +27,8 @@ interface LocalHandProps {
   teamColor: "primary" | "tertiary" | "none";
   isHakem: boolean;
   avatarUrl?: string | null;
+  /** Active sticker the local player just sent: `nonce` changes per send to replay the pop. */
+  sticker?: { id: string; nonce: number } | null;
   className?: string;
 }
 
@@ -38,6 +42,7 @@ export function LocalHand({
   teamColor,
   isHakem,
   avatarUrl,
+  sticker,
   className,
 }: LocalHandProps) {
   const { t } = useTranslation();
@@ -86,6 +91,8 @@ export function LocalHand({
         .filter(Boolean)
         .join(" ")}
     >
+      {sticker && <StickerBubble key={sticker.nonce} stickerId={sticker.id} />}
+
       {/* Player info row */}
       <div className={styles.playerRow}>
         <div className={styles.playerInfo}>

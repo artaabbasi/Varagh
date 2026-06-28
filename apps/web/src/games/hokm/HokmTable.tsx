@@ -100,6 +100,8 @@ interface HokmTableProps {
   trumpRevealSuit: string | null;
   showKotBurst: boolean;
   moveError: string | null;
+  /** Active sticker per player id (keyed by nonce so repeats replay the pop). */
+  stickers?: Record<string, { id: string; nonce: number }>;
   onPlay: (card: Card) => void;
   onClearMoveError: () => void;
   onLeave?: () => void;
@@ -114,6 +116,7 @@ export function HokmTable({
   trumpRevealSuit,
   showKotBurst,
   moveError,
+  stickers,
   onPlay,
   onClearMoveError,
   onLeave,
@@ -179,6 +182,7 @@ export function HokmTable({
             trickCount={shownTricks[trickSide]}
             teamColor={teamColor}
             position={position}
+            sticker={stickers?.[playerId] ?? null}
             className={styles[`seat_${position.replace("-", "_")}`]}
           />
         );
@@ -204,6 +208,7 @@ export function HokmTable({
         teamColor={getTeamColor(localIdx, numPlayers)}
         isHakem={view.hakemIndex === localIdx}
         avatarUrl={getAvatar(room, forPlayer)}
+        sticker={stickers?.[forPlayer] ?? null}
         className={styles.localHand}
       />
     </div>

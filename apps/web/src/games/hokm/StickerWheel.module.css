@@ -1,0 +1,92 @@
+.root {
+  position: absolute;
+  inset-block-end: max(16px, env(safe-area-inset-bottom));
+  inset-inline-end: 16px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.fab {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--md-sys-shape-corner-full);
+  border: none;
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--md-sys-elevation-2);
+  transition: transform var(--md-sys-motion-dur-short3) var(--md-sys-motion-easing-spring);
+}
+
+.fab:hover { transform: scale(1.05); }
+.fab:active { transform: scale(0.94); }
+.fab:focus-visible {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.cooldown {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 12px;
+  background: var(--md-sys-color-surface-container-high);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-large);
+  box-shadow: var(--md-sys-elevation-3);
+  max-width: 280px;
+  animation: popIn var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-spring) both;
+  transform-origin: bottom right;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.8) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.sticker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  min-width: 72px;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--md-sys-motion-dur-short2) var(--md-sys-motion-easing-standard);
+}
+
+.sticker:hover { background: var(--md-sys-color-surface-container-highest); }
+.sticker:active { transform: scale(0.95); }
+.sticker:disabled { opacity: 0.45; cursor: not-allowed; }
+.sticker:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 1px;
+}
+
+.stickerLabel {
+  font-size: var(--md-sys-typescale-label-small-size);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab, .sticker { transition: none; }
+  .panel { animation: none; }
+}

@@ -1,6 +1,7 @@
 import { PlayerAvatar } from "../../components/PlayerAvatar";
 import { HandFan } from "../../components/HandFan";
 import { TrickPile } from "../../components/TrickPile";
+import { StickerBubble } from "../../components/stickers/StickerBubble";
 import type { SeatPosition } from "./HokmTable";
 import styles from "./OpponentSeat.module.css";
 
@@ -16,6 +17,8 @@ interface OpponentSeatProps {
   trickCount: number;
   teamColor: "primary" | "tertiary" | "none";
   position: SeatPosition;
+  /** Active sticker this player just sent: `nonce` changes on each send to replay the pop. */
+  sticker?: { id: string; nonce: number } | null;
   className?: string;
 }
 
@@ -31,6 +34,7 @@ export function OpponentSeat({
   trickCount,
   teamColor,
   position,
+  sticker,
   className,
 }: OpponentSeatProps) {
   return (
@@ -46,6 +50,8 @@ export function OpponentSeat({
         .join(" ")}
       data-position={position}
     >
+      {sticker && <StickerBubble key={sticker.nonce} stickerId={sticker.id} />}
+
       <PlayerAvatar
         nickname={nickname}
         discriminator={discriminator}

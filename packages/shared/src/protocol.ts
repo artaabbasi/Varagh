@@ -185,9 +185,19 @@ export interface ClientToServerEvents {
     data: Record<string, never>,
     cb: (res: { ok: true; friends: FriendEntry[] }) => void
   ) => void;
+  /** Players you've recently shared a finished game with who aren't friends yet. */
+  "friend:recentlyPlayed": (
+    data: Record<string, never>,
+    cb: (res: { ok: true; players: RecentPlayer[] }) => void
+  ) => void;
   /** Invite a friend to the current room. */
   "room:inviteFriend": (
     data: { userId: string },
+    cb: (res: { ok: true } | { ok: false; error: string }) => void
+  ) => void;
+  /** Send a chat sticker to everyone in the current room. Rate-limited server-side. */
+  "room:sticker": (
+    data: { stickerId: string },
     cb: (res: { ok: true } | { ok: false; error: string }) => void
   ) => void;
 }
@@ -215,6 +225,8 @@ export interface ServerToClientEvents {
   "friend:accepted": (data: { by: { userId: string; nickname: string; discriminator: string } }) => void;
   /** A friend invited you to their room. */
   "friend:invite": (data: { from: { userId: string; nickname: string; discriminator: string }; roomCode: string }) => void;
+  /** Someone in your room sent a chat sticker. */
+  "room:sticker": (data: { from: string; stickerId: string }) => void;
 }
 
 export interface SocketData {
