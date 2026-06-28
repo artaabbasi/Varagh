@@ -155,10 +155,14 @@
 .collectedRow {
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
+  justify-content: center;
   min-height: 56px;
   padding: 4px 0;
+  /* keep the overlapping fan centred and inside the sheet instead of spilling
+     to the inline-start edge as the hand grows during the draw */
+  overflow: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {

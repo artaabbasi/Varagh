@@ -56,15 +56,18 @@
   background: #f5f0f8;
 }
 
+/* Card faces are always light (white-ish) in both themes, so the red suit
+   uses a fixed deep red — not the error token, whose dark-mode value is a pale
+   pink that washes out on the card. */
 .red {
-  --suit-color: var(--md-sys-color-error);
+  --suit-color: #c1121f;
 }
 
 .black {
-  --suit-color: var(--md-sys-color-on-surface);
+  --suit-color: #1c1b1f;
 }
 
-/* ensure black suit reads on white card in dark mode */
+/* black already reads on the light card in both themes */
 [data-theme="dark"] .black {
   --suit-color: #1c1b1f;
 }

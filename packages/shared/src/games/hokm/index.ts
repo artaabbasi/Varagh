@@ -36,22 +36,23 @@ function moveEquals(a: HokmMove, b: HokmMove): boolean {
 }
 
 /**
- * Build the teamMap for the given players and hakemIndex.
- * 4p: slot determined by seat parity (i % 2) — fixed across hands.
- * 2p/3p: hakem → slot 0, opponent(s) → slot 1 — rebuilt each hand.
+ * Build the teamMap (player → tricks/score slot). Fixed across hands.
+ * 4p: seat parity (i % 2) — partners {0,2} and {1,3} share a slot.
+ * 2p/3p: the seat index itself — every player is their own slot (heads-up /
+ *        3p free-for-all: no teams, each player scores their own tricks).
  */
-function buildTeamMap(players: PlayerId[], hakemIndex: number): Record<PlayerId, 0 | 1> {
-  const map: Record<PlayerId, 0 | 1> = {};
-  if (players.length === 4) {
-    for (let i = 0; i < players.length; i++) {
-      map[players[i]] = (i % 2) as 0 | 1;
-    }
-  } else {
-    for (let i = 0; i < players.length; i++) {
-      map[players[i]] = i === hakemIndex ? 0 : 1;
-    }
+function buildTeamMap(players: PlayerId[], _hakemIndex: number): Record<PlayerId, number> {
+  const map: Record<PlayerId, number> = {};
+  const fourPlayer = players.length === 4;
+  for (let i = 0; i < players.length; i++) {
+    map[players[i]] = fourPlayer ? i % 2 : i;
   }
   return map;
+}
+
+/** Initial all-zero trick/score slots: 2 slots for 4p teams & 2p seats, 3 for 3p seats. */
+function zeroSlots(players: PlayerId[]): number[] {
+  return players.length === 4 ? [0, 0] : players.map(() => 0);
 }
 
 /**
@@ -275,7 +276,7 @@ function applyPlayCard(
   const winnerId   = trickWinner(newTrick, state.trump!);
   const winnerSlot = state.teamMap[winnerId];
   const winnerIdx  = state.players.indexOf(winnerId);
-  const newTricksTaken: [number, number] = [state.tricksTaken[0], state.tricksTaken[1]];
+  const newTricksTaken = [...state.tricksTaken];
   newTricksTaken[winnerSlot]++;
 
   events.push({
@@ -284,8 +285,13 @@ function applyPlayCard(
     visibility: { kind: "public" },
   });
 
+  // The hand ends when a side reaches 7 tricks, or (3p only) when every card
+  // has been played without anyone reaching 7 (e.g. a 6-6-5 split).
+  const reachedTarget = newTricksTaken.some(t => t >= 7);
+  const cardsExhausted = state.players.every(p => (newHands[p] ?? []).length === 0);
+
   // Hand not over yet
-  if (newTricksTaken[0] < 7 && newTricksTaken[1] < 7) {
+  if (!reachedTarget && !cardsExhausted) {
     return {
       ok: true,
       state: {
@@ -301,30 +307,14 @@ function applyPlayCard(
   }
 
   // ── Hand over ────────────────────────────────────────────────
-  // hakemSlot is always 0 for 2p/3p; equals hakemIndex % 2 for 4p.
   const hakemSlot = state.teamMap[state.players[state.hakemIndex]];
   const score     = scoreHand(newTricksTaken, hakemSlot);
 
-  // Score update:
-  // 4p: per-team scores (length-2, indexed by slot).
-  // 2p/3p: per-player scores; opponent(s) in the winning slot all score equally.
-  let newScores: number[];
-  if (state.players.length !== 4) {
-    newScores = [...state.scores];
-    const pts = score.pointsGained[score.winnerTeam];
-    if (score.winnerTeam === 0) {
-      newScores[state.hakemIndex] += pts;
-    } else {
-      for (let i = 0; i < state.players.length; i++) {
-        if (i !== state.hakemIndex) newScores[i] += pts;
-      }
-    }
-  } else {
-    newScores = [
-      state.scores[0] + score.pointsGained[0],
-      state.scores[1] + score.pointsGained[1],
-    ];
-  }
+  // Slot indexing is now uniform across variants: `scores` and `tricksTaken`
+  // share the same slots (teams for 4p, seats for 2p/3p), so the winning slot
+  // is simply credited its points — no per-variant special-casing.
+  const newScores = [...state.scores];
+  newScores[score.winnerSlot] += score.points;
 
   events.push(...handOverEvents(newTricksTaken, newScores, score));
 
@@ -352,10 +342,13 @@ function applyPlayCard(
   }
 
   // ── Next hand ────────────────────────────────────────────────
-  const hakemTeamWon = newTricksTaken[hakemSlot] >= 7;
-  const newHakemIndex = hakemTeamWon
+  // The Hakem keeps the seat while their side wins; on a loss it passes to the
+  // next player in PLAY order (seat + 1), so trump rotation and turn rotation
+  // always run in the same direction.
+  const hakemKeepsSeat = score.winnerSlot === hakemSlot;
+  const newHakemIndex = hakemKeepsSeat
     ? state.hakemIndex
-    : (state.hakemIndex - 1 + state.players.length) % state.players.length;
+    : (state.hakemIndex + 1) % state.players.length;
 
   const freshDeckCards = state.players.length === 3 ? createDeck3p() : createDeck();
   const { hands: freshHands, deckForDeal: freshDeck } = dealHand(
@@ -374,7 +367,7 @@ function applyPlayCard(
       currentTrick: [],
       trickLeaderIndex: newHakemIndex,
       currentTurn: state.players[newHakemIndex],
-      tricksTaken: [0, 0],
+      tricksTaken: zeroSlots(state.players),
       teamMap: buildTeamMap(state.players, newHakemIndex),
       scores: newScores,
       handNumber: state.handNumber + 1,
@@ -419,10 +412,10 @@ export const hokm: GameDefinition<HokmState, HokmMove, HokmView> = {
       currentTrick: [],
       trickLeaderIndex: hakemIndex,
       currentTurn: players[hakemIndex],
-      tricksTaken: [0, 0],
+      tricksTaken: zeroSlots(players),
       teamMap: buildTeamMap(players, hakemIndex),
-      // 4p: per-team scores [0,0]; 2p/3p: per-player scores
-      scores: players.length === 4 ? [0, 0] : players.map(() => 0),
+      // 4p: per-team scores [0,0]; 2p/3p: per-seat scores
+      scores: zeroSlots(players),
       handNumber: 0,
       targetScore,
     };

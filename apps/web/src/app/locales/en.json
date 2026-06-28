@@ -247,6 +247,7 @@
     "chooseTrump": "Choose Trump",
     "chooseTrumpSubtitle": "Pick a suit to be trump for this hand",
     "hakemChoosingTrump": "{{name}} is choosing trump…",
+    "trumpChosenBy": "{{name}} chose the trump",
     "suits": {
       "hearts": "Hearts",
       "diamonds": "Diamonds",
@@ -281,6 +282,7 @@
       "teamWins": "{{name}} wins!",
       "finalScore": "Final Score",
       "rematch": "Rematch",
+      "rematchWaiting": "Setting up…",
       "leave": "Leave"
     },
     "aborted": {

@@ -16,14 +16,14 @@ import styles from "./HokmTable.module.css";
  * holds the previous counts for POINT_DELAY_MS after they rise, so the trick
  * piles and score panel tick up in time with the sweep animation.
  */
-function useDelayedTricks(tricksTaken: [number, number]): [number, number] {
-  const [shown, setShown] = useState<[number, number]>(tricksTaken);
-  const prevRef = useRef<[number, number]>(tricksTaken);
+function useDelayedTricks(tricksTaken: number[]): number[] {
+  const [shown, setShown] = useState<number[]>(tricksTaken);
+  const prevRef = useRef<number[]>(tricksTaken);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const prev = prevRef.current;
-    const rose = tricksTaken[0] > prev[0] || tricksTaken[1] > prev[1];
+    const rose = tricksTaken.some((t, i) => t > (prev[i] ?? 0));
     if (rose) {
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
@@ -36,7 +36,7 @@ function useDelayedTricks(tricksTaken: [number, number]): [number, number] {
       setShown(tricksTaken);
     }
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [tricksTaken[0], tricksTaken[1]]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tricksTaken.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return shown;
 }
@@ -162,9 +162,8 @@ export function HokmTable({
         const position = seatPositions.get(seatIdx)!;
         const teamColor = getTeamColor(seatIdx, numPlayers);
         const isTurn = phase === "playing" && view.currentTurn === playerId;
-        const trickSide = numPlayers === 4
-          ? (seatIdx % 2 as 0 | 1)
-          : (view.players[view.hakemIndex] === playerId ? 0 : 1);
+        // 4p: trick count is per-team (seat parity); 2p/3p: per-seat (free-for-all).
+        const trickSide = numPlayers === 4 ? seatIdx % 2 : seatIdx;
 
         return (
           <OpponentSeat
@@ -201,11 +200,7 @@ export function HokmTable({
         moveError={moveError}
         onPlay={onPlay}
         onClearError={onClearMoveError}
-        trickCount={shownTricks[
-          numPlayers === 4
-            ? (localIdx % 2 as 0 | 1)
-            : (view.players[view.hakemIndex] === forPlayer ? 0 : 1)
-        ]}
+        trickCount={shownTricks[numPlayers === 4 ? localIdx % 2 : localIdx]}
         teamColor={getTeamColor(localIdx, numPlayers)}
         isHakem={view.hakemIndex === localIdx}
         avatarUrl={getAvatar(room, forPlayer)}

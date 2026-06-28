@@ -92,35 +92,54 @@ export function legalPlays(hand: Card[], trick: TrickPlay[]): Card[] {
   return suited.length > 0 ? suited : [...hand];
 }
 
+/** Number of tricks a side must take to win a hand (all Hokm variants). */
+export const TRICKS_TO_WIN = 7;
+
 export interface HandScore {
-  pointsGained: [number, number];
+  /** Slot (team for 4p, seat for 2p/3p) that won the hand. */
+  winnerSlot: number;
+  /** Points awarded to the winning slot (1 / 2 kot / 3 hakem-kot). */
+  points: number;
   isKot: boolean;
   isHakemKot: boolean;
-  winnerTeam: 0 | 1;
 }
 
-/** Score a completed hand and determine point gain per team. */
+/**
+ * Score a completed hand. Works for any slot count:
+ *  - 4p: two team slots.   2p: two seat slots.   3p: three seat slots (free-for-all).
+ *
+ * Winner = the slot that reached TRICKS_TO_WIN. (Fallback, only reachable in 3p
+ * when all 17 cards are played with no slot at 7, e.g. 6-6-5: the highest count
+ * wins, Hakem taking ties.)  Kot = the winner swept every trick (all other
+ * slots on 0). Hakem-kot = that sweep was scored against the Hakem's slot.
+ */
 export function scoreHand(
-  tricksTaken: [number, number],
-  hakemTeamIndex: 0 | 1
+  tricksTaken: number[],
+  hakemSlot: number
 ): HandScore {
-  const winnerTeam: 0 | 1 = tricksTaken[0] >= 7 ? 0 : 1;
-  const loserTeam: 0 | 1 = winnerTeam === 0 ? 1 : 0;
-  const isKot = tricksTaken[loserTeam] === 0;
-  const isHakemKot = isKot && winnerTeam !== hakemTeamIndex;
+  let winnerSlot = tricksTaken.findIndex(t => t >= TRICKS_TO_WIN);
+  if (winnerSlot === -1) {
+    let max = -1;
+    for (let i = 0; i < tricksTaken.length; i++) {
+      if (tricksTaken[i] > max) { max = tricksTaken[i]; winnerSlot = i; }
+    }
+    if (tricksTaken[hakemSlot] === max) winnerSlot = hakemSlot; // Hakem wins ties
+  }
 
-  let pts = 1;
-  if (isHakemKot) pts = 3;
-  else if (isKot) pts = 2;
+  const othersTotal = tricksTaken.reduce(
+    (sum, t, i) => (i === winnerSlot ? sum : sum + t),
+    0
+  );
+  const isKot = othersTotal === 0;
+  const isHakemKot = isKot && winnerSlot !== hakemSlot;
 
-  const pointsGained: [number, number] = [0, 0];
-  pointsGained[winnerTeam] = pts;
-  return { pointsGained, isKot, isHakemKot, winnerTeam };
+  const points = isHakemKot ? 3 : isKot ? 2 : 1;
+  return { winnerSlot, points, isKot, isHakemKot };
 }
 
 /** Build public events emitted when a hand finishes. */
 export function handOverEvents(
-  tricksTaken: [number, number],
+  tricksTaken: number[],
   newScores: number[],
   score: HandScore
 ): GameEvent[] {
@@ -128,13 +147,13 @@ export function handOverEvents(
   if (score.isHakemKot) {
     events.push({
       type: "hakemKot",
-      data: { winnerTeam: score.winnerTeam },
+      data: { winnerSlot: score.winnerSlot },
       visibility: { kind: "public" },
     });
   } else if (score.isKot) {
     events.push({
       type: "kot",
-      data: { winnerTeam: score.winnerTeam },
+      data: { winnerSlot: score.winnerSlot },
       visibility: { kind: "public" },
     });
   }
@@ -142,8 +161,8 @@ export function handOverEvents(
     type: "handOver",
     data: {
       tricksTaken,
-      winnerTeam: score.winnerTeam,
-      pointsGained: score.pointsGained[score.winnerTeam],
+      winnerSlot: score.winnerSlot,
+      points: score.points,
       scores: newScores,
     },
     visibility: { kind: "public" },

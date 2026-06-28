@@ -23,21 +23,22 @@ export interface HokmState {
   trickLeaderIndex: number;
   currentTurn: PlayerId | null;
   /**
-   * Tricks won this hand, indexed by side (0 or 1).
-   * 4p: slot 0 = team {seats 0,2}, slot 1 = team {seats 1,3}.
-   * 3p: slot 0 = Hakem alone, slot 1 = combined opponents.
+   * Tricks won this hand, indexed by side.
+   * 4p: length 2 — slot 0 = team {seats 0,2}, slot 1 = team {seats 1,3}.
+   * 3p: length 3 — free-for-all, one slot per seat (each player's own tricks).
+   * 2p: length 2 — one slot per seat.
    */
-  tricksTaken: [number, number];
+  tricksTaken: number[];
   /**
-   * Maps each player to their tricksTaken slot (0 or 1).
-   * 4p: determined by seat parity (seat % 2). Constant across hands.
-   * 3p: slot 0 = current Hakem, slot 1 = both opponents. Rebuilt each hand.
+   * Maps each player to their tricksTaken/scores slot.
+   * 4p: seat parity (seat % 2) — partners share a slot.
+   * 2p/3p: the seat index itself — every player is their own slot.
+   * Constant across hands.
    */
-  teamMap: Record<PlayerId, 0 | 1>;
+  teamMap: Record<PlayerId, number>;
   /**
-   * Accumulated game points.
-   * 4p: length 2 — indexed by team (slot 0 / slot 1).
-   * 3p: length 3 — indexed by player seat, since the Hakem rotates.
+   * Accumulated game points, indexed by the same slot as `tricksTaken`.
+   * 4p: length 2 (per team). 2p: length 2 / 3p: length 3 (per player seat).
    */
   scores: number[];
   handNumber: number;
@@ -64,8 +65,9 @@ export interface HokmView extends PlayerViewBase {
   handSizes: number[];
   currentTrick: TrickPlay[];
   trickLeaderIndex: number;
-  tricksTaken: [number, number];
-  /** Same shape as HokmState.scores — length 2 for 4p teams, length 3 for 3p players, length 2 for 2p players. */
+  /** Same shape as HokmState.tricksTaken — length 2 (4p teams / 2p seats) or 3 (3p seats). */
+  tricksTaken: number[];
+  /** Same shape as HokmState.scores — length 2 for 4p teams / 2p players, length 3 for 3p players. */
   scores: number[];
   handNumber: number;
   /**

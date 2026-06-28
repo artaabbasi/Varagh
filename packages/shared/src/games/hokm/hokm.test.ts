@@ -184,40 +184,60 @@ describe("isLegalPlay", () => {
 describe("scoreHand", () => {
   it("1 point for a normal win", () => {
     const s = scoreHand([7, 6], 0);
-    expect(s.pointsGained).toEqual([1, 0]);
+    expect(s.points).toBe(1);
     expect(s.isKot).toBe(false);
     expect(s.isHakemKot).toBe(false);
-    expect(s.winnerTeam).toBe(0);
+    expect(s.winnerSlot).toBe(0);
   });
 
   it("1 point for a normal win by the non-hakem team", () => {
     const s = scoreHand([3, 7], 0);
-    expect(s.pointsGained).toEqual([0, 1]);
+    expect(s.points).toBe(1);
     expect(s.isKot).toBe(false);
     expect(s.isHakemKot).toBe(false);
-    expect(s.winnerTeam).toBe(1);
+    expect(s.winnerSlot).toBe(1);
   });
 
   it("2 points for a kot when hakem's team wins 7-0", () => {
-    const s = scoreHand([7, 0], 0); // hakem on team 0, team 0 wins all
-    expect(s.pointsGained).toEqual([2, 0]);
+    const s = scoreHand([7, 0], 0); // hakem on slot 0, slot 0 wins all
+    expect(s.points).toBe(2);
     expect(s.isKot).toBe(true);
     expect(s.isHakemKot).toBe(false);
+    expect(s.winnerSlot).toBe(0);
   });
 
   it("3 points for hakem-kot (opponent team wins 7-0 against hakem)", () => {
-    const s = scoreHand([0, 7], 0); // hakem on team 0, team 1 wins all
-    expect(s.pointsGained).toEqual([0, 3]);
+    const s = scoreHand([0, 7], 0); // hakem on slot 0, slot 1 wins all
+    expect(s.points).toBe(3);
     expect(s.isKot).toBe(true);
     expect(s.isHakemKot).toBe(true);
-    expect(s.winnerTeam).toBe(1);
+    expect(s.winnerSlot).toBe(1);
   });
 
   it("3 points for hakem-kot when non-hakem team wins 7-0", () => {
-    const s = scoreHand([7, 0], 1); // hakem on team 1, team 0 wins all → hakem-kot
-    expect(s.pointsGained).toEqual([3, 0]);
+    const s = scoreHand([7, 0], 1); // hakem on slot 1, slot 0 wins all → hakem-kot
+    expect(s.points).toBe(3);
     expect(s.isHakemKot).toBe(true);
-    expect(s.winnerTeam).toBe(0);
+    expect(s.winnerSlot).toBe(0);
+  });
+
+  it("3p free-for-all: only the winning seat scores, kot needs a full sweep", () => {
+    // Winner 7, others 6 and 4 → normal win, no kot (others took tricks).
+    const normal = scoreHand([7, 6, 4], 0);
+    expect(normal.points).toBe(1);
+    expect(normal.winnerSlot).toBe(0);
+    expect(normal.isKot).toBe(false);
+
+    // Hakem (slot 0) sweeps 7-0-0 → kot.
+    const kot = scoreHand([7, 0, 0], 0);
+    expect(kot.points).toBe(2);
+    expect(kot.isHakemKot).toBe(false);
+
+    // A non-hakem seat sweeps 7-0-0 with the hakem on 0 → hakem-kot.
+    const hakemKot = scoreHand([0, 7, 0], 0);
+    expect(hakemKot.points).toBe(3);
+    expect(hakemKot.winnerSlot).toBe(1);
+    expect(hakemKot.isHakemKot).toBe(true);
   });
 });
 
@@ -467,7 +487,7 @@ describe("hand completion", () => {
     // Use a single crafted trick to reach 7-0 → kot; for 7-6 we need a nuanced setup.
     // Use scoreHand directly to verify; the integration path is validated in the kot tests.
     const s = scoreHand([7, 6], 0);
-    expect(s.pointsGained).toEqual([1, 0]);
+    expect(s.points).toBe(1);
     expect(s.isKot).toBe(false);
   });
 
@@ -485,11 +505,11 @@ describe("hand completion", () => {
     expect(s.hakemIndex).toBe(0); // hakem (P0) stays
   });
 
-  it("hakem passes counter-clockwise when their team loses", () => {
+  it("hakem passes to the next seat in play order when their team loses", () => {
     // P1 (seat 1, team 1) is hakem; P0 has all trump → team 0 wins every trick
     const s = autoPlayHand(kotSetup(1));
-    // Counter-clockwise from seat 1: (1 - 1 + 4) % 4 = 0 → P0 becomes hakem
-    expect(s.hakemIndex).toBe(0);
+    // Hakem rotation now matches play direction: (1 + 1) % 4 = 2 → P2 becomes hakem
+    expect(s.hakemIndex).toBe(2);
     expect(s.handNumber).toBe(1);
   });
 
@@ -644,13 +664,13 @@ function playingState3p(
     players: ["A", "B", "C"],
     hakemIndex: 0,
     trump: "spades",
-    teamMap: { A: 0, B: 1, C: 1 },
+    teamMap: { A: 0, B: 1, C: 2 },
     hands,
     deckForDeal: [],
     currentTrick: [],
     trickLeaderIndex: 0,
     currentTurn: "A",
-    tricksTaken: [0, 0],
+    tricksTaken: [0, 0, 0],
     scores: [0, 0, 0],
     handNumber: 0,
     targetScore: 7,
@@ -747,14 +767,10 @@ describe("3p — setup and deal", () => {
     expect(s.scores).toEqual([0, 0, 0]);
   });
 
-  it("teamMap assigns hakem to slot 0 and both opponents to slot 1", () => {
+  it("teamMap assigns each player to their own seat slot (free-for-all)", () => {
     const rng = makeRng(5);
     const s = hokm.setup({ variantId: "hokm-3p", players: ["A", "B", "C"], options: {}, rng });
-    const hakem = s.players[s.hakemIndex];
-    expect(s.teamMap[hakem]).toBe(0);
-    for (const p of s.players) {
-      if (p !== hakem) expect(s.teamMap[p]).toBe(1);
-    }
+    expect(s.teamMap).toEqual({ A: 0, B: 1, C: 2 });
   });
 
   it("is deterministic: same seed produces identical initial state", () => {
@@ -767,82 +783,94 @@ describe("3p — setup and deal", () => {
 // ── 3p trick counting ──────────────────────────────────────────────────────
 
 describe("3p — trick counting and hand end condition", () => {
-  it("B's and C's tricks are combined in tricksTaken[1]", () => {
+  it("each seat's tricks are counted in its own slot (free-for-all, no shared team)", () => {
     // Trick 1: B wins (plays trump). Trick 2: C wins (highest of led suit).
+    // A spare third card each keeps hands non-empty so the hand doesn't end.
     const hands = {
-      A: [card("3", "diamonds"), card("4", "diamonds")],
-      B: [card("2", "spades"),   card("5", "clubs")],
-      C: [card("A", "diamonds"), card("6", "clubs")],
+      A: [card("3", "diamonds"), card("4", "diamonds"), card("7", "diamonds")],
+      B: [card("2", "spades"),   card("5", "clubs"),    card("8", "clubs")],
+      C: [card("A", "diamonds"), card("6", "clubs"),    card("9", "clubs")],
     };
     let s = playingState3p(hands, { currentTurn: "A" });
 
     // A leads 3♦. B is void in diamonds → plays 2♠ (trump). C has A♦ → follows suit.
-    // B wins with trump.
+    // B wins with trump → B's own slot (1).
     s = playTrick(s, [card("3", "diamonds"), card("2", "spades"), card("A", "diamonds")]);
-    expect(s.tricksTaken).toEqual([0, 1]);
+    expect(s.tricksTaken).toEqual([0, 1, 0]);
 
     // B leads 5♣. C has 6♣ → must follow. A is void → plays 4♦. C's 6♣ beats B's 5♣. C wins.
     s = playTrick(s, [card("5", "clubs"), card("6", "clubs"), card("4", "diamonds")]);
-    expect(s.tricksTaken).toEqual([0, 2]); // C's win also goes to slot 1
+    expect(s.tricksTaken).toEqual([0, 1, 1]); // C's win goes to C's own slot (2)
   });
 
-  it("hand ends the moment hakem reaches 7 tricks (hakem leads trump every trick)", () => {
+  it("hand ends the moment the hakem reaches 7 tricks (hakem leads trump every trick)", () => {
     const s = autoPlayHand(hakemWinsAllSetup3p());
     // A (hakem) wins all 7 tricks. Phase changes to choosingTrump (next hand).
     expect(s.phase).toBe("choosingTrump");
     expect(s.handNumber).toBe(1);
   });
 
-  it("hand ends the moment combined opponents reach 7 tricks", () => {
+  it("hand ends the moment any single opponent reaches 7 tricks", () => {
     const s = autoPlayHand(opponentsWinAllSetup3p());
-    // B wins all 7 tricks. Combined opponent count hits 7.
+    // B alone wins all 7 tricks.
     expect(s.phase).toBe("choosingTrump");
     expect(s.handNumber).toBe(1);
+  });
+
+  it("a 6-6-5 split with no seat reaching 7 ends the hand and the Hakem takes the tie", () => {
+    // Preset 6-5-5 (16 tricks); the final trick brings it to 6-6-5.
+    const hands = { A: [card("2", "hearts")], B: [card("A", "spades")], C: [card("3", "diamonds")] };
+    let s = playingState3p(hands, { tricksTaken: [6, 5, 5], currentTurn: "A", trickLeaderIndex: 0 });
+    s = play(s, "A", { type: "playCard", card: card("2", "hearts") });
+    s = play(s, "B", { type: "playCard", card: card("A", "spades") }); // B trumps, wins → [6,6,5]
+    s = play(s, "C", { type: "playCard", card: card("3", "diamonds") });
+    expect(s.phase).toBe("choosingTrump");      // cards exhausted, hand ends
+    expect(s.scores).toEqual([1, 0, 0]);         // tie at 6 → Hakem (A) scores
+    expect(s.hakemIndex).toBe(0);                // A "won" → keeps the seat
   });
 });
 
 // ── 3p scoring ─────────────────────────────────────────────────────────────
 
-describe("3p — scoring", () => {
-  it("hakem normal win (7-6): hakem +1, opponents unchanged", () => {
-    // tricksTaken=[6,6]; A leads A♠ (trump) → A wins the deciding trick.
+describe("3p — scoring (free-for-all)", () => {
+  it("hakem normal win: only the hakem scores +1", () => {
+    // tricksTaken=[6,5,5]; A leads A♠ (trump) → A wins the deciding trick → [7,5,5].
     const hands = { A: [card("A", "spades")], B: [card("2", "hearts")], C: [card("3", "diamonds")] };
-    let s = playingState3p(hands, { tricksTaken: [6, 6], currentTurn: "A", trickLeaderIndex: 0 });
+    let s = playingState3p(hands, { tricksTaken: [6, 5, 5], currentTurn: "A", trickLeaderIndex: 0 });
     s = play(s, "A", { type: "playCard", card: card("A", "spades") });
     s = play(s, "B", { type: "playCard", card: card("2", "hearts") });
     s = play(s, "C", { type: "playCard", card: card("3", "diamonds") });
-    // tricksTaken becomes [7, 6] → hakem wins normal → A +1
     expect(s.scores).toEqual([1, 0, 0]);
   });
 
-  it("hakem kot (7-0): hakem +2, opponents unchanged", () => {
+  it("hakem kot (7-0-0): hakem +2", () => {
     const s = autoPlayHand(hakemWinsAllSetup3p());
-    // A wins all 7 tricks → regular kot (opponents got 0) → A +2
+    // A wins all 7 tricks → regular kot (both opponents on 0) → A +2
     expect(s.scores).toEqual([2, 0, 0]);
   });
 
-  it("opponents normal win (6-7): each opponent +1, hakem unchanged", () => {
-    // tricksTaken=[6,6]; A leads 2♥, B plays A♠ (trump) → B wins the deciding trick.
+  it("non-hakem normal win: ONLY the winning seat scores (not the other opponent)", () => {
+    // tricksTaken=[6,6,4]; A leads 2♥, B plays A♠ (trump) → B wins → [6,7,4].
     const hands = { A: [card("2", "hearts")], B: [card("A", "spades")], C: [card("3", "diamonds")] };
-    let s = playingState3p(hands, { tricksTaken: [6, 6], currentTurn: "A", trickLeaderIndex: 0 });
+    let s = playingState3p(hands, { tricksTaken: [6, 6, 4], currentTurn: "A", trickLeaderIndex: 0 });
     s = play(s, "A", { type: "playCard", card: card("2", "hearts") });
     s = play(s, "B", { type: "playCard", card: card("A", "spades") });
     s = play(s, "C", { type: "playCard", card: card("3", "diamonds") });
-    // tricksTaken becomes [6, 7] → opponents win normal → B+1, C+1
-    expect(s.scores).toEqual([0, 1, 1]);
+    // Free-for-all: B wins the hand and scores; C does NOT (no shared team).
+    expect(s.scores).toEqual([0, 1, 0]);
   });
 
-  it("hakem-kot (opponents win 7-0): each opponent +3, hakem unchanged", () => {
+  it("hakem-kot (a single opponent sweeps 7-0-0): that opponent +3 only", () => {
     const s = autoPlayHand(opponentsWinAllSetup3p());
-    // B wins all 7 tricks; hakem (A) gets 0 → hakem-kot → B+3, C+3
-    expect(s.scores).toEqual([0, 3, 3]);
+    // B wins all 7 tricks; hakem (A) and C both on 0 → hakem-kot → B+3, C unchanged.
+    expect(s.scores).toEqual([0, 3, 0]);
   });
 
   it("accumulated scores persist across hands", () => {
     // Start with scores [2, 1, 0]; hakem wins a normal hand → A reaches 3
     const hands = { A: [card("A", "spades")], B: [card("2", "hearts")], C: [card("3", "diamonds")] };
     let s = playingState3p(hands, {
-      tricksTaken: [6, 6],
+      tricksTaken: [6, 5, 5],
       scores: [2, 1, 0],
       currentTurn: "A",
       trickLeaderIndex: 0,
@@ -850,7 +878,7 @@ describe("3p — scoring", () => {
     s = play(s, "A", { type: "playCard", card: card("A", "spades") });
     s = play(s, "B", { type: "playCard", card: card("2", "hearts") });
     s = play(s, "C", { type: "playCard", card: card("3", "diamonds") });
-    expect(s.scores).toEqual([3, 1, 0]); // A: 2+1=3, B unchanged, C unchanged
+    expect(s.scores).toEqual([3, 1, 0]); // A: 2+1=3, B & C unchanged
   });
 });
 
@@ -863,33 +891,29 @@ describe("3p — hakem rotation", () => {
     expect(s.handNumber).toBe(1);
   });
 
-  it("hakem passes counter-clockwise after losing (index 0 → 2)", () => {
+  it("hakem passes to the next seat in play order after losing (index 0 → 1)", () => {
     const s = autoPlayHand(opponentsWinAllSetup3p()); // A loses (B wins all)
-    // (0 - 1 + 3) % 3 = 2 → C becomes hakem
-    expect(s.hakemIndex).toBe(2);
+    // Rotation matches play direction: (0 + 1) % 3 = 1 → B becomes hakem
+    expect(s.hakemIndex).toBe(1);
     expect(s.handNumber).toBe(1);
   });
 
-  it("hakem passes counter-clockwise after losing (index 2 → 1)", () => {
+  it("hakem passes to the next seat in play order after losing (index 2 → 0)", () => {
     // Same card layout but C is hakem; B still holds all trump → C loses
     const base = opponentsWinAllSetup3p();
     const s = autoPlayHand({
       ...base,
       hakemIndex: 2,
-      teamMap: { A: 1, B: 1, C: 0 },
       trickLeaderIndex: 2,
       currentTurn: "C",
     });
-    // (2 - 1 + 3) % 3 = 1 → B becomes hakem
-    expect(s.hakemIndex).toBe(1);
+    // (2 + 1) % 3 = 0 → A becomes hakem
+    expect(s.hakemIndex).toBe(0);
   });
 
-  it("teamMap is rebuilt each hand to reflect the new hakem", () => {
-    const s = autoPlayHand(opponentsWinAllSetup3p()); // A loses → C becomes hakem (index 2)
-    // New hakem is C (index 2), so teamMap[C]=0, teamMap[A]=teamMap[B]=1
-    expect(s.teamMap["C"]).toBe(0);
-    expect(s.teamMap["A"]).toBe(1);
-    expect(s.teamMap["B"]).toBe(1);
+  it("teamMap stays seat-indexed across hands (free-for-all, no team reshuffling)", () => {
+    const s = autoPlayHand(opponentsWinAllSetup3p()); // A loses → B becomes hakem
+    expect(s.teamMap).toEqual({ A: 0, B: 1, C: 2 });
   });
 });
 
@@ -900,7 +924,7 @@ describe("3p — game over and getOutcome", () => {
     // Scores [6,0,0]: A needs 1 more; A wins a normal hand (A wins deciding trick).
     const hands = { A: [card("A", "spades")], B: [card("2", "hearts")], C: [card("3", "diamonds")] };
     let s = playingState3p(hands, {
-      tricksTaken: [6, 6],
+      tricksTaken: [6, 5, 5],
       scores: [6, 0, 0],
       currentTurn: "A",
       trickLeaderIndex: 0,
@@ -1085,13 +1109,10 @@ describe("2p — setup and deal", () => {
     expect(s.scores).toEqual([0, 0]);
   });
 
-  it("teamMap: hakem = slot 0, opponent = slot 1", () => {
+  it("teamMap is seat-indexed (X = slot 0, Y = slot 1)", () => {
     const rng = makeRng(4);
     const s = hokm.setup({ variantId: "hokm-2p", players: ["X", "Y"], options: {}, rng });
-    const hakem = s.players[s.hakemIndex];
-    const opponent = s.players[(s.hakemIndex + 1) % 2];
-    expect(s.teamMap[hakem]).toBe(0);
-    expect(s.teamMap[opponent]).toBe(1);
+    expect(s.teamMap).toEqual({ X: 0, Y: 1 });
   });
 
   it("is deterministic: same seed produces identical initial state", () => {

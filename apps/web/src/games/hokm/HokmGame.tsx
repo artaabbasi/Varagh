@@ -9,11 +9,12 @@ import { HokmTable } from "./HokmTable";
 import { CardLoadingScreen } from "../../components/CardLoadingScreen";
 import { TrumpSelector } from "./phases/TrumpSelector";
 import { TrumpWaiting } from "./phases/TrumpWaiting";
+import { TrumpReveal } from "./phases/TrumpReveal";
 import { DrawPhase } from "./phases/DrawPhase";
 import { HandOverSheet } from "./phases/HandOverSheet";
 import { GameOverSheet } from "./phases/GameOverSheet";
 import { WaitingRoom } from "./WaitingRoom";
-import { TRICK_REVIEW_MS, TRICK_SWEEP_MS } from "./timing";
+import { TRICK_REVIEW_MS, TRICK_SWEEP_MS, TRICK_HOLD_MS } from "./timing";
 import { socket } from "../../app/socket";
 import styles from "./HokmGame.module.css";
 
@@ -63,6 +64,11 @@ export function HokmGame() {
   // ── Animation / overlay state ─────────────────────────────────
   const [showHandOver, setShowHandOver] = useState(false);
   const [handOverData, setHandOverData] = useState<HandOverEventData | null>(null);
+  // Game-over sheet is held back until the final trick has reviewed + swept.
+  const [showGameOver, setShowGameOver] = useState(false);
+  // True between a hand ending and its summary appearing: suppresses the
+  // next-hand trump/draw overlays so the last trick can sweep uninterrupted.
+  const [pendingHandEnd, setPendingHandEnd] = useState(false);
   const [sweepingWinner, setSweepingWinner] = useState<string | null>(null);
   const [reviewingWinner, setReviewingWinner] = useState<string | null>(null);
   const [trumpRevealSuit, setTrumpRevealSuit] = useState<string | null>(null);
@@ -83,6 +89,14 @@ export function HokmGame() {
     const timers = sweepTimersRef.current;
     return () => { timers.forEach(clearTimeout); };
   }, []);
+
+  // Reveal the game-over sheet only after the final trick has had time to
+  // review + sweep. Also covers reconnecting into an already-finished game.
+  useEffect(() => {
+    if (view?.phase !== "gameOver") { setShowGameOver(false); return; }
+    const id = setTimeout(() => setShowGameOver(true), TRICK_HOLD_MS);
+    return () => clearTimeout(id);
+  }, [view?.phase]);
 
   useAnimatedEvents(events, {
     onCardPlayed: (playerId, card) => {
@@ -126,12 +140,16 @@ export function HokmGame() {
       setTimeout(() => setTrumpRevealSuit(null), 2200);
     },
     onHandOver: (data) => {
-      // Reset trick tracking for the new hand.
-      currentTrickRef.current = [];
-      isTrickCompleteRef.current = false;
-      setDisplayTrick([]);
+      // Hold the summary back until the final trick has reviewed + swept, so
+      // the deciding card is actually seen (the engine has already dealt the
+      // next hand, so we also gate the next-hand overlays until then).
       setHandOverData(data);
-      setShowHandOver(true);
+      setPendingHandEnd(true);
+      const id = setTimeout(() => {
+        setShowHandOver(true);
+        setPendingHandEnd(false);
+      }, TRICK_HOLD_MS);
+      sweepTimersRef.current.push(id);
     },
     onKot: (isHakemKot) => {
       setKotIsHakem(isHakemKot);
@@ -174,19 +192,21 @@ export function HokmGame() {
   // ── Phase overlay ─────────────────────────────────────────────
   let phaseOverlay: React.ReactNode = null;
 
-  // Game over takes priority: on the final hand we skip the hand-over
-  // countdown entirely and go straight to the results — there is no next round.
-  if (view.phase === "gameOver") {
+  // Game over takes priority, but only once the final trick has swept (so the
+  // deciding card is actually seen before the results appear).
+  if (view.phase === "gameOver" && showGameOver) {
     phaseOverlay = (
       <GameOverSheet
         view={view}
         room={room}
         onRematch={() => {
-          /* lobby will handle this */
+          // Reset the room to its lobby; the room:updated broadcast flips
+          // everyone still here back to the waiting room.
+          socket.emit("room:rematch", {}, () => {});
         }}
       />
     );
-  } else if (showHandOver && handOverData) {
+  } else if (showHandOver && handOverData && view.phase !== "gameOver") {
     phaseOverlay = (
       <HandOverSheet
         data={handOverData}
@@ -199,7 +219,7 @@ export function HokmGame() {
         }}
       />
     );
-  } else if (view.phase === "choosingTrump") {
+  } else if (view.phase === "choosingTrump" && !pendingHandEnd) {
     phaseOverlay = isHakem ? (
       <TrumpSelector
         view={view}
@@ -208,7 +228,7 @@ export function HokmGame() {
     ) : (
       <TrumpWaiting view={view} room={room} lang={lang} />
     );
-  } else if (view.phase === "drawing") {
+  } else if (view.phase === "drawing" && !pendingHandEnd) {
     phaseOverlay = (
       <DrawPhase
         view={view}
@@ -280,6 +300,15 @@ export function HokmGame() {
           {phaseOverlay}
         </div>
       )}
+
+      {/* Trump announcement — pops up briefly right after the Hakem picks. */}
+      <TrumpReveal
+        suit={trumpRevealSuit}
+        hakemName={
+          room?.seats.find((s) => s.playerId === view.players[view.hakemIndex])?.nickname ??
+          undefined
+        }
+      />
     </div>
   );
 }

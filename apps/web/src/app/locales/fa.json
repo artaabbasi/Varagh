@@ -247,6 +247,7 @@
     "chooseTrump": "انتخاب حکم",
     "chooseTrumpSubtitle": "یک خال را به عنوان حکم این دست انتخاب کنید",
     "hakemChoosingTrump": "{{name}} در حال انتخاب حکم است…",
+    "trumpChosenBy": "{{name}} حکم را انتخاب کرد",
     "suits": {
       "hearts": "دل",
       "diamonds": "خشت",
@@ -281,6 +282,7 @@
       "teamWins": "{{name}} برنده شد!",
       "finalScore": "امتیاز نهایی",
       "rematch": "دوباره بازی",
+      "rematchWaiting": "در حال آماده‌سازی…",
       "leave": "خروج"
     },
     "aborted": {

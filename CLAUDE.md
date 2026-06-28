@@ -143,10 +143,14 @@ Defined in `packages/shared/src/engine/game-engine.ts`. Every game exports a
 
 ## Hokm reference rules (canonical for this project)
 
+Trump (Hakem) rotation runs in the **same direction as play** (the next seat in
+turn order): the Hakem keeps the seat while their side wins the hand and passes
+it to the next player in play order on a loss. This holds for every variant.
+
 **4-player (launch variant):** two teams of two, partners across. Full 52-card
 deck. Hakem (ruler) determined initially by first-ace deal; thereafter Hakem
-keeps the seat while their team wins, passes to the next player
-(counter-clockwise) when their team loses a hand. Deal: Hakem receives 5 cards,
+keeps the seat while their team wins, passes to the next player (in play order)
+when their team loses a hand. Deal: Hakem receives 5 cards,
 chooses trump (hokm), then everyone is dealt to 13 (batches of 4-4-5 in deal
 order). Hakem leads the first trick. Must follow suit if able; otherwise any
 card (trumping not mandatory). Trick won by highest trump, else highest card
@@ -154,9 +158,13 @@ of led suit. First team to 7 tricks wins the hand: 1 point; 7–0 (kot) = 2
 points; if the Hakem's team is kotted (hakem-kot) = 3 points. First team to 7
 points wins the game.
 
-**3-player:** remove the 2♥ (51 cards, 17 each). No teams — Hakem plays alone
-against the other two who temporarily cooperate. Hakem must take 7 tricks to
-score; either opponent side needs 7 combined to defeat the Hakem.
+**3-player:** remove the 2♥ (51 cards, 17 each). **Free-for-all — no teams and
+no cooperation: each player scores only their own tricks.** The first player to
+reach 7 of the 17 tricks wins the hand for 1 point. A 7–0–0 sweep is a kot
+(2 points); a sweep by a non-Hakem while the Hakem takes 0 is a hakem-kot
+(3 points). Only the winning seat scores — the other two gain nothing. In the
+rare case all 17 tricks are played with no one at 7 (a 6–6–5 split), the top
+trick count wins and the Hakem takes a tie.
 
 **2-player:** each player ends with 13 playable cards. Deal 5 + trump choice as
 usual; then draw-and-discard mechanics determine the final hands (Hakem draws

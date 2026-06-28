@@ -28,10 +28,12 @@ export function HandOverSheet({ data, view, room, kotIsHakem, onContinue }: Hand
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { tricksTaken, winnerTeam, pointsGained, scores } = data;
+  const { tricksTaken, winnerSlot, points, scores } = data;
   const numPlayers = view.players.length;
 
-  const isKot = tricksTaken[winnerTeam === 0 ? 1 : 0] === 0;
+  const winnerTricks = tricksTaken[winnerSlot] ?? 0;
+  const othersTotal = tricksTaken.reduce((sum, t, i) => (i === winnerSlot ? sum : sum + t), 0);
+  const isKot = othersTotal === 0;
 
   const nextHakemId = view.players[view.hakemIndex];
   const nextHakemName =
@@ -55,24 +57,33 @@ export function HandOverSheet({ data, view, room, kotIsHakem, onContinue }: Hand
         {/* Kot badge */}
         {isKot && (
           <div className={[styles.kotBadge, kotIsHakem ? styles.hakemKot : null].filter(Boolean).join(" ")}>
-            {kotIsHakem ? t("hokm.handOver.hakemKot") : t("hokm.handOver.kot", { score: `${tricksTaken[winnerTeam]}-0` })}
+            {kotIsHakem ? t("hokm.handOver.hakemKot") : t("hokm.handOver.kot", { score: `${winnerTricks}-${othersTotal}` })}
           </div>
         )}
 
         {/* Points earned */}
         <div className={styles.pointsBurst}>
           <span className={styles.plusSign}>+</span>
-          <span className={styles.pointsNum}>{pointsGained}</span>
+          <span className={styles.pointsNum}>{points}</span>
           <span className={styles.pointsLabel}>
-            {t("hokm.handOver.pointsLabel", { count: pointsGained })}
+            {t("hokm.handOver.pointsLabel", { count: points })}
           </span>
         </div>
 
-        {/* Trick count row */}
+        {/* Trick count row — one entry per slot (2 for teams/heads-up, 3 for free-for-all) */}
         <div className={styles.trickRow}>
-          <span className={styles.trickNum}>{tricksTaken[0]}</span>
-          <span className={styles.trickSep}>–</span>
-          <span className={styles.trickNum}>{tricksTaken[1]}</span>
+          {tricksTaken.map((n, i) => (
+            <span key={i} className={styles.trickGroup}>
+              {i > 0 && <span className={styles.trickSep}>–</span>}
+              <span
+                className={[styles.trickNum, i === winnerSlot ? styles.trickWinner : null]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                {n}
+              </span>
+            </span>
+          ))}
         </div>
 
         {/* Game scores */}

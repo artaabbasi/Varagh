@@ -19,7 +19,7 @@ interface ScorePanelProps {
   room: RoomView | null;
   /** Trick counts to display; defaults to view.tricksTaken. Lets the table
    *  delay the count so the point lands in time with the sweep animation. */
-  tricksOverride?: [number, number];
+  tricksOverride?: number[];
   onLeave?: () => void;
   className?: string;
 }
@@ -95,6 +95,8 @@ export function ScorePanel({ view, room, tricksOverride, onLeave, className }: S
         <div key={p} className={styles.playerScore}>
           <span className={styles.nickname}>{getNickname(room, p)}</span>
           {i === hakemIndex && <span className={styles.hakemBadge}>★</span>}
+          <span className={styles.trickCount}>{tricksTaken[i] ?? 0}</span>
+          <span className={styles.separator}>/</span>
           <span className={styles.gameScore}>{scores[i]}</span>
         </div>
       ))}

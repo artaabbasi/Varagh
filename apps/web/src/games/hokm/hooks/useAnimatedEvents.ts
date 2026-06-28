@@ -13,9 +13,12 @@ export interface AnimationCallbacks {
 }
 
 export interface HandOverEventData {
-  tricksTaken: [number, number];
-  winnerTeam: 0 | 1;
-  pointsGained: number;
+  /** Per-slot trick counts: length 2 (4p teams / 2p seats) or 3 (3p seats). */
+  tricksTaken: number[];
+  /** The slot (team for 4p, seat for 2p/3p) that won the hand. */
+  winnerSlot: number;
+  /** Points the winning slot gained this hand. */
+  points: number;
   scores: number[];
 }
 

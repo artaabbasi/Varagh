@@ -1,0 +1,77 @@
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  /* Brief dim so the announcement reads over the busy table. */
+  background: color-mix(in srgb, var(--md-sys-color-scrim, #000) 28%, transparent);
+  animation: fadeBg var(--md-sys-motion-dur-medium2) var(--md-sys-motion-easing-standard) both;
+}
+
+@keyframes fadeBg {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 24px 40px 28px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--md-sys-color-surface-container-highest);
+  box-shadow: var(--md-sys-elevation-3);
+  border: 2px solid color-mix(in srgb, #c9971a 60%, transparent);
+  animation: pop var(--md-sys-motion-dur-medium4) var(--md-sys-motion-easing-spring) both;
+}
+
+@keyframes pop {
+  from { transform: scale(0.6) translateY(12px); opacity: 0; }
+  60%  { transform: scale(1.08); }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.label {
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #c9971a;
+}
+
+.suit {
+  font-size: 5rem;
+  line-height: 1;
+  animation: suitPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes suitPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+/* Card suits stay vivid against the surface — independent of the error token. */
+.red { color: #c1121f; }
+.black { color: var(--md-sys-color-on-surface); }
+[data-theme="dark"] .black { color: var(--md-sys-color-on-surface); }
+
+.name {
+  font-size: var(--md-sys-typescale-headline-small-size);
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface);
+}
+
+.by {
+  margin-block-start: 4px;
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay, .card { animation: none; }
+  .suit { animation: none; }
+}

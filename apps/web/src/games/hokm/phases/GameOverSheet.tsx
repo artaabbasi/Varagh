@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { HokmView, RoomView } from "@varagh/shared";
+import { socket } from "../../../app/socket";
 import styles from "./GameOverSheet.module.css";
 
 interface GameOverSheetProps {
@@ -13,6 +15,7 @@ export function GameOverSheet({ view, room, onRematch }: GameOverSheetProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const numPlayers = view.players.length;
+  const [rematchRequested, setRematchRequested] = useState(false);
 
   const maxScore = Math.max(...view.scores);
   const winnerIndices = view.scores
@@ -107,15 +110,19 @@ export function GameOverSheet({ view, room, onRematch }: GameOverSheetProps) {
           <button
             type="button"
             className={[styles.btn, styles.rematchBtn].join(" ")}
-            onClick={onRematch}
+            onClick={() => { setRematchRequested(true); onRematch(); }}
+            disabled={rematchRequested}
             autoFocus
           >
-            {t("hokm.gameOver.rematch")}
+            {rematchRequested ? t("hokm.gameOver.rematchWaiting") : t("hokm.gameOver.rematch")}
           </button>
           <button
             type="button"
             className={[styles.btn, styles.leaveBtn].join(" ")}
-            onClick={() => navigate("/lobby")}
+            onClick={() =>
+              // Free our seat so a rematch by the others isn't blocked by a ghost seat.
+              socket.emit("room:leave", {}, () => navigate("/lobby"))
+            }
           >
             {t("hokm.gameOver.leave")}
           </button>

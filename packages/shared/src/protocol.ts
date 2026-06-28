@@ -118,6 +118,12 @@ export interface ClientToServerEvents {
     data: Record<string, never>,
     cb: (res: { ok: true } | { ok: false; error: string }) => void
   ) => void;
+  /** After a finished game: reset the room back to its pre-game lobby so the
+   *  same players can play again. Any seated player may trigger it. */
+  "room:rematch": (
+    data: Record<string, never>,
+    cb: (res: { ok: true } | { ok: false; error: string }) => void
+  ) => void;
   "room:list": (
     data: Record<string, never>,
     cb: (res: { ok: true; rooms: LobbyEntry[] }) => void

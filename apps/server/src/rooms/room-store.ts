@@ -66,6 +66,24 @@ export class RoomStore {
     return room;
   }
 
+  /**
+   * Reset a finished room back to the pre-game lobby so the same players can
+   * play again ("rematch"). Clears game state and ready flags (the host stays
+   * ready). Only a seated player may trigger it; a room mid-game is untouched.
+   */
+  rematch(code: string, playerId: string): Room | null {
+    const room = this.rooms.get(code);
+    if (!room) return null;
+    if (room.phase === "playing") return null;
+    if (!room.seats.some((s) => s.playerId === playerId)) return null;
+    room.phase = "lobby";
+    room.gameState = null;
+    for (const seat of room.seats) {
+      seat.ready = seat.playerId === room.hostPlayerId;
+    }
+    return room;
+  }
+
   setConnected(code: string, playerId: string, connected: boolean): void {
     const seat = this.rooms.get(code)?.seats.find((s) => s.playerId === playerId);
     if (seat) seat.connected = connected;

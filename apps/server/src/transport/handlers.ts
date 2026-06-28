@@ -342,6 +342,21 @@ export function registerHandlers(
       cb({ ok: true });
     });
 
+    socket.on("room:rematch", (_, cb) => {
+      const { userId, currentRoomCode } = socket.data;
+      if (!userId || !currentRoomCode) return cb({ ok: false, error: "Not in a room" });
+      const room = roomStore.get(currentRoomCode);
+      if (!room) return cb({ ok: false, error: "Room not found" });
+      if (room.phase === "playing") return cb({ ok: false, error: "Game still in progress" });
+
+      const updated = roomStore.rematch(currentRoomCode, userId);
+      if (!updated) return cb({ ok: false, error: "Room not found" });
+
+      // Everyone still in the room gets bounced back to the waiting room.
+      io.to(updated.code).emit("room:updated", toRoomView(updated));
+      cb({ ok: true });
+    });
+
     socket.on("game:move", ({ move }, cb) => {
       const { userId, currentRoomCode } = socket.data;
       if (!userId || !currentRoomCode) return cb({ ok: false, error: "Not authenticated" });

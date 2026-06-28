@@ -30,7 +30,7 @@
   line-height: 1;
 }
 
-.red { color: var(--md-sys-color-error); }
+.red { color: #c1121f; }
 .black { color: var(--md-sys-color-on-surface); }
 [data-theme="dark"] .black { color: #e6e1e5; }
 
@@ -76,14 +76,16 @@
   height: fit-content;
 }
 
+/* 3p: the two upper cards sit inset from the corners so the three played
+   cards frame the centre emblem as a balanced triangle (bottom card centred). */
 .slot_top_left {
-  inset-block-start: 0;
-  inset-inline-start: 0;
+  inset-block-start: 2px;
+  inset-inline-start: 16px;
 }
 
 .slot_top_right {
-  inset-block-start: 0;
-  inset-inline-end: 0;
+  inset-block-start: 2px;
+  inset-inline-end: 16px;
 }
 
 /* ── Review phase — golden ring pulses around the trick grid ─────── */
