@@ -109,6 +109,10 @@
       "targetScoreHint": "First to this many points wins the game.",
       "targetScoreInc": "Increase points to win",
       "targetScoreDec": "Decrease points to win",
+      "revealBurned": "Show burned cards",
+      "revealBurnedHint": "Privately show you which card you burned each time you keep or pass during the draw.",
+      "on": "On",
+      "off": "Off",
       "submit": "Create Room",
       "loading": "Creating..."
     },
@@ -271,7 +275,10 @@
       "opponentKept": "{{name}} kept a card",
       "opponentPassed": "{{name}} passed",
       "waitingForOpponent": "Waiting for {{name}}…",
-      "collectedLabel": "Your hand ({{count}} cards)"
+      "collectedLabel": "Your hand ({{count}} cards)",
+      "youKept": "You kept",
+      "youEarned": "You drew",
+      "youBurned": "Burned"
     },
     "handOver": {
       "pointsLabel": "point",

@@ -109,6 +109,10 @@
       "targetScoreHint": "هر کس اول به این امتیاز برسد برنده بازی است.",
       "targetScoreInc": "افزایش امتیاز برد",
       "targetScoreDec": "کاهش امتیاز برد",
+      "revealBurned": "نمایش کارت‌های سوخته",
+      "revealBurnedHint": "هر بار که در مرحله کشیدن کارت نگه می‌داری یا رد می‌کنی، کارت سوخته فقط به خودت نشان داده می‌شود.",
+      "on": "روشن",
+      "off": "خاموش",
       "submit": "ساختن اتاق",
       "loading": "در حال ساخت..."
     },
@@ -271,7 +275,10 @@
       "opponentKept": "{{name}} کارتی نگه داشت",
       "opponentPassed": "{{name}} پاس داد",
       "waitingForOpponent": "در انتظار {{name}}…",
-      "collectedLabel": "دست شما ({{count}} کارت)"
+      "collectedLabel": "دست شما ({{count}} کارت)",
+      "youKept": "نگه داشتی",
+      "youEarned": "کشیدی",
+      "youBurned": "سوخت"
     },
     "handOver": {
       "pointsLabel": "امتیاز",

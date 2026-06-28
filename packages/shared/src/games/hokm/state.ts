@@ -44,6 +44,12 @@ export interface HokmState {
   handNumber: number;
   /** Game ends when any score entry reaches this. */
   targetScore: number;
+  /**
+   * 2p only: when true, the player who keeps/passes a card during the drawing
+   * phase is privately shown which card they burned. Off by default; toggled
+   * per game at room creation. Has no effect in 3p/4p (no drawing phase).
+   */
+  revealBurned: boolean;
 }
 
 export type HokmMove =

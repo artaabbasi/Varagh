@@ -197,6 +197,19 @@ export function HokmGame() {
       setDrawFeedback({ playerId, action });
       setTimeout(() => setDrawFeedback(null), 2000);
     },
+    onGameOver: () => {
+      playSound("gameWin");
+    },
+    onCardDrawn: (card, kept) => {
+      playSound("cardDraw");
+      setDrawReveal({ earned: card, burned: null, kept });
+      if (drawRevealTimerRef.current) clearTimeout(drawRevealTimerRef.current);
+      drawRevealTimerRef.current = setTimeout(() => setDrawReveal(null), 3500);
+    },
+    onCardBurned: (card) => {
+      // Arrives in the same event batch right after cardDrawn — attach to it.
+      setDrawReveal((prev) => (prev ? { ...prev, burned: card } : prev));
+    },
   });
 
   const handleSendMove = useCallback(
@@ -271,6 +284,7 @@ export function HokmGame() {
         view={view}
         room={room}
         drawFeedback={drawFeedback}
+        lastDraw={drawReveal}
         onKeep={() => handleSendMove({ type: "keepCard" })}
         onReject={() => handleSendMove({ type: "rejectCard" })}
       />

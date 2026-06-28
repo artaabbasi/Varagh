@@ -75,6 +75,8 @@ export function LobbyScreen() {
   const [variant, setVariant] = useState<Variant>("4p");
   const [isPublic, setIsPublic] = useState(false);
   const [targetScore, setTargetScore] = useState(7);
+  // 2p-only: privately reveal each burned card to the player who burned it.
+  const [revealBurned, setRevealBurned] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -115,7 +117,12 @@ export function LobbyScreen() {
     setCreateError(null);
     socket.emit(
       "room:create",
-      { gameId: "hokm", variantId: VARIANT_ID[variant], options: { targetScore }, isPublic },
+      {
+        gameId: "hokm",
+        variantId: VARIANT_ID[variant],
+        options: { targetScore, ...(variant === "2p" ? { revealBurned } : {}) },
+        isPublic,
+      },
       (res) => {
         setCreating(false);
         if (!res.ok) {
@@ -296,6 +303,34 @@ export function LobbyScreen() {
                     </div>
                     <p className={styles.stepperHint}>{t("lobby.create.targetScoreHint")}</p>
                   </div>
+
+                  {/* 2p-only: reveal burned cards */}
+                  {variant === "2p" && (
+                    <div className={styles.fieldGroup}>
+                      <label className={styles.label}>{t("lobby.create.revealBurned")}</label>
+                      <div className={styles.chipGroup} role="radiogroup" aria-label={t("lobby.create.revealBurned")}>
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={!revealBurned}
+                          className={`${styles.chip} ${!revealBurned ? styles.chipSelected : ""}`}
+                          onClick={() => setRevealBurned(false)}
+                        >
+                          {t("lobby.create.off")}
+                        </button>
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={revealBurned}
+                          className={`${styles.chip} ${revealBurned ? styles.chipSelected : ""}`}
+                          onClick={() => setRevealBurned(true)}
+                        >
+                          {t("lobby.create.on")}
+                        </button>
+                      </div>
+                      <p className={styles.stepperHint}>{t("lobby.create.revealBurnedHint")}</p>
+                    </div>
+                  )}
 
                   {/* Visibility */}
                   <div className={styles.fieldGroup}>

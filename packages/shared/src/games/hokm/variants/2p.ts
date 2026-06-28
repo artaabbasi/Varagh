@@ -13,5 +13,13 @@ export const variant2p: VariantDefinition = {
       type: "number",
       default: 7,
     },
+    {
+      // When on, the player who keeps/passes during the draw is privately shown
+      // the card they burned. Heads-up only — no effect in 3p/4p.
+      key: "revealBurned",
+      name: { en: "Show burned cards", fa: "نمایش کارت‌های سوخته" },
+      type: "boolean",
+      default: false,
+    },
   ],
 };

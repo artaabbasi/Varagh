@@ -33,6 +33,7 @@ function playingState(
     scores: [0, 0],
     handNumber: 0,
     targetScore: 7,
+    revealBurned: false,
     ...overrides,
   };
 }
@@ -674,6 +675,7 @@ function playingState3p(
     scores: [0, 0, 0],
     handNumber: 0,
     targetScore: 7,
+    revealBurned: false,
     ...overrides,
   };
 }
@@ -1033,6 +1035,7 @@ function playingState2p(
     scores: [0, 0],
     handNumber: 0,
     targetScore: 7,
+    revealBurned: false,
     ...overrides,
   };
 }
@@ -1153,6 +1156,43 @@ describe("2p — drawing phase mechanics", () => {
     expect(r.state.hands[hakem]).toHaveLength(prevHandLen + 1);
     expect(r.state.hands[hakem]).toContainEqual(pairedCard); // the paired card was taken
     expect(r.state.deckForDeal).toHaveLength(prevStockLen - 2);
+  });
+
+  it("revealBurned off (default): no cardBurned event is emitted", () => {
+    const s = setupAndDeal2p(15, "spades");
+    const hakem = s.players[s.hakemIndex];
+    const r = hokm.applyMove(s, hakem, { type: "keepCard" }, makeRng(0));
+    expect(r.ok).toBe(true);
+    if (!r.ok) throw new Error(r.error.message.en);
+    expect(r.events.some(e => e.type === "cardBurned")).toBe(false);
+  });
+
+  it("revealBurned on: keepCard privately reveals the burned paired card to the chooser", () => {
+    const base = setupAndDeal2p(16, "spades");
+    const s = { ...base, revealBurned: true };
+    const hakem = s.players[s.hakemIndex];
+    const burned = s.deckForDeal[1]; // paired card is burned when keeping
+    const r = hokm.applyMove(s, hakem, { type: "keepCard" }, makeRng(0));
+    expect(r.ok).toBe(true);
+    if (!r.ok) throw new Error(r.error.message.en);
+    const ev = r.events.find(e => e.type === "cardBurned");
+    expect(ev).toBeDefined();
+    expect(ev!.data).toEqual({ card: burned, kept: true });
+    // Private to the chooser only — never public or to the opponent.
+    expect(ev!.visibility).toEqual({ kind: "private", id: hakem });
+  });
+
+  it("revealBurned on: rejectCard reveals the discarded seen card to the chooser", () => {
+    const base = setupAndDeal2p(17, "hearts");
+    const s = { ...base, revealBurned: true };
+    const hakem = s.players[s.hakemIndex];
+    const burned = s.deckForDeal[0]; // seen card is burned when passing
+    const r = hokm.applyMove(s, hakem, { type: "rejectCard" }, makeRng(0));
+    expect(r.ok).toBe(true);
+    if (!r.ok) throw new Error(r.error.message.en);
+    const ev = r.events.find(e => e.type === "cardBurned");
+    expect(ev!.data).toEqual({ card: burned, kept: false });
+    expect(ev!.visibility).toEqual({ kind: "private", id: hakem });
   });
 
   it("turn alternates after each draw: hakem → opponent → hakem → …", () => {

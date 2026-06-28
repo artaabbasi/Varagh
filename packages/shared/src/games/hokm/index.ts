@@ -181,6 +181,9 @@ function applyDrawCard(
   const newStock  = stock.slice(2);
 
   const keptCard = keep ? seenCard : pairedCard;
+  // The burned card is the one NOT kept: on keep it's the (unseen) paired card,
+  // on reject it's the seen card the player threw away.
+  const burnedCard = keep ? pairedCard : seenCard;
   const newHand  = [...state.hands[player], keptCard];
   const newHands = { ...state.hands, [player]: newHand };
 
@@ -191,13 +194,23 @@ function applyDrawCard(
       data: { playerId: player, action: keep ? "kept" : "rejected" },
       visibility: { kind: "public" },
     },
-    // Private: active player learns which card they actually received.
+    // Private: active player learns which card they actually received. On a pass
+    // this is the card they took blindly (feature: "show what card he earned").
     {
       type: "cardDrawn",
-      data: { card: keptCard },
+      data: { card: keptCard, kept: keep },
       visibility: { kind: "private", id: player },
     },
   ];
+
+  // Optional per-game reveal: privately tell the chooser which card was burned.
+  if (state.revealBurned && burnedCard) {
+    events.push({
+      type: "cardBurned",
+      data: { card: burnedCard, kept: keep },
+      visibility: { kind: "private", id: player },
+    });
+  }
 
   // Drawing ends when all players have 13 cards.
   const drawingComplete = state.players.every(p =>
@@ -418,6 +431,7 @@ export const hokm: GameDefinition<HokmState, HokmMove, HokmView> = {
       scores: zeroSlots(players),
       handNumber: 0,
       targetScore,
+      revealBurned: (ctx.options.revealBurned as boolean | undefined) ?? false,
     };
   },
 

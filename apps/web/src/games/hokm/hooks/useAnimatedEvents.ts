@@ -10,6 +10,10 @@ export interface AnimationCallbacks {
   onKot?: (isHakemKot: boolean) => void;
   onGameOver?: () => void;
   onDrawAction?: (playerId: string, action: "kept" | "rejected") => void;
+  /** 2p: the card YOU just took (private). `kept` distinguishes keep vs. blind pass. */
+  onCardDrawn?: (card: Card, kept: boolean) => void;
+  /** 2p, optional setting: the card YOU just burned (private). */
+  onCardBurned?: (card: Card, kept: boolean) => void;
 }
 
 export interface HandOverEventData {
@@ -73,6 +77,16 @@ export function useAnimatedEvents(
         case "drawAction": {
           const d = event.data as { playerId: string; action: "kept" | "rejected" };
           cb.onDrawAction?.(d.playerId, d.action);
+          break;
+        }
+        case "cardDrawn": {
+          const d = event.data as { card: Card; kept: boolean };
+          cb.onCardDrawn?.(d.card, d.kept);
+          break;
+        }
+        case "cardBurned": {
+          const d = event.data as { card: Card; kept: boolean };
+          cb.onCardBurned?.(d.card, d.kept);
           break;
         }
       }

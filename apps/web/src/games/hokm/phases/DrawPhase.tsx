@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import type { HokmView, RoomView } from "@varagh/shared";
+import type { HokmView, RoomView, Card } from "@varagh/shared";
 import { sortHand } from "@varagh/shared";
 import { PlayingCard } from "../../../components/PlayingCard";
 import styles from "./DrawPhase.module.css";
@@ -8,11 +8,13 @@ interface DrawPhaseProps {
   view: HokmView;
   room: RoomView | null;
   drawFeedback: { playerId: string; action: string } | null;
+  /** The card you just took (and optionally burned) on your last draw move. */
+  lastDraw: { earned: Card; burned: Card | null; kept: boolean } | null;
   onKeep: () => void;
   onReject: () => void;
 }
 
-export function DrawPhase({ view, room, drawFeedback, onKeep, onReject }: DrawPhaseProps) {
+export function DrawPhase({ view, room, drawFeedback, lastDraw, onKeep, onReject }: DrawPhaseProps) {
   const { t } = useTranslation();
   const isMyTurn = view.currentTurn === view.forPlayer;
 
@@ -39,6 +41,36 @@ export function DrawPhase({ view, room, drawFeedback, onKeep, onReject }: DrawPh
             {drawFeedback.action === "kept"
               ? t("hokm.draw.opponentKept", { name: opponentNickname })
               : t("hokm.draw.opponentPassed", { name: opponentNickname })}
+          </div>
+        )}
+
+        {/* Your last draw outcome: the card you earned (feature: shown after a
+            blind pass) and — when the room enables it — the card you burned. */}
+        {lastDraw && (
+          <div className={styles.drawReveal} role="status" aria-live="polite">
+            <div className={styles.revealItem}>
+              <span className={styles.revealLabel}>
+                {lastDraw.kept ? t("hokm.draw.youKept") : t("hokm.draw.youEarned")}
+              </span>
+              <PlayingCard
+                card={lastDraw.earned}
+                faceUp
+                compact
+                isTrump={Boolean(view.trump && lastDraw.earned.suit === view.trump)}
+                aria-label={`${lastDraw.earned.rank} of ${lastDraw.earned.suit}`}
+              />
+            </div>
+            {lastDraw.burned && (
+              <div className={[styles.revealItem, styles.revealBurned].join(" ")}>
+                <span className={styles.revealLabel}>{t("hokm.draw.youBurned")}</span>
+                <PlayingCard
+                  card={lastDraw.burned}
+                  faceUp
+                  compact
+                  aria-label={`${lastDraw.burned.rank} of ${lastDraw.burned.suit}`}
+                />
+              </div>
+            )}
           </div>
         )}
 
