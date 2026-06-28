@@ -138,47 +138,82 @@ export function LandingPage() {
     }
   }, []);
 
-  // Single scroll handler drives BOTH the hero scatter (--sp) and the
-  // per-card deck-flip progress (--p), computed in JS so the flip can never
-  // be silently dropped by a CSS unit-mismatch and so it survives any layout.
+  // Single rAF loop drives BOTH the hero scatter (--sp) and the per-card
+  // deck-flip progress (--p). Scroll updates only the *target* values; an
+  // eased follow-loop lerps the rendered values toward them so the motion
+  // glides smoothly instead of snapping frame-to-frame with raw scroll
+  // deltas (which look steppy, especially on mouse-wheel scrolling).
   useEffect(() => {
     const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+    const FOLLOW = 0.18; // per-frame easing toward target (lower = smoother)
+    const EPS = 0.0008;
 
-    // Apply each card's flip progress (0 = back showing, 1 = face showing).
-    const setFlips = (reveal: number) => {
+    let targetSp = 0;
+    let curSp = 0;
+    const targetFlips: number[] = [];
+    const curFlips: number[] = [];
+
+    const computeTargets = () => {
+      const vh = window.innerHeight;
+      targetSp = Math.min(window.scrollY / vh, 1);
+
       const deck = deckRef.current;
-      if (!deck) return;
-      const flippers = deck.querySelectorAll<HTMLElement>("[data-flipper]");
-      flippers.forEach((el, i) => {
-        const start = 0.1 + i * 0.08; // staggered deal
-        const p = clamp01((reveal - start) / 0.32);
-        el.style.setProperty("--p", String(p));
-      });
+      if (deck) {
+        const rect = deck.getBoundingClientRect();
+        // 0 as the section enters from the bottom → 1 as it leaves the top.
+        const reveal = clamp01((vh - rect.top) / (vh + rect.height));
+        const flippers = deck.querySelectorAll<HTMLElement>("[data-flipper]");
+        flippers.forEach((_el, i) => {
+          const start = 0.1 + i * 0.08; // staggered deal
+          targetFlips[i] = clamp01((reveal - start) / 0.32);
+        });
+      }
+    };
+
+    const apply = () => {
+      const hero = heroCardsRef.current;
+      if (hero) hero.style.setProperty("--sp", String(curSp));
+      const deck = deckRef.current;
+      if (deck) {
+        const flippers = deck.querySelectorAll<HTMLElement>("[data-flipper]");
+        flippers.forEach((el, i) => el.style.setProperty("--p", String(curFlips[i] ?? 0)));
+      }
     };
 
     let raf = 0;
-    const onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        const vh = window.innerHeight;
+    let running = false;
+    const tick = () => {
+      let moving = false;
 
-        const hero = heroCardsRef.current;
-        if (hero) {
-          const sp = Math.min(window.scrollY / vh, 1);
-          hero.style.setProperty("--sp", String(sp));
-        }
+      const dSp = targetSp - curSp;
+      if (Math.abs(dSp) > EPS) { curSp += dSp * FOLLOW; moving = true; } else curSp = targetSp;
 
-        const deck = deckRef.current;
-        if (deck) {
-          const rect = deck.getBoundingClientRect();
-          // 0 as the section enters from the bottom → 1 as it leaves the top.
-          const reveal = clamp01((vh - rect.top) / (vh + rect.height));
-          setFlips(reveal);
-        }
-      });
+      for (let i = 0; i < targetFlips.length; i++) {
+        const cur = curFlips[i] ?? 0;
+        const d = (targetFlips[i] ?? 0) - cur;
+        if (Math.abs(d) > EPS) { curFlips[i] = cur + d * FOLLOW; moving = true; }
+        else curFlips[i] = targetFlips[i] ?? 0;
+      }
+
+      apply();
+      if (moving) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        running = false;
+      }
     };
-    onScroll();
+
+    const start = () => {
+      if (!running) { running = true; raf = requestAnimationFrame(tick); }
+    };
+    const onScroll = () => { computeTargets(); start(); };
+
+    // Snap to the correct values on first paint (no entry animation on load).
+    computeTargets();
+    curSp = targetSp;
+    for (let i = 0; i < targetFlips.length; i++) curFlips[i] = targetFlips[i];
+    apply();
+
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
     return () => {

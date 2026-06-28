@@ -10,7 +10,10 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       VitePWA({
-        registerType: "autoUpdate",
+        // "prompt" (not "autoUpdate") so a new build never silently reloads
+        // mid-game — the user is shown an update banner and chooses when to
+        // apply it. See src/app/PwaUpdatePrompt.tsx.
+        registerType: "prompt",
         manifest: {
           name: "Varagh — بازی‌های ورق ایرانی",
           short_name: "ورق",

@@ -6,7 +6,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { GameRunner, GRACE_MS, TURN_MS } from "./game-runner";
+import { GameRunner, GRACE_MS, TURN_MS, AUTO_THINK_MAX_MS } from "./game-runner";
 import { RoomStore } from "./room-store";
 import type { Room } from "./room";
 
@@ -323,19 +323,18 @@ describe("GameRunner — turn timer and disconnect grace", () => {
     const hakem = s.players[s.hakemIndex];
 
     // If there were no grace behaviour the hakem's turn would only auto-play
-    // after TURN_MS (30 s).  With grace + disconnect, it should happen within
-    // GRACE_MS + a tiny epsilon — well before TURN_MS.
+    // after TURN_MS (30 s).  With grace + disconnect, it should happen shortly
+    // after GRACE_MS plus a short human-like "thinking" pause — well before TURN_MS.
     gameRunner.handleDisconnect(room.code, hakem);
 
     // Advance a tick short of grace expiry: nothing should have happened yet.
     vi.advanceTimersByTime(GRACE_MS - 1);
     expect((room.gameState as { phase: string }).phase).toBe("choosingTrump");
 
-    // Advance past grace.  The grace callback fires and reschedules the turn
-    // timer with delay=0.  Within the same advanceTimersByTime window
-    // (target = GRACE_MS + 1 ≥ 0 ms-timer absolute time) that 0-ms timer
-    // also fires and auto-plays chooseTrump.
-    vi.advanceTimersByTime(2); // total = GRACE_MS + 1
+    // Past grace the turn reschedules with a randomised think delay (≤ AUTO_THINK_MAX_MS).
+    // Advancing past that — but still far below TURN_MS — fires the auto-play.
+    vi.advanceTimersByTime(AUTO_THINK_MAX_MS + 2); // total ≈ GRACE_MS + think delay
+    expect(AUTO_THINK_MAX_MS).toBeLessThan(TURN_MS);
 
     expect((room.gameState as { phase: string }).phase).toBe("playing");
   });
@@ -436,5 +435,88 @@ describe("GameRunner — abortGame", () => {
     expect(room.phase).toBe("lobby");
     gameRunner.abortGame(room);
     expect(room.phase).toBe("lobby");
+  });
+});
+
+// ── Bots ─────────────────────────────────────────────────────────────────────
+
+function botSeat(id: string) {
+  return { playerId: id, nickname: id, discriminator: "0000", connected: true, ready: true, isBot: true };
+}
+
+function create4pBotRoom(roomStore: RoomStore): Room {
+  const room = roomStore.create({
+    gameId: "hokm",
+    variantId: "hokm-4p",
+    options: {},
+    isPublic: false,
+    host: botSeat("bot:1"),
+  });
+  for (const id of ["bot:2", "bot:3", "bot:4"]) roomStore.join(room.code, botSeat(id));
+  return roomStore.get(room.code)!;
+}
+
+describe("GameRunner — bots", () => {
+  let roomStore: RoomStore;
+  let gameRunner: GameRunner;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    const { io } = makeMockIo();
+    roomStore = new RoomStore();
+    gameRunner = new GameRunner(io as never, roomStore);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("auto-plays a bot's turn after a short think delay, no human input needed", () => {
+    const room = create4pBotRoom(roomStore);
+    gameRunner.startGame(room);
+    expect((room.gameState as { phase: string }).phase).toBe("choosingTrump");
+
+    // The hakem is a bot; within one think delay it picks trump on its own.
+    vi.advanceTimersByTime(AUTO_THINK_MAX_MS + 1);
+    expect((room.gameState as { phase: string }).phase).toBe("playing");
+  });
+
+  it("bot auto-plays do NOT trip the runaway-auto-play circuit breaker", () => {
+    const room = create4pBotRoom(roomStore);
+    gameRunner.startGame(room);
+
+    // Let an all-bot table play out far more than MAX_AUTO_MOVES (60) turns.
+    // The breaker kills a game by calling cleanup() WITHOUT finishing it — i.e.
+    // the live game vanishes while room.phase is still "playing". With bots
+    // excluded from the breaker, that must never happen: the game either is
+    // still running or has legitimately finished.
+    vi.advanceTimersByTime(AUTO_THINK_MAX_MS * 120);
+    const breakerKilled = room.phase === "playing" && gameRunner.getGame(room.code) === undefined;
+    expect(breakerKilled).toBe(false);
+  });
+});
+
+describe("RoomStore — bots", () => {
+  it("addBot fills seats up to capacity; removeBot removes only bots", () => {
+    const roomStore = new RoomStore();
+    const room = roomStore.create({
+      gameId: "hokm",
+      variantId: "hokm-4p",
+      options: {},
+      isPublic: false,
+      host: { playerId: "Alice", nickname: "Alice", discriminator: "0001", connected: true, ready: true },
+    });
+
+    expect(roomStore.addBot(room.code, botSeat("b1"), 4)).toBeTruthy();
+    expect(roomStore.addBot(room.code, botSeat("b2"), 4)).toBeTruthy();
+    expect(roomStore.addBot(room.code, botSeat("b3"), 4)).toBeTruthy();
+    // Room is now full (4 seats) — further bots are rejected.
+    expect(roomStore.addBot(room.code, botSeat("b4"), 4)).toBeNull();
+
+    // The human host is not a bot and cannot be removed via removeBot.
+    expect(roomStore.removeBot(room.code, "Alice")).toBeNull();
+    // A bot can be removed.
+    expect(roomStore.removeBot(room.code, "b1")).toBeTruthy();
+    expect(roomStore.get(room.code)!.seats.length).toBe(3);
   });
 });

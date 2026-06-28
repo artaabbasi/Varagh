@@ -5,13 +5,40 @@ import type {
   SocketData,
   RoomView,
 } from "@varagh/shared";
+import { games } from "@varagh/shared";
+import { randomUUID } from "crypto";
 import type { AuthStore } from "../auth/store";
-import type { Room } from "../rooms/room";
+import type { Room, Seat } from "../rooms/room";
 import { isStickerId, STICKER_COOLDOWN_MS } from "@varagh/shared";
 import { signup, login, loginWithPassword, hashPassword } from "../auth/auth";
 import { RoomStore } from "../rooms/room-store";
 import { toLobbyEntry } from "../rooms/lobby";
 import { GameRunner } from "../rooms/game-runner";
+
+/** Display names for bots. Picked so as not to collide within a room. */
+const BOT_NAMES = ["آرش", "سارا", "کاوه", "نیلوفر", "بهرام", "رویا", "پویا", "مهتاب"];
+
+/** Build a fresh bot seat, choosing a name not already used in the room. */
+function makeBotSeat(room: Room): Seat {
+  const taken = new Set(room.seats.map((s) => s.nickname));
+  const name = BOT_NAMES.find((n) => !taken.has(n)) ?? `Bot ${room.seats.length}`;
+  return {
+    playerId: `bot:${randomUUID()}`,
+    nickname: name,
+    discriminator: String(1000 + Math.floor(Math.random() * 9000)),
+    connected: true,
+    ready: true,
+    avatar: null,
+    isBot: true,
+  };
+}
+
+/** Maximum seats the room's variant allows, or 0 if unknown. */
+function variantCapacity(room: Room): number {
+  const engine = games.find((g) => g.id === room.gameId);
+  const variant = engine?.variants.find((v) => v.id === room.variantId);
+  return variant?.maxPlayers ?? 0;
+}
 
 // 2–20 chars: Persian letters, Latin letters, digits, spaces
 const NICKNAME_RE = /^[؀-ۿa-zA-Z0-9 ]{2,20}$/;
@@ -36,6 +63,7 @@ function toRoomView(room: Room): RoomView {
       // The host presses Start, so they always count as ready.
       ready: s.playerId === room.hostPlayerId ? true : s.ready,
       avatar: s.avatar ?? null,
+      isBot: s.isBot ?? false,
     })),
   };
 }
@@ -182,6 +210,34 @@ export function registerHandlers(
       if (!room) return cb({ ok: false, error: "Room not found" });
       io.to(room.code).emit("room:updated", toRoomView(room));
       cb({ ok: true });
+    });
+
+    socket.on("room:addBot", (_, cb) => {
+      const { userId, currentRoomCode } = socket.data;
+      if (!userId || !currentRoomCode) return cb({ ok: false, error: "Not in a room" });
+      const room = roomStore.get(currentRoomCode);
+      if (!room) return cb({ ok: false, error: "Room not found" });
+      if (room.hostPlayerId !== userId) return cb({ ok: false, error: "Only the host can add bots" });
+      if (room.phase !== "lobby") return cb({ ok: false, error: "Game already started" });
+
+      const capacity = variantCapacity(room);
+      const updated = roomStore.addBot(currentRoomCode, makeBotSeat(room), capacity);
+      if (!updated) return cb({ ok: false, error: "Room is full" });
+      io.to(room.code).emit("room:updated", toRoomView(updated));
+      cb({ ok: true, room: toRoomView(updated) });
+    });
+
+    socket.on("room:removeBot", ({ playerId }, cb) => {
+      const { userId, currentRoomCode } = socket.data;
+      if (!userId || !currentRoomCode) return cb({ ok: false, error: "Not in a room" });
+      const room = roomStore.get(currentRoomCode);
+      if (!room) return cb({ ok: false, error: "Room not found" });
+      if (room.hostPlayerId !== userId) return cb({ ok: false, error: "Only the host can remove bots" });
+
+      const updated = roomStore.removeBot(currentRoomCode, playerId);
+      if (!updated) return cb({ ok: false, error: "Could not remove bot" });
+      io.to(room.code).emit("room:updated", toRoomView(updated));
+      cb({ ok: true, room: toRoomView(updated) });
     });
 
     socket.on("room:list", (_, cb) => {

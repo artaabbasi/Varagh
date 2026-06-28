@@ -514,8 +514,10 @@
     translateY(calc((1 - var(--p)) * -14px))
     rotate(calc(var(--n, 0) * 5deg))
     rotateY(calc(var(--p) * 180deg));
-  /* smooth easing so the scroll-linked flip follows fluidly, not in steps */
-  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  /* Short transition only smooths sub-frame jitter — the main easing now
+     comes from the JS follow-loop in LandingPage.tsx, so a long duration
+     here would compound into a sluggish lag behind the scroll. */
+  transition: transform 0.1s linear;
   will-change: transform;
 }
 

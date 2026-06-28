@@ -20,11 +20,11 @@ const VARIANT_ID: Record<Variant, string> = {
 };
 const JOIN_CODE_RE = /^[A-Za-z]{6}$/;
 
-function HistoryIcon() {
+function ProfileIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="12 8 12 12 14 14" />
-      <path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5" />
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
     </svg>
   );
 }
@@ -95,20 +95,38 @@ export function LobbyScreen() {
   // ── Friend invite toast ──────────────────────────────────────────
   const [friendInvite, setFriendInvite] = useState<{ roomCode: string; fromName: string } | null>(null);
 
-  const fetchRooms = useCallback(() => {
-    setLoadingRooms(true);
+  // `showSpinner` is true for the first load and the manual refresh button;
+  // the background poll passes false so the list updates without flicker.
+  const fetchRooms = useCallback((showSpinner = true) => {
+    if (showSpinner) setLoadingRooms(true);
     socket.emit("room:list", {}, (res) => {
       setLoadingRooms(false);
       if (res.ok) setRooms(res.rooms);
     });
   }, []);
 
-  useEffect(() => {
-    fetchRooms();
+  const fetchActiveRooms = useCallback(() => {
     socket.emit("user:getActiveRooms", {}, (res) => {
       if (res.ok) setActiveRooms(res.rooms);
     });
-  }, [fetchRooms]);
+  }, []);
+
+  useEffect(() => {
+    fetchRooms();
+    fetchActiveRooms();
+  }, [fetchRooms, fetchActiveRooms]);
+
+  // Keep the public-room list and active-games banner live: re-poll every few
+  // seconds while the tab is visible and the socket is connected.
+  useEffect(() => {
+    const POLL_MS = 5000;
+    const id = setInterval(() => {
+      if (document.hidden || !socket.connected) return;
+      fetchRooms(false);
+      fetchActiveRooms();
+    }, POLL_MS);
+    return () => clearInterval(id);
+  }, [fetchRooms, fetchActiveRooms]);
 
   // ── Handlers ─────────────────────────────────────────────────────
   const handleCreate = (e: FormEvent) => {
@@ -165,7 +183,7 @@ export function LobbyScreen() {
     <div className={styles.page}>
       {/* ── Top bar ── */}
       <header className={styles.topBar}>
-        <span className={styles.logo} aria-label="Varagh">ورق</span>
+        <Link to="/" className={styles.logo} aria-label="Varagh">ورق</Link>
 
         <div className={styles.userInfo}>
           {user && (
@@ -177,8 +195,8 @@ export function LobbyScreen() {
         </div>
 
         <div className={styles.topActions}>
-          <Link to="/profile" className={styles.iconBtn} aria-label="Profile / History">
-            <HistoryIcon />
+          <Link to="/profile" className={styles.iconBtn} aria-label={t("profile.player")}>
+            <ProfileIcon />
           </Link>
           <button
             className={styles.iconBtn}
@@ -425,7 +443,7 @@ export function LobbyScreen() {
                 <h2 className={styles.cardTitle}>{t("lobby.publicRooms")}</h2>
                 <button
                   className={styles.iconBtn}
-                  onClick={fetchRooms}
+                  onClick={() => fetchRooms()}
                   disabled={loadingRooms}
                   aria-label={t("lobby.refresh")}
                   title={t("lobby.refresh")}

@@ -51,12 +51,17 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
   };
 
   const [settingReady, setSettingReady] = useState(false);
+  const [botBusy, setBotBusy] = useState(false);
 
   const isHost = room.seats.some(
     (s) => s.playerId === user?.id && s.isHost,
   );
+  // Hokm variants are fixed-size (min === max), so the variant number is also
+  // the table capacity that bots fill up to.
   const minPlayers = minPlayersForVariant(room.variantId);
+  const tableSize = minPlayers;
   const enoughPlayers = room.seats.length >= minPlayers;
+  const emptySeats = Math.max(0, tableSize - room.seats.length);
   const myReady = room.seats.find((s) => s.playerId === user?.id)?.ready ?? false;
   // Host always counts as ready (server-side too), so this covers everyone.
   const allReady = room.seats.every((s) => s.ready);
@@ -65,6 +70,15 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
   const toggleReady = () => {
     setSettingReady(true);
     socket.emit("room:setReady", { ready: !myReady }, () => setSettingReady(false));
+  };
+
+  const handleAddBot = () => {
+    setBotBusy(true);
+    socket.emit("room:addBot", {}, () => setBotBusy(false));
+  };
+
+  const handleRemoveBot = (playerId: string) => {
+    socket.emit("room:removeBot", { playerId }, () => {});
   };
 
   const handleStart = () => {
@@ -175,6 +189,12 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
                     {seat.playerId === user?.id && (
                       <span className={styles.youBadge}>{t("hokm.you")}</span>
                     )}
+                    {seat.isBot && (
+                      <span className={styles.botBadge}>
+                        <BotIcon />
+                        {t("room.waiting.bot")}
+                      </span>
+                    )}
                   </span>
                   {seat.isHost && (
                     <span className={styles.hostBadge}>
@@ -183,27 +203,53 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
                     </span>
                   )}
                 </div>
-                {!seat.isHost && (
-                  <span
-                    className={`${styles.readyBadge} ${seat.ready ? styles.isReady : styles.notReady}`}
-                  >
-                    {seat.ready ? t("room.waiting.ready") : t("room.waiting.notReady")}
-                  </span>
+                {seat.isBot ? (
+                  isHost && (
+                    <button
+                      className={styles.removeBotBtn}
+                      onClick={() => handleRemoveBot(seat.playerId)}
+                      aria-label={t("room.waiting.removeBot")}
+                      title={t("room.waiting.removeBot")}
+                    >
+                      <CloseIcon />
+                    </button>
+                  )
+                ) : (
+                  !seat.isHost && (
+                    <span
+                      className={`${styles.readyBadge} ${seat.ready ? styles.isReady : styles.notReady}`}
+                    >
+                      {seat.ready ? t("room.waiting.ready") : t("room.waiting.notReady")}
+                    </span>
+                  )
                 )}
-                <div
-                  className={`${styles.statusDot} ${seat.connected ? styles.connected : styles.disconnected}`}
-                  aria-label={seat.connected ? "Online" : "Offline"}
-                />
+                {!seat.isBot && (
+                  <div
+                    className={`${styles.statusDot} ${seat.connected ? styles.connected : styles.disconnected}`}
+                    aria-label={seat.connected ? "Online" : "Offline"}
+                  />
+                )}
               </li>
             ))}
 
-            {/* Empty seat placeholders */}
-            {Array.from({ length: Math.max(0, minPlayers - room.seats.length) }).map((_, i) => (
+            {/* Empty seat placeholders — the host can drop a bot into each. */}
+            {Array.from({ length: emptySeats }).map((_, i) => (
               <li key={`empty-${i}`} className={`${styles.playerItem} ${styles.emptySlot}`}>
                 <div className={`${styles.avatar} ${styles.emptyAvatar}`} aria-hidden="true">?</div>
-                <span className={styles.emptyLabel}>
-                  {t("room.waiting.startHint", { min: minPlayers })}
-                </span>
+                {isHost ? (
+                  <button
+                    className={styles.addBotBtn}
+                    onClick={handleAddBot}
+                    disabled={botBusy}
+                  >
+                    <BotIcon />
+                    {t("room.waiting.addBot")}
+                  </button>
+                ) : (
+                  <span className={styles.emptyLabel}>
+                    {t("room.waiting.startHint", { min: minPlayers })}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
@@ -270,6 +316,28 @@ function HostIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+
+function BotIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4" y="8" width="16" height="11" rx="2" />
+      <path d="M12 8V4" />
+      <circle cx="12" cy="3" r="1" />
+      <path d="M2 13v2M22 13v2" />
+      <circle cx="9" cy="13" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="13" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   );
 }

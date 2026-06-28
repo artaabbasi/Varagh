@@ -8,6 +8,7 @@ import { LobbyScreen } from "../lobby/LobbyScreen";
 import { ProfileScreen } from "../profile/ProfileScreen";
 import { getStoredToken, clearToken, storeUser } from "../auth/auth-store";
 import { socket } from "./socket";
+import { PwaUpdatePrompt } from "./PwaUpdatePrompt";
 
 const router = createBrowserRouter([
   {
@@ -57,5 +58,10 @@ export function App() {
     return () => void socket.disconnect();
   }, []);
 
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <RouterProvider router={router} />
+      <PwaUpdatePrompt />
+    </>
+  );
 }
