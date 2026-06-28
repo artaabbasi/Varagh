@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "concurrently -n server,web -c cyan,magenta \"pnpm --filter @varagh/server dev\" \"pnpm --filter @varagh/web dev\"",
     "build": "pnpm --filter @varagh/shared build && pnpm --filter @varagh/server build && pnpm --filter @varagh/web build",
+    "build:server": "pnpm --filter @varagh/server build:bundle",
+    "deploy": "bash scripts/deploy.sh",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck"
   },
