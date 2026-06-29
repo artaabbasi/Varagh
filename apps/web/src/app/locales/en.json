@@ -88,6 +88,85 @@
       "title": "Ready to play?"
     }
   },
+  "install": {
+    "nav": "Install app",
+    "title": "Install Varagh",
+    "subtitle": "Add Varagh to your home screen for a faster, full-screen, app-like experience.",
+    "installed": "Varagh is already installed on this device. 🎉",
+    "button": "Install app",
+    "close": "Close",
+    "ios": {
+      "tab": "iPhone",
+      "title": "On iPhone & iPad (Safari)",
+      "s1": "Tap the Share button at the bottom of the screen.",
+      "s2": "Scroll down and tap “Add to Home Screen”.",
+      "s3": "Tap “Add” — Varagh now lives on your home screen."
+    },
+    "android": {
+      "tab": "Android",
+      "title": "On Android (Chrome)",
+      "s1": "Open the browser menu (⋮) in the top corner.",
+      "s2": "Tap “Install app” or “Add to Home screen”.",
+      "s3": "Confirm — Varagh installs like a native app."
+    },
+    "desktop": {
+      "tab": "Desktop",
+      "title": "On desktop (Chrome / Edge)",
+      "s1": "Click the install icon in the address bar.",
+      "s2": "Or open the browser menu and choose “Install Varagh”.",
+      "s3": "Confirm to add it to your apps."
+    }
+  },
+  "learn": {
+    "nav": "Learn the games",
+    "title": "Learn the games",
+    "subtitle": "New to Persian card games? Here's a quick beginner's guide to each one.",
+    "back": "Back",
+    "goal": "Goal",
+    "basics": "How it works",
+    "tips": "Beginner tips",
+    "play": "Play now",
+    "games": {
+      "hokm": {
+        "name": "Hokm",
+        "tagline": "Persian trump-based trick-taking",
+        "players": "2, 3, or 4 players",
+        "goal": "Win rounds by taking the most tricks. The first side to reach 7 points wins the game.",
+        "basics": [
+          "Each round one player is the Hakem (ruler). After seeing their first 5 cards, they pick the trump suit (hokm).",
+          "Players take turns playing one card. You must follow the led suit if you can; otherwise you may play any card.",
+          "A trick is won by the highest trump played — or, if no trump was played, the highest card of the led suit.",
+          "Taking 7 tricks wins the round for 1 point. Sweeping all 7 (a 'kot') is worth extra points.",
+          "In 4-player games you play in teams of two sitting across; in 2 and 3 player games it's every player for themselves."
+        ],
+        "tips": [
+          "Save trump cards — they beat everything and are perfect for stealing tricks.",
+          "Lead with a long suit to make opponents follow and burn through their cards.",
+          "Remember which high cards are already gone, so you know when your card is safe to win.",
+          "As Hakem, choose the suit you hold the most of as trump."
+        ]
+      },
+      "pasur": {
+        "name": "Pasur",
+        "tagline": "A quick card-fishing game (Chahar Barg)",
+        "players": "2 players",
+        "goal": "Capture valuable cards from the pool. The first player to reach the target score (62 by default) wins.",
+        "basics": [
+          "Four cards lie face-up in the central pool. On your turn you play one card from your hand.",
+          "A number card captures pool cards that add up to exactly 11 with it (for example, a 4 captures a 7).",
+          "A Jack scoops up every number card in the pool at once; Queens and Kings capture only by matching rank.",
+          "Clearing the whole pool with a capture is a 'Sur' and scores 5 bonus points.",
+          "Points come from Aces, Jacks, the 2♣ and 10♦, plus a big bonus for holding the most clubs at the end of the round."
+        ],
+        "tips": [
+          "Hold a Jack until the pool is full, so it captures the most cards at once.",
+          "Chase clubs — having the most clubs is worth a flat 7 points.",
+          "The 10♦ (3 points) and 2♣ (2 points) are prize cards; grab them whenever you can.",
+          "Watch for Sur chances to clear the pool and steal 5 quick points."
+        ]
+      }
+    }
+  },
   "lobby": {
     "title": "Lobby",
     "home": "Home",

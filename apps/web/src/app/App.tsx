@@ -4,6 +4,7 @@ import { SignupScreen } from "../auth/SignupScreen";
 import { SignInScreen } from "../auth/SignInScreen";
 import { RoomRouter } from "../games/RoomRouter";
 import { LandingPage } from "../landing/LandingPage";
+import { LearnScreen } from "../learn/LearnScreen";
 import { LobbyScreen } from "../lobby/LobbyScreen";
 import { ProfileScreen } from "../profile/ProfileScreen";
 import { getStoredToken } from "../auth/auth-store";
@@ -14,6 +15,10 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <LandingPage />,
+  },
+  {
+    path: "/learn",
+    element: <LearnScreen />,
   },
   {
     path: "/signup",

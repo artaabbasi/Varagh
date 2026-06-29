@@ -6,6 +6,8 @@ import { socket } from "../app/socket";
 import { getStoredToken, getStoredUser } from "../auth/auth-store";
 import { useTheme } from "../theme/ThemeProvider";
 import { Logo } from "../components/Logo";
+import { InstallPrompt } from "./InstallPrompt";
+import { isInstalled } from "./pwa-install";
 import styles from "./LandingPage.module.css";
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -138,11 +140,15 @@ export function LandingPage() {
   const user = getStoredUser();
 
   const [stats, setStats] = useState<LobbyStats | null>(null);
+  const [showInstall, setShowInstall] = useState(false);
   const revealRefs = useRef<(HTMLElement | null)[]>([]);
+  const appInstalled = isInstalled();
 
   const handlePlay = () => {
     void navigate(getStoredToken() ? "/lobby" : "/signup");
   };
+
+  const goLearn = () => void navigate("/learn");
 
   const toggleLang = () => {
     void i18n.changeLanguage(isRtl ? "en" : "fa");
@@ -264,6 +270,16 @@ export function LandingPage() {
             <button className={styles.heroCta} onClick={handlePlay}>
               {t("landing.hero.cta")}
             </button>
+            <div className={styles.heroSecondary}>
+              <button className={styles.heroGhost} onClick={goLearn}>
+                {t("learn.nav")}
+              </button>
+              {!appInstalled && (
+                <button className={styles.heroGhost} onClick={() => setShowInstall(true)}>
+                  {t("install.nav")}
+                </button>
+              )}
+            </div>
           </div>
         </section>
 
@@ -439,6 +455,16 @@ export function LandingPage() {
             <button className={styles.heroCta} onClick={handlePlay}>
               {t("landing.hero.cta")}
             </button>
+            <div className={styles.heroSecondary}>
+              <button className={styles.heroGhost} onClick={goLearn}>
+                {t("learn.nav")}
+              </button>
+              {!appInstalled && (
+                <button className={styles.heroGhost} onClick={() => setShowInstall(true)}>
+                  {t("install.nav")}
+                </button>
+              )}
+            </div>
           </div>
         </section>
       </main>
@@ -448,6 +474,8 @@ export function LandingPage() {
         <Logo variant="horizontal" size={22} />
         <span>· {new Date().getFullYear()}</span>
       </footer>
+
+      <InstallPrompt open={showInstall} onClose={() => setShowInstall(false)} />
     </div>
   );
 }

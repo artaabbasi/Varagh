@@ -28,6 +28,16 @@ function gameName(gameId: string, lang: "en" | "fa"): string {
   return g ? g.name[lang] ?? g.name.en : gameId;
 }
 
+function LearnIcon() {
+  // Open-book glyph — links to the beginner's learning guide.
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </svg>
+  );
+}
+
 function ProfileIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -227,6 +237,9 @@ export function LobbyScreen() {
         <div className={styles.topSpacer} />
 
         <div className={styles.topActions}>
+          <Link to="/learn" className={styles.iconBtn} aria-label={t("learn.nav")} title={t("learn.nav")}>
+            <LearnIcon />
+          </Link>
           <Link to="/profile" className={styles.iconBtn} aria-label={t("profile.player")}>
             <ProfileIcon />
           </Link>

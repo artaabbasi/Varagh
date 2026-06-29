@@ -263,6 +263,39 @@
 
 .heroCta:active { transform: scale(0.97); }
 
+/* Secondary actions under a primary CTA (Learn / Install). */
+.heroSecondary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  margin-top: 1.125rem;
+}
+
+.heroGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.5rem 1.25rem;
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-full);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--md-sys-motion-dur-short3, 150ms) ease, transform var(--md-sys-motion-dur-short3, 150ms) ease;
+}
+
+.heroGhost:hover {
+  background: var(--md-sys-color-surface-container-high);
+  transform: translateY(-2px);
+}
+.heroGhost:active { transform: scale(0.97); }
+
 /* ── Floating cards ── */
 .heroCards {
   position: absolute;
