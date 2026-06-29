@@ -58,7 +58,7 @@ export function PasurGame() {
   const [selected, setSelected] = useState<{ card: Card; options: Card[][] } | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [surFlash, setSurFlash] = useState<string | null>(null);
-  const [roundFlash, setRoundFlash] = useState<{ round: number; points: Record<string, number> } | null>(null);
+  const [roundFlash, setRoundFlash] = useState<{ round: number; points: Record<string, number>; scores: Record<string, number> } | null>(null);
   const [ended, setEnded] = useState<{ reason: "playerLeft" | "hostEnded"; by: string | null } | null>(null);
   // Card-flight animation state. `flying` = a captured set flying off the table
   // to a player's pile. (Newly-laid pool cards animate in on mount via CSS.)
@@ -134,10 +134,10 @@ export function PasurGame() {
         setSurFlash(who);
         setTimeout(() => setSurFlash(null), 1600);
       } else if (e.type === "roundOver") {
-        const d = e.data as { roundNumber: number; roundPoints: Record<string, number> };
+        const d = e.data as { roundNumber: number; roundPoints: Record<string, number>; scores: Record<string, number> };
         playSound("trickWin");
-        setRoundFlash({ round: d.roundNumber, points: d.roundPoints });
-        setTimeout(() => setRoundFlash(null), 3200);
+        // A modal popup the player dismisses to continue — see render below.
+        setRoundFlash({ round: d.roundNumber, points: d.roundPoints, scores: d.scores });
       } else if (e.type === "gameOver") {
         playSound("gameWin");
       }
@@ -376,13 +376,27 @@ export function PasurGame() {
       {/* Sur flash (centred) */}
       {surFlash && <div className={styles.surFlash}>{t("pasur.sur")}!</div>}
 
-      {/* Round-over banner */}
-      {roundFlash && (
-        <div className={styles.roundBanner} role="status">
-          <span className={styles.roundBannerTitle}>{t("pasur.round", { n: roundFlash.round + 1 })}</span>
-          <span className={styles.roundBannerScores}>
-            {t("pasur.you")} +{roundFlash.points[me] ?? 0} · {nameOf(room, opponent)} +{roundFlash.points[opponent] ?? 0}
-          </span>
+      {/* Round-over popup — shown after every round; dismiss to continue. */}
+      {roundFlash && !isGameOver && (
+        <div className={styles.overlay} role="alertdialog" aria-modal="true">
+          <div className={styles.sheet}>
+            <h2 className={styles.sheetTitle}>{t("pasur.roundOver.title", { n: roundFlash.round + 1 })}</h2>
+            <p className={styles.sheetSub}>{t("pasur.roundOver.subtitle")}</p>
+            <div className={styles.finalScores}>
+              {view.players.map((p) => (
+                <div key={p} className={styles.roundRow}>
+                  <span className={styles.roundRowName}>{p === me ? t("pasur.you") : nameOf(room, p)}</span>
+                  <span className={styles.roundDelta}>+{roundFlash.points[p] ?? 0}</span>
+                  <span className={styles.finalPts}>{roundFlash.scores[p] ?? 0} / {view.targetScore}</span>
+                </div>
+              ))}
+            </div>
+            <div className={styles.sheetActions}>
+              <button className={styles.primaryBtn} onClick={() => setRoundFlash(null)}>
+                {t("pasur.roundOver.continue")}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

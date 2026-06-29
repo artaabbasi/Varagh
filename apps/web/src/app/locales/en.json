@@ -342,6 +342,11 @@
     "opponentTurn": "{{name}}'s turn",
     "chooseCombination": "Choose which cards to capture",
     "cancel": "Cancel",
+    "roundOver": {
+      "title": "Round {{n}} over",
+      "subtitle": "Points this round and totals so far",
+      "continue": "Next round"
+    },
     "gameOver": {
       "title": "Game over",
       "youWin": "You win!",

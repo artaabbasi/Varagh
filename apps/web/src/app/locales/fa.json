@@ -342,6 +342,11 @@
     "opponentTurn": "نوبت {{name}}",
     "chooseCombination": "انتخاب کن کدام کارت‌ها را برداری",
     "cancel": "انصراف",
+    "roundOver": {
+      "title": "پایان دور {{n}}",
+      "subtitle": "امتیاز این دور و مجموع تا اینجا",
+      "continue": "دور بعد"
+    },
     "gameOver": {
       "title": "پایان بازی",
       "youWin": "بردی!",
