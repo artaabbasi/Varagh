@@ -82,8 +82,7 @@
       "subtitle": "Questions, feedback, or want to say hi? Reach out.",
       "telegram": "Telegram",
       "email": "Email",
-      "instagram": "Instagram",
-      "madeBy": "Built by {{name}}"
+      "instagram": "Instagram"
     },
     "cta": {
       "title": "Ready to play?"

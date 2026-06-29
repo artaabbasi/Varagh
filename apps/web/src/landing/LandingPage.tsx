@@ -426,7 +426,6 @@ export function LandingPage() {
                 </span>
               </a>
             </div>
-            <p className={styles.contactMadeBy}>{t("landing.contact.madeBy", { name: CONTACT.name })}</p>
           </div>
         </section>
 

@@ -796,12 +796,6 @@
   text-align: start;
 }
 
-.contactMadeBy {
-  text-align: center;
-  margin: 2rem 0 0;
-  font-size: var(--md-sys-typescale-body-medium-size);
-  color: var(--md-sys-color-on-surface-variant);
-}
 
 /* ─── Footer ────────────────────────────────────────────────────── */
 .footer {
