@@ -3,8 +3,9 @@
 ## What this project is
 
 Varagh is a multiplayer Persian card games platform, shipped as an installable
-PWA. Launch game: **Hokm** (2p / 3p / 4p variants). Future games: Shelem,
-Haft Khabis, Chahar Barg (Pasur), Poker (Hold'em, Omaha).
+PWA. Shipped games: **Hokm** (2p / 3p / 4p variants) and **Pasur** / Chahar
+Barg (2p; more variants to come). Future games: Shelem, Haft Khabis, Poker
+(Hold'em, Omaha).
 
 The defining architectural promise: **adding a new game must never require
 changing core server, lobby, or auth code.** A game is one self-contained
@@ -38,19 +39,28 @@ packages/shared/
         rules.ts       # pure rule functions (followSuit, trickWinner, ...)
         variants/      # 4p.ts, 3p.ts, 2p.ts — variant-specific logic
         hokm.test.ts
+      pasur/           # Chahar Barg — fishing game (only 2p ships for now)
+        index.ts       # exports the GameDefinition
+        state.ts       # PasurState, PasurMove, PasurView types
+        rules.ts       # pure rule functions (captures, Sur, scoring, ...)
+        bot.ts         # view-only bot brain (getBotMove)
+        variants/      # 2p.ts — 3p/4p slot in here later
+        pasur.test.ts
 apps/server/
   src/
     rooms/             # room lifecycle, join codes, public lobby
     transport/         # Socket.IO handlers — thin, no game logic
     auth/              # nickname + device-token auth
-    timers/            # turn timers, disconnect grace, getDefaultMove forcing
+    timers/            # turn timers, disconnect grace, bot-takeover hook
 apps/web/
   src/
     app/               # routing, theming, i18n
-    lobby/             # create/join/public games
+    lobby/             # create/join/public games (registry-driven, game-agnostic)
     auth/              # nickname signup
     games/
+      RoomRouter.tsx   # picks the game UI by room.gameId (web game-UI registry)
       hokm/            # Hokm-specific UI (table, hand fan, trump picker)
+      pasur/           # Pasur-specific UI (pool, hand, combination picker)
     components/        # shared UI (cards, avatars, buttons)
     theme/             # M3 tokens, light/dark
 ```
@@ -66,6 +76,11 @@ Defined in `packages/shared/src/engine/game-engine.ts`. Every game exports a
 - `getPlayerView(state, player)` — redacted snapshot; the ONLY thing sent to clients
 - `getOutcome(state)` — null while running
 - `getDefaultMove(state, player)` — forced move on timeout/disconnect
+- `getBotMove(state, player, rng)` — OPTIONAL bot brain. The platform's generic
+  bot-takeover hook plays computer seats and substitutes for a human who dropped
+  past the grace period with this, falling back to `getDefaultMove` when a game
+  omits it. Like a client it may read ONLY what `getPlayerView` exposes — never
+  another seat's hand or the deck. The human-like pacing is the server's job.
 
 ### Hard rules for engine code
 
@@ -88,8 +103,13 @@ Defined in `packages/shared/src/engine/game-engine.ts`. Every game exports a
 - **Transport is thin.** Socket handlers: authenticate → look up room →
   call engine → broadcast views/events. No conditionals about specific games.
 - **Reconnection:** device token re-joins a live seat within the grace period.
-  After grace, server plays `getDefaultMove` on the player's turns until they
-  return; after prolonged absence the room may vote to replace with leave/end.
+  After grace, the **generic bot-takeover hook** plays the seat — the registered
+  game bot (`getBotMove`) if it has one, else `getDefaultMove` — until the player
+  returns, at which point the seat silently reverts to them (the current turn is
+  rescheduled with a full timer). The human-like think delay lives in the server
+  timer layer, never in the pure engine. This hook is part of the platform
+  contract: any game gets bot substitution for free by exporting `getBotMove`.
+  After prolonged absence the room may vote to replace with leave/end.
 - **Rooms:** 6-character uppercase join codes (no ambiguous chars: 0/O, 1/I).
   Rooms are private by default; creator can list publicly in the lobby.
 
@@ -170,6 +190,68 @@ trick count wins and the Hakem takes a tie.
 usual; then draw-and-discard mechanics determine the final hands (Hakem draws
 first from stock: keep-or-discard rules per agreed variant). Confirm exact
 stock mechanics with maintainer before implementing — regional versions differ.
+
+These are the house rules of record. If an implementation detail is still
+ambiguous after reading this, ask — do not invent.
+
+## Pasur reference rules (canonical for this project)
+
+Pasur (پاسور), also called **Chahar Barg**, is a fishing game on a standard
+52-card deck. Only the **2-player** variant ships today; it lives under
+`variants/2p.ts` so 3p/4p can be added later with no core changes. The engine is
+pure/deterministic and server-authoritative like every Varagh game.
+
+**Deal.** Each round deals 4 cards to each player; the opening layout also lays
+4 cards face-up in the central **pool**. The deck is then dealt 4-to-each per
+round until exhausted (2p: six deals of four; the pool is dealt only once). The
+**opening pool never contains a Jack** — any Jack dealt into the opening four is
+buried back into the deck and replaced until the pool is Jack-free, done
+deterministically through the injected RNG.
+
+**Captures.** On your turn you play one card:
+- A **numeral** (A=1 … 10=10) captures pool numerals that sum *with it* to
+  exactly 11.
+- A **Jack** captures every pool numeral and Jack at once — never a Queen or
+  King.
+- A **Queen** captures Queens, and a **King** captures Kings, by rank match only
+  — the only way Q/K ever leave the pool.
+- A card that captures nothing stays face-up in the pool.
+Captured cards (plus the capturing card) go face-down to your pile.
+
+**Player chooses the combination.** When a played numeral could complete more
+than one distinct sum-to-11 combination, *the player* picks which one — the
+engine never chooses for them. Each distinct combination is its own entry in
+`getValidMoves` (the move carries the exact pool cards it takes) and the UI
+presents the options. The `multiCapture` option below overrides only this "take
+all" case.
+
+**End of round.** When the deck is exhausted, every card left in the pool goes
+to the last player who made a capture. Then scores are tallied and the higher
+score wins (an exact tie is a draw).
+
+**Scoring.** Each Ace = 1, each Jack = 1, the 2♣ = 2, the 10♦ = 3. **Most clubs
+(Haft Khâj)** = a flat 7 to whoever captured the most clubs (a tie awards it to
+no one). **Sur** = 5 points each: clearing the pool with a capture. Two Sur
+restrictions are always enforced: no Sur on the final deal of a round, and
+clearing the pool with a Jack never scores a Sur.
+
+**Toggleable rules** (chosen pre-game, all default OFF, passed through the
+standard `options` channel that `setup(ctx)` receives, surfaced as bilingual
+fa/en toggles, and kept extensible for future Pasur options):
+- **Sur disabled at 50+** — a player at 50+ points (as of the last tally) can no
+  longer score a Sur.
+- **Net Surs only (tit-for-tat)** — an opponent's later Sur cancels one of
+  yours; only the net Sur count scores.
+- **Capture all combinations** — when one card completes several distinct
+  sum-to-11 combinations, take all of them this turn instead of picking one.
+
+**Bot & disconnect substitution.** Pasur ships a bot (`getBotMove`) that plays
+from the redacted view only — never an opponent's hand or the deck — preferring
+captures and valuing Surs and high-value cards (2♣, 10♦, clubs, Aces, Jacks). It
+plays computer seats and, through the platform's generic bot-takeover hook,
+substitutes for a disconnected human after the grace period (with a short
+human-like think delay in the server timer layer), reverting the instant the
+player returns.
 
 These are the house rules of record. If an implementation detail is still
 ambiguous after reading this, ask — do not invent.
