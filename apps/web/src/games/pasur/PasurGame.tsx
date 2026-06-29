@@ -9,6 +9,7 @@ import { PlayingCard } from "../../components/PlayingCard";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
 import { CardLoadingScreen } from "../../components/CardLoadingScreen";
 import { StickerWheel } from "../hokm/StickerWheel";
+import { StickerBubble } from "../../components/stickers/StickerBubble";
 import { WaitingRoom } from "../hokm/WaitingRoom";
 import { usePasurSocket } from "./usePasurSocket";
 import styles from "./PasurGame.module.css";
@@ -44,12 +45,14 @@ export function PasurGame() {
   const [surFlash, setSurFlash] = useState<string | null>(null);
   const [roundFlash, setRoundFlash] = useState<{ round: number; points: Record<string, number> } | null>(null);
   const [ended, setEnded] = useState<{ reason: "playerLeft" | "hostEnded"; by: string | null } | null>(null);
-  // Card-flight animation state.
-  // `playIn` = the pool card that just flew in from a seat (a lay-down play).
-  // `flying` = a captured set flying off the table to a player's pile.
-  const [playIn, setPlayIn] = useState<{ key: string; from: "top" | "bottom" } | null>(null);
+  // Card-flight animation state. `flying` = a captured set flying off the table
+  // to a player's pile. (Newly-laid pool cards animate in on mount via CSS.)
   const [flying, setFlying] = useState<{ id: number; cards: Card[]; from: "top" | "bottom" } | null>(null);
   const flyIdRef = useRef(0);
+  // Stickers currently floating over each seat: playerId → { id, nonce }.
+  const [stickers, setStickers] = useState<Record<string, { id: string; nonce: number }>>({});
+  const stickerNonceRef = useRef(0);
+  const stickerTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // Join (or rejoin) on mount — RoomRouter owns the active-room registration,
   // but we re-join here after our listeners are wired so the server re-pushes
@@ -66,6 +69,30 @@ export function PasurGame() {
     const onAborted = (data: { reason: "playerLeft" | "hostEnded"; by: string | null }) => setEnded(data);
     socket.on("game:aborted", onAborted);
     return () => { socket.off("game:aborted", onAborted); };
+  }, []);
+
+  // Incoming stickers from anyone in the room (including our own echo).
+  useEffect(() => {
+    const onSticker = ({ from, stickerId }: { from: string; stickerId: string }) => {
+      const nonce = ++stickerNonceRef.current;
+      setStickers((prev) => ({ ...prev, [from]: { id: stickerId, nonce } }));
+      playSound("sticker");
+      if (stickerTimersRef.current[from]) clearTimeout(stickerTimersRef.current[from]);
+      stickerTimersRef.current[from] = setTimeout(() => {
+        setStickers((prev) => {
+          if (prev[from]?.nonce !== nonce) return prev;
+          const next = { ...prev };
+          delete next[from];
+          return next;
+        });
+      }, 4000);
+    };
+    socket.on("room:sticker", onSticker);
+    const timers = stickerTimersRef.current;
+    return () => {
+      socket.off("room:sticker", onSticker);
+      Object.values(timers).forEach(clearTimeout);
+    };
   }, []);
 
   // Sound + Sur + card-flight feedback from the event stream.
@@ -85,11 +112,8 @@ export function PasurGame() {
           const id = ++flyIdRef.current;
           setFlying({ id, cards: [d.card, ...captured], from });
           setTimeout(() => setFlying((f) => (f && f.id === id ? null : f)), 680);
-        } else {
-          // A lay-down: the card flies in from its owner's seat into the pool.
-          setPlayIn({ key: pasurCardKey(d.card), from });
-          setTimeout(() => setPlayIn(null), 400);
         }
+        // A lay-down needs no overlay — the new pool card animates in on mount.
       } else if (e.type === "sur") {
         const who = (e.data as { playerId: string }).playerId;
         setSurFlash(who);
@@ -168,13 +192,34 @@ export function PasurGame() {
 
   return (
     <div className={styles.root}>
+      {/* ── Exit button (top corner, like Hokm) ── */}
+      {!isGameOver && (
+        <button
+          className={styles.exitBtn}
+          onClick={() => setConfirmLeave(true)}
+          aria-label={t("room.leave.leaveGame")}
+          title={t("room.leave.leaveGame")}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+      )}
+
       {/* ── Opponent ── */}
       <div className={[styles.seat, view.currentTurn === opponent ? styles.activeSeat : ""].join(" ")}>
-        <PlayerAvatar
-          nickname={nameOf(room, opponent)}
-          avatarUrl={avatarOf(room, opponent)}
-          compact
-        />
+        <div className={styles.avatarWrap}>
+          <PlayerAvatar
+            nickname={nameOf(room, opponent)}
+            avatarUrl={avatarOf(room, opponent)}
+            compact
+          />
+          {stickers[opponent] && (
+            <StickerBubble key={stickers[opponent].nonce} stickerId={stickers[opponent].id} placement="below" />
+          )}
+        </div>
         <div className={styles.seatStats}>
           <ScoreChip idx={oppIdx} />
           <PileChip label={t("pasur.captured")} count={view.capturedCounts[oppIdx]} />
@@ -200,12 +245,10 @@ export function PasurGame() {
                   key={k}
                   className={[styles.poolCard, previewKeys.has(k) ? styles.poolPreview : ""].join(" ")}
                 >
-                  <PlayingCard
-                    card={c}
-                    faceUp
-                    compact
-                    animateFrom={playIn?.key === k ? playIn.from : undefined}
-                  />
+                  {/* Inner span animates on mount: every newly-laid card drops in. */}
+                  <span className={styles.poolDrop}>
+                    <PlayingCard card={c} faceUp compact />
+                  </span>
                 </div>
               );
             })
@@ -287,7 +330,12 @@ export function PasurGame() {
       {/* ── Local player ── */}
       <div className={[styles.localBar, myTurn ? styles.localActive : ""].join(" ")}>
         <div className={styles.localInfo}>
-          <PlayerAvatar nickname={t("pasur.you")} avatarUrl={avatarOf(room, me)} compact />
+          <div className={styles.avatarWrap}>
+            <PlayerAvatar nickname={t("pasur.you")} avatarUrl={avatarOf(room, me)} compact />
+            {stickers[me] && (
+              <StickerBubble key={stickers[me].nonce} stickerId={stickers[me].id} placement="above" />
+            )}
+          </div>
           <div className={styles.seatStats}>
             <ScoreChip idx={meIdx} />
             <PileChip label={t("pasur.captured")} count={view.capturedCounts[meIdx]} />
@@ -295,9 +343,6 @@ export function PasurGame() {
               <span className={styles.surBadge}>{t("pasur.sur")} ×{view.surs[meIdx]}</span>
             )}
           </div>
-          <button className={styles.leaveBtn} onClick={() => setConfirmLeave(true)} aria-label={t("room.leave.leaveGame")}>
-            ✕
-          </button>
         </div>
 
         <div className={styles.hand} role="list" aria-label={t("pasur.yourHand")}>
