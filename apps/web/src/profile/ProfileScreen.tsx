@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { MatchHistoryEntry } from "@varagh/shared";
+import { games } from "@varagh/shared";
 import { socket } from "../app/socket";
 import { getStoredUser, storeUser, clearToken, type StoredUser } from "../auth/auth-store";
 import { useTheme } from "../theme/ThemeProvider";
@@ -24,6 +25,12 @@ const AVATAR_ERROR_KEYS: Record<string, string> = {
 function shortVariantKey(variantId: string) {
   const m = /(\d+)p$/.exec(variantId);
   return m ? `${m[1]}p` : variantId;
+}
+
+/** Game label from the shared registry: "en · fa", e.g. "Pasur · پاسور". */
+function gameLabel(gameId: string): string {
+  const g = games.find((x) => x.id === gameId);
+  return g ? `${g.name.en} · ${g.name.fa}` : gameId;
 }
 
 function formatDate(ts: number, lang: string) {
@@ -343,7 +350,7 @@ export function ProfileScreen() {
                   </div>
                   <div className={styles.matchInfo}>
                     <span className={styles.matchGame}>
-                      Hokm · حکم
+                      {gameLabel(m.gameId)}
                       <span className={styles.matchVariant}>{shortVariantKey(m.variantId)}</span>
                     </span>
                     {m.opponents.length > 0 && (

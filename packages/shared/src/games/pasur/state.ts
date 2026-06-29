@@ -53,13 +53,15 @@ export interface PasurState {
   isFinalDeal: boolean;
   options: PasurOptions;
   /**
-   * Score as of the last tally — what the "Sur disabled at 50+" rule reads.
-   * In the single-round v1 these stay 0; kept in state so the rule is correct
-   * and forward-compatible once multi-round play is added.
+   * Cumulative game score per player — the running total folded in at the end of
+   * every round. This is what the "Sur disabled at 50+" rule reads (score as of
+   * the last tally) and what is raced to `targetScore`.
    */
   baseScores: Record<PlayerId, number>;
-  /** Final scores, filled in when the game ends (null-equivalent: all 0 until then). */
-  scores: Record<PlayerId, number>;
+  /** First player to reach this cumulative score wins the game. */
+  targetScore: number;
+  /** 0-based index of the current round (a full deck played out). */
+  roundNumber: number;
 }
 
 export interface PasurView extends PlayerViewBase {
@@ -75,10 +77,14 @@ export interface PasurView extends PlayerViewBase {
   /** Surs scored per seat (public — clearing the pool is visible to all). */
   surs: number[];
   lastCapturer: PlayerId | null;
-  /** Cards still undealt. */
+  /** Cards still undealt this round. */
   deckCount: number;
   isFinalDeal: boolean;
   options: PasurOptions;
-  /** Final per-seat scores once the game is over; null while still running. */
-  scores: number[] | null;
+  /** Cumulative per-seat game scores (running totals), raced to targetScore. */
+  scores: number[];
+  /** First player to reach this cumulative score wins the game. */
+  targetScore: number;
+  /** 0-based index of the current round. */
+  roundNumber: number;
 }

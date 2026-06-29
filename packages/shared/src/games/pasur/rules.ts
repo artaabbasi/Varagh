@@ -226,15 +226,26 @@ export function tally(state: PasurState): Record<PlayerId, PlayerTally> {
       clubsBonus,
       scoringSurs,
       surPoints,
-      total: (state.baseScores[p] ?? 0) + cardPoints + clubsBonus + surPoints,
+      // Points won THIS round only — the 50+/tit-for-tat Sur rules read the
+      // carry-in baseScores, but those carry-in points are not re-counted here.
+      total: cardPoints + clubsBonus + surPoints,
     };
   }
   return result;
 }
 
+/** Points each player won in the just-finished round (no carry-in). */
+export function roundPoints(state: PasurState): Record<PlayerId, number> {
+  const t = tally(state);
+  const points: Record<PlayerId, number> = {};
+  for (const p of state.players) points[p] = t[p].total;
+  return points;
+}
+
+/** Cumulative game scores after folding this round's points into baseScores. */
 export function finalScores(state: PasurState): Record<PlayerId, number> {
   const t = tally(state);
   const scores: Record<PlayerId, number> = {};
-  for (const p of state.players) scores[p] = t[p].total;
+  for (const p of state.players) scores[p] = (state.baseScores[p] ?? 0) + t[p].total;
   return scores;
 }

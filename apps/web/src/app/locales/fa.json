@@ -336,6 +336,8 @@
     "deck": "دسته",
     "captured": "برداشته",
     "sur": "سور",
+    "round": "دور {{n}}",
+    "toTarget": "تا {{n}}",
     "yourTurn": "نوبت شما",
     "opponentTurn": "نوبت {{name}}",
     "chooseCombination": "انتخاب کن کدام کارت‌ها را برداری",

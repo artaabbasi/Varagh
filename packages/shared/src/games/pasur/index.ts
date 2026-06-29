@@ -5,6 +5,7 @@ import type {
   MoveError,
   MoveResult,
   PlayerId,
+  Rng,
 } from "../../engine/game-engine";
 import type { PasurMove, PasurOptions, PasurState, PasurView } from "./state";
 import {
@@ -14,6 +15,7 @@ import {
   isSur,
   legalMoves,
   moveEquals,
+  roundPoints,
   sameCard,
 } from "./rules";
 import { pasurBotMove } from "./bot";
@@ -77,9 +79,27 @@ function blankPiles(players: PlayerId[]): Record<PlayerId, Card[]> {
   return Object.fromEntries(players.map((p) => [p, []]));
 }
 
+/**
+ * Deal a fresh round from a newly shuffled 52-card deck: a Jack-free opening
+ * pool, then 4 cards to each player. Used for the opening round and every
+ * subsequent round of a multi-round game.
+ */
+function dealRound(players: PlayerId[], rng: Rng): {
+  pool: Card[];
+  deck: Card[];
+  hands: Record<PlayerId, Card[]>;
+} {
+  const shuffled = rng.shuffle(createDeck());
+  const { pool, deck: afterPool } = dealOpeningPool(shuffled, rng);
+  const deck = [...afterPool];
+  const hands: Record<PlayerId, Card[]> = {};
+  for (const p of players) hands[p] = deck.splice(0, CARDS_PER_DEAL);
+  return { pool, deck, hands };
+}
+
 // ── apply ────────────────────────────────────────────────────────────────────
 
-function applyPlay(state: PasurState, player: PlayerId, move: PasurMove): MoveResult<PasurState> {
+function applyPlay(state: PasurState, player: PlayerId, move: PasurMove, rng: Rng): MoveResult<PasurState> {
   const { players } = state;
   const idx = players.indexOf(player);
   const newHands = { ...state.hands, [player]: removeOneCard(state.hands[player] ?? [], move.card) };
@@ -161,7 +181,7 @@ function applyPlay(state: PasurState, player: PlayerId, move: PasurMove): MoveRe
   }
 
   // Deck exhausted and all hands empty — end of round: leftover pool goes to the
-  // last player who made a capture, then tally and finish.
+  // last player who made a capture, then tally this round's points.
   const finalCaptured = { ...newCaptured };
   if (lastCapturer && newPool.length > 0) {
     finalCaptured[lastCapturer] = [...(finalCaptured[lastCapturer] ?? []), ...newPool];
@@ -172,7 +192,7 @@ function applyPlay(state: PasurState, player: PlayerId, move: PasurMove): MoveRe
     });
   }
 
-  const ended: PasurState = {
+  const roundEnd: PasurState = {
     ...state,
     hands: newHands,
     pool: [],
@@ -180,12 +200,50 @@ function applyPlay(state: PasurState, player: PlayerId, move: PasurMove): MoveRe
     captured: finalCaptured,
     surs: newSurs,
     lastCapturer,
-    phase: "gameOver",
-    currentTurn: null,
   };
-  const scores = finalScores(ended);
-  events.push({ type: "gameOver", data: { scores }, visibility: { kind: "public" } });
-  return { ok: true, state: { ...ended, scores }, events };
+  const thisRound = roundPoints(roundEnd);            // points won this round
+  const newScores = finalScores(roundEnd);            // cumulative after this round
+
+  // Game over: someone reached the target cumulative score.
+  if (state.players.some((p) => newScores[p] >= state.targetScore)) {
+    events.push({
+      type: "gameOver",
+      data: { scores: newScores, roundPoints: thisRound },
+      visibility: { kind: "public" },
+    });
+    return {
+      ok: true,
+      state: { ...roundEnd, baseScores: newScores, phase: "gameOver", currentTurn: null },
+      events,
+    };
+  }
+
+  // Otherwise deal the next round. The starter (round leader) rotates each round.
+  const nextLeader = (state.leaderIndex + 1) % state.players.length;
+  const { pool, deck, hands } = dealRound(state.players, rng);
+  events.push({
+    type: "roundOver",
+    data: { roundNumber: state.roundNumber, scores: newScores, roundPoints: thisRound },
+    visibility: { kind: "public" },
+  });
+  return {
+    ok: true,
+    state: {
+      ...roundEnd,
+      baseScores: newScores,
+      captured: blankPiles(state.players),
+      surs: record0(state.players),
+      pool,
+      deck,
+      hands,
+      lastCapturer: null,
+      isFinalDeal: deck.length === 0,
+      leaderIndex: nextLeader,
+      currentTurn: state.players[nextLeader],
+      roundNumber: state.roundNumber + 1,
+    },
+    events,
+  };
 }
 
 // ── GameDefinition ───────────────────────────────────────────────────────────
@@ -198,12 +256,8 @@ export const pasur: GameDefinition<PasurState, PasurMove, PasurView> = {
   setup(ctx) {
     const { players, rng } = ctx;
     const options = resolveOptions(ctx.options);
-    const shuffled = rng.shuffle(createDeck());
-    const { pool, deck: afterPool } = dealOpeningPool(shuffled, rng);
-
-    const deck = [...afterPool];
-    const hands: Record<PlayerId, Card[]> = {};
-    for (const p of players) hands[p] = deck.splice(0, CARDS_PER_DEAL);
+    const targetScore = (ctx.options.targetScore as number | undefined) ?? 62;
+    const { pool, deck, hands } = dealRound(players, rng);
 
     return {
       phase: "playing",
@@ -219,7 +273,8 @@ export const pasur: GameDefinition<PasurState, PasurMove, PasurView> = {
       isFinalDeal: deck.length === 0,
       options,
       baseScores: record0(players),
-      scores: record0(players),
+      targetScore,
+      roundNumber: 0,
     };
   },
 
@@ -227,7 +282,7 @@ export const pasur: GameDefinition<PasurState, PasurMove, PasurView> = {
     return legalMoves(state, player);
   },
 
-  applyMove(state, player, move) {
+  applyMove(state, player, move, rng) {
     if (state.phase === "gameOver")
       return err("WRONG_PHASE", "The game is over.", "بازی تمام شده است.");
     if (state.currentTurn !== player)
@@ -247,7 +302,7 @@ export const pasur: GameDefinition<PasurState, PasurMove, PasurView> = {
         "این برداشت مجاز نیست — یک ترکیب درست انتخاب کنید.",
       );
 
-    return applyPlay(state, player, move);
+    return applyPlay(state, player, move, rng);
   },
 
   getPlayerView(state, player): PasurView {
@@ -265,14 +320,15 @@ export const pasur: GameDefinition<PasurState, PasurMove, PasurView> = {
       deckCount: state.deck.length,
       isFinalDeal: state.isFinalDeal,
       options: state.options,
-      scores:
-        state.phase === "gameOver" ? state.players.map((p) => state.scores[p] ?? 0) : null,
+      scores: state.players.map((p) => state.baseScores[p] ?? 0),
+      targetScore: state.targetScore,
+      roundNumber: state.roundNumber,
     };
   },
 
   getOutcome(state) {
     if (state.phase !== "gameOver") return null;
-    const scores = state.scores;
+    const scores = state.baseScores;
     const max = Math.max(...state.players.map((p) => scores[p] ?? 0));
     return {
       winners: state.players.filter((p) => (scores[p] ?? 0) === max),

@@ -201,12 +201,13 @@ Pasur (پاسور), also called **Chahar Barg**, is a fishing game on a standard
 `variants/2p.ts` so 3p/4p can be added later with no core changes. The engine is
 pure/deterministic and server-authoritative like every Varagh game.
 
-**Deal.** Each round deals 4 cards to each player; the opening layout also lays
-4 cards face-up in the central **pool**. The deck is then dealt 4-to-each per
-round until exhausted (2p: six deals of four; the pool is dealt only once). The
-**opening pool never contains a Jack** — any Jack dealt into the opening four is
-buried back into the deck and replaced until the pool is Jack-free, done
-deterministically through the injected RNG.
+**Deal.** A **round** is one full 52-card deck played out. At the start of a
+round, 4 cards go face-up to the central **pool** and 4 to each player; the rest
+of the deck is then dealt 4-to-each (the pool is laid once per round) until it is
+exhausted (2p: six sub-deals of four). The **opening pool never contains a
+Jack** — any Jack dealt into the opening four is buried back into the deck and
+replaced until the pool is Jack-free, done deterministically through the
+injected RNG.
 
 **Captures.** On your turn you play one card:
 - A **numeral** (A=1 … 10=10) captures pool numerals that sum *with it* to
@@ -225,15 +226,18 @@ engine never chooses for them. Each distinct combination is its own entry in
 presents the options. The `multiCapture` option below overrides only this "take
 all" case.
 
-**End of round.** When the deck is exhausted, every card left in the pool goes
-to the last player who made a capture. Then scores are tallied and the higher
-score wins (an exact tie is a draw).
+**End of round & winning.** When the deck is exhausted, every card left in the
+pool goes to the last player who made a capture, the round is tallied, and its
+points are added to each player's cumulative game score. The **starter rotates**
+to the next seat and a fresh round is dealt. The first player to reach the
+**target score** — default **62**, configurable per game via the `targetScore`
+option — wins; an exact tie at the final tally is a draw.
 
-**Scoring.** Each Ace = 1, each Jack = 1, the 2♣ = 2, the 10♦ = 3. **Most clubs
-(Haft Khâj)** = a flat 7 to whoever captured the most clubs (a tie awards it to
-no one). **Sur** = 5 points each: clearing the pool with a capture. Two Sur
-restrictions are always enforced: no Sur on the final deal of a round, and
-clearing the pool with a Jack never scores a Sur.
+**Scoring (per round).** Each Ace = 1, each Jack = 1, the 2♣ = 2, the 10♦ = 3.
+**Most clubs (Haft Khâj)** = a flat 7 to whoever captured the most clubs (a tie
+awards it to no one). **Sur** = 5 points each: clearing the pool with a capture.
+Two Sur restrictions are always enforced: no Sur on the final deal of a round,
+and clearing the pool with a Jack never scores a Sur.
 
 **Toggleable rules** (chosen pre-game, all default OFF, passed through the
 standard `options` channel that `setup(ctx)` receives, surfaced as bilingual

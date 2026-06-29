@@ -30,7 +30,10 @@ function st(overrides: Partial<PasurState> = {}): PasurState {
     isFinalDeal: false,
     options: { surDisabledAt50: false, surTitForTat: false, multiCapture: false },
     baseScores: { P0: 0, P1: 0 },
-    scores: { P0: 0, P1: 0 },
+    // Default to a 1-point target so single-round rule tests reach gameOver as
+    // soon as a round is tallied; multi-round tests set their own target.
+    targetScore: 1,
+    roundNumber: 0,
     ...overrides,
   };
 }
@@ -309,6 +312,53 @@ describe("Pasur — end of round", () => {
   });
 });
 
+// ── Multi-round: accumulate to the target, alternate the starter ─────────────
+
+describe("Pasur — multi-round play", () => {
+  /** A round about to end: P0 will scoop a 1-point Ace, P1 scores nothing. */
+  const aboutToEnd = (overrides: Partial<PasurState>) =>
+    st({
+      deck: [],
+      isFinalDeal: true,
+      pool: [card("K", "diamonds")],
+      hands: { P0: [card("2", "spades")], P1: [card("3", "spades")] },
+      captured: { P0: [card("A", "hearts")], P1: [] },
+      lastCapturer: "P0",
+      ...overrides,
+    });
+
+  it("folds the round into cumulative scores and deals a new round when the target isn't reached", () => {
+    let s = aboutToEnd({ baseScores: { P0: 3, P1: 1 }, targetScore: 100, leaderIndex: 0, roundNumber: 0 });
+    s = apply(s, "P0", moveFor(s, "P0", card("2", "spades")));
+    s = apply(s, "P1", moveFor(s, "P1", card("3", "spades")));
+
+    expect(s.phase).toBe("playing");
+    expect(s.baseScores).toEqual({ P0: 4, P1: 1 }); // P0 +1 (the Ace), P1 +0
+    expect(s.roundNumber).toBe(1);
+    expect(s.leaderIndex).toBe(1); // starter rotated
+    expect(s.currentTurn).toBe("P1");
+    // Fresh round: 4 cards each, a 4-card Jack-free pool, 40 left in the deck.
+    expect(s.hands.P0).toHaveLength(4);
+    expect(s.hands.P1).toHaveLength(4);
+    expect(s.pool).toHaveLength(4);
+    expect(s.pool.every((c) => c.rank !== "J")).toBe(true);
+    expect(s.deck).toHaveLength(40);
+    // Per-round state reset.
+    expect(s.captured.P0).toHaveLength(0);
+    expect(s.surs).toEqual({ P0: 0, P1: 0 });
+  });
+
+  it("ends the game when a player reaches the target cumulative score", () => {
+    let s = aboutToEnd({ baseScores: { P0: 3, P1: 1 }, targetScore: 4 });
+    s = apply(s, "P0", moveFor(s, "P0", card("2", "spades")));
+    s = apply(s, "P1", moveFor(s, "P1", card("3", "spades")));
+
+    expect(s.phase).toBe("gameOver");
+    expect(s.baseScores.P0).toBe(4);
+    expect(pasur.getOutcome(s)!.winners).toEqual(["P0"]);
+  });
+});
+
 // ── Full end-of-round scoring and winner ─────────────────────────────────────
 
 describe("Pasur — scoring", () => {
@@ -364,7 +414,7 @@ describe("Pasur — scoring", () => {
   it("an exact tie is a draw (both players win)", () => {
     const s = st({
       phase: "gameOver",
-      scores: { P0: 5, P1: 5 },
+      baseScores: { P0: 5, P1: 5 },
     });
     const outcome = pasur.getOutcome(s);
     expect(outcome!.winners.sort()).toEqual(["P0", "P1"]);
@@ -377,7 +427,7 @@ describe("Pasur — scoring", () => {
 function autoPlay(seed: number, options: Record<string, unknown> = {}): PasurState {
   let s = pasur.setup({ variantId: "pasur-2p", players: [...PLAYERS], options, rng: makeRng(seed) });
   let guard = 0;
-  while (s.phase !== "gameOver" && guard++ < 1000) {
+  while (s.phase !== "gameOver" && guard++ < 5000) {
     const p = s.currentTurn!;
     const moves = pasur.getValidMoves(s, p);
     const r = pasur.applyMove(s, p, moves[0], makeRng(0));
@@ -413,7 +463,7 @@ describe("Pasur — bot", () => {
   it("only ever returns moves present in getValidMoves, for a whole game", () => {
     let s = pasur.setup({ variantId: "pasur-2p", players: [...PLAYERS], options: {}, rng: makeRng(5) });
     let guard = 0;
-    while (s.phase !== "gameOver" && guard++ < 1000) {
+    while (s.phase !== "gameOver" && guard++ < 5000) {
       const p = s.currentTurn!;
       const move = pasurBotMove(s, p);
       const valid = pasur.getValidMoves(s, p);

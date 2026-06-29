@@ -86,6 +86,49 @@
   border-radius: var(--md-sys-shape-corner-full);
 }
 
+/* ── Cumulative score chip ─────────────────────────────────────────── */
+.scoreChip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 2px 10px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+.scoreNow { font-size: var(--md-sys-typescale-title-medium-size); font-weight: 800; font-variant-numeric: tabular-nums; }
+.scoreTarget { font-size: var(--md-sys-typescale-label-small-size); opacity: 0.7; }
+
+.roundHint {
+  font-size: var(--md-sys-typescale-label-small-size);
+  color: var(--md-sys-color-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Round-over banner ─────────────────────────────────────────────── */
+.roundBanner {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 34%;
+  margin-inline: auto;
+  width: fit-content;
+  max-width: 90vw;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 22px;
+  border-radius: var(--md-sys-shape-corner-large);
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  box-shadow: var(--md-sys-elevation-3);
+  animation: pickerIn var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-spring) both;
+}
+.roundBannerTitle { font-size: var(--md-sys-typescale-title-medium-size); font-weight: 800; }
+.roundBannerScores { font-size: var(--md-sys-typescale-label-large-size); font-weight: 600; }
+
 /* ── Center: pool + deck ──────────────────────────────────────────── */
 .center {
   display: flex;

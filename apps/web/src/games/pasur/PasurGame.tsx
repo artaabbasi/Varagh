@@ -42,6 +42,7 @@ export function PasurGame() {
   const [selected, setSelected] = useState<{ card: Card; options: Card[][] } | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [surFlash, setSurFlash] = useState<string | null>(null);
+  const [roundFlash, setRoundFlash] = useState<{ round: number; points: Record<string, number> } | null>(null);
   const [ended, setEnded] = useState<{ reason: "playerLeft" | "hostEnded"; by: string | null } | null>(null);
 
   // Join (or rejoin) on mount — RoomRouter owns the active-room registration,
@@ -74,6 +75,11 @@ export function PasurGame() {
         const who = (e.data as { playerId: string }).playerId;
         setSurFlash(who);
         setTimeout(() => setSurFlash(null), 1600);
+      } else if (e.type === "roundOver") {
+        const d = e.data as { roundNumber: number; roundPoints: Record<string, number> };
+        playSound("trickWin");
+        setRoundFlash({ round: d.roundNumber, points: d.roundPoints });
+        setTimeout(() => setRoundFlash(null), 3200);
       } else if (e.type === "gameOver") {
         playSound("gameWin");
       }
@@ -125,13 +131,21 @@ export function PasurGame() {
   const cardCaptures = (card: Card): boolean =>
     captureOptionsFor(card, view.pool, view.options).some((o) => o.length > 0);
 
-  const winner = isGameOver && view.scores
+  const winner = isGameOver
     ? (() => {
         const max = Math.max(...view.scores);
         const idxs = view.scores.map((s, i) => (s === max ? i : -1)).filter((i) => i >= 0);
         return idxs.length === 1 ? view.players[idxs[0]] : null; // null = draw
       })()
     : undefined;
+
+  /** Cumulative-score chip: "score / target". */
+  const ScoreChip = ({ idx }: { idx: number }) => (
+    <span className={styles.scoreChip}>
+      <span className={styles.scoreNow}>{view.scores[idx]}</span>
+      <span className={styles.scoreTarget}>/ {view.targetScore}</span>
+    </span>
+  );
 
   return (
     <div className={styles.root}>
@@ -143,6 +157,7 @@ export function PasurGame() {
           compact
         />
         <div className={styles.seatStats}>
+          <ScoreChip idx={oppIdx} />
           <PileChip label={t("pasur.captured")} count={view.capturedCounts[oppIdx]} />
           {view.surs[oppIdx] > 0 && (
             <span className={styles.surBadge}>{t("pasur.sur")} ×{view.surs[oppIdx]}</span>
@@ -177,7 +192,22 @@ export function PasurGame() {
               ? t("pasur.yourTurn")
               : t("pasur.opponentTurn", { name: nameOf(room, view.currentTurn ?? opponent) })}
         </div>
+        {!isGameOver && (
+          <span className={styles.roundHint}>
+            {t("pasur.round", { n: view.roundNumber + 1 })} · {t("pasur.toTarget", { n: view.targetScore })}
+          </span>
+        )}
       </div>
+
+      {/* ── Round-over banner ── */}
+      {roundFlash && (
+        <div className={styles.roundBanner} role="status">
+          <span className={styles.roundBannerTitle}>{t("pasur.round", { n: roundFlash.round + 1 })}</span>
+          <span className={styles.roundBannerScores}>
+            {t("pasur.you")} +{roundFlash.points[me] ?? 0} · {nameOf(room, opponent)} +{roundFlash.points[opponent] ?? 0}
+          </span>
+        </div>
+      )}
 
       {/* ── Combination picker ── */}
       {selected && (
@@ -218,6 +248,7 @@ export function PasurGame() {
         <div className={styles.localInfo}>
           <PlayerAvatar nickname={t("pasur.you")} avatarUrl={avatarOf(room, me)} compact />
           <div className={styles.seatStats}>
+            <ScoreChip idx={meIdx} />
             <PileChip label={t("pasur.captured")} count={view.capturedCounts[meIdx]} />
             {view.surs[meIdx] > 0 && (
               <span className={styles.surBadge}>{t("pasur.sur")} ×{view.surs[meIdx]}</span>
@@ -253,7 +284,7 @@ export function PasurGame() {
       {!isGameOver && <StickerWheel />}
 
       {/* ── Game over ── */}
-      {isGameOver && view.scores && (
+      {isGameOver && (
         <div className={styles.overlay} role="dialog" aria-modal="true">
           <div className={styles.sheet}>
             <h2 className={styles.sheetTitle}>
@@ -267,7 +298,7 @@ export function PasurGame() {
               {view.players.map((p, i) => (
                 <div key={p} className={[styles.finalRow, p === winner ? styles.finalWinner : ""].join(" ")}>
                   <span>{p === me ? t("pasur.you") : nameOf(room, p)}</span>
-                  <span className={styles.finalPts}>{view.scores![i]}</span>
+                  <span className={styles.finalPts}>{view.scores[i]}</span>
                 </div>
               ))}
             </div>

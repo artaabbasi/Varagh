@@ -10,6 +10,14 @@ export const variant2p: VariantDefinition = {
   // future Pasur options slot in here and flow through setup(ctx).options.
   options: [
     {
+      key: "targetScore",
+      name: { en: "Target score", fa: "امتیاز برد" },
+      type: "number",
+      default: 62,
+      min: 11,
+      max: 200,
+    },
+    {
       key: "surDisabledAt50",
       name: { en: "No Sur at 50+ points", fa: "بدون سور در ۵۰+ امتیاز" },
       type: "boolean",

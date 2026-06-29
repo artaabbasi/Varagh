@@ -336,6 +336,8 @@
     "deck": "Deck",
     "captured": "Captured",
     "sur": "Sur",
+    "round": "Round {{n}}",
+    "toTarget": "to {{n}}",
     "yourTurn": "Your turn",
     "opponentTurn": "{{name}}'s turn",
     "chooseCombination": "Choose which cards to capture",
