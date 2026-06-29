@@ -268,6 +268,38 @@
 .pickerOption:hover { border-color: var(--md-sys-color-primary); transform: translateY(-2px); }
 .pickerMini { pointer-events: none; }
 
+/* ── Captured cards flying to a pile ───────────────────────────────── */
+.flyLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.flyCard {
+  filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--md-sys-color-primary) 45%, transparent));
+  will-change: transform, opacity;
+}
+
+.flyUp .flyCard { animation: flyToTop 0.62s var(--md-sys-motion-easing-accelerate) both; }
+.flyDown .flyCard { animation: flyToBottom 0.62s var(--md-sys-motion-easing-accelerate) both; }
+
+@keyframes flyToTop {
+  0% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+  20% { transform: translateY(6px) scale(1.08); opacity: 1; }
+  100% { transform: translateY(-40vh) scale(0.32) rotate(-12deg); opacity: 0; }
+}
+
+@keyframes flyToBottom {
+  0% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+  20% { transform: translateY(-6px) scale(1.08); opacity: 1; }
+  100% { transform: translateY(40vh) scale(0.32) rotate(12deg); opacity: 0; }
+}
+
 /* ── Sur flash ────────────────────────────────────────────────────── */
 .surFlash {
   position: absolute;
@@ -387,5 +419,7 @@
 .dangerBtn { background: var(--md-sys-color-error); color: var(--md-sys-color-on-error); }
 
 @media (prefers-reduced-motion: reduce) {
-  .picker, .sheet, .surFlash, .poolCard { animation: none; transition: none; }
+  .picker, .sheet, .surFlash, .poolCard, .roundBanner { animation: none; transition: none; }
+  /* Captured cards skip straight off-screen instead of flying. */
+  .flyUp .flyCard, .flyDown .flyCard { animation: none; opacity: 0; }
 }

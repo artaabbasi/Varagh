@@ -44,6 +44,12 @@ export function PasurGame() {
   const [surFlash, setSurFlash] = useState<string | null>(null);
   const [roundFlash, setRoundFlash] = useState<{ round: number; points: Record<string, number> } | null>(null);
   const [ended, setEnded] = useState<{ reason: "playerLeft" | "hostEnded"; by: string | null } | null>(null);
+  // Card-flight animation state.
+  // `playIn` = the pool card that just flew in from a seat (a lay-down play).
+  // `flying` = a captured set flying off the table to a player's pile.
+  const [playIn, setPlayIn] = useState<{ key: string; from: "top" | "bottom" } | null>(null);
+  const [flying, setFlying] = useState<{ id: number; cards: Card[]; from: "top" | "bottom" } | null>(null);
+  const flyIdRef = useRef(0);
 
   // Join (or rejoin) on mount — RoomRouter owns the active-room registration,
   // but we re-join here after our listeners are wired so the server re-pushes
@@ -62,15 +68,28 @@ export function PasurGame() {
     return () => { socket.off("game:aborted", onAborted); };
   }, []);
 
-  // Sound + Sur feedback from the event stream.
+  // Sound + Sur + card-flight feedback from the event stream.
   const lastEventRef = useRef<GameEvent[]>([]);
   useEffect(() => {
     if (events === lastEventRef.current) return;
     lastEventRef.current = events;
+    const meId = view?.forPlayer;
     for (const e of events) {
       if (e.type === "cardPlayed") {
-        const captured = (e.data as { captured?: unknown[] }).captured ?? [];
+        const d = e.data as { playerId: string; card: Card; captured?: Card[] };
+        const captured = d.captured ?? [];
+        const from: "top" | "bottom" = d.playerId === meId ? "bottom" : "top";
         playSound(captured.length > 0 ? "trickWin" : "playCard");
+        if (captured.length > 0) {
+          // The played card plus its captures fly off to the capturer's pile.
+          const id = ++flyIdRef.current;
+          setFlying({ id, cards: [d.card, ...captured], from });
+          setTimeout(() => setFlying((f) => (f && f.id === id ? null : f)), 680);
+        } else {
+          // A lay-down: the card flies in from its owner's seat into the pool.
+          setPlayIn({ key: pasurCardKey(d.card), from });
+          setTimeout(() => setPlayIn(null), 400);
+        }
       } else if (e.type === "sur") {
         const who = (e.data as { playerId: string }).playerId;
         setSurFlash(who);
@@ -84,7 +103,7 @@ export function PasurGame() {
         playSound("gameWin");
       }
     }
-  }, [events]);
+  }, [events, view]);
 
   // Clear any open combination picker when it stops being our turn.
   const myTurn = !!view && view.phase === "playing" && view.currentTurn === view.forPlayer;
@@ -174,14 +193,22 @@ export function PasurGame() {
           {view.pool.length === 0 ? (
             <span className={styles.poolEmpty}>{t("pasur.poolEmpty")}</span>
           ) : (
-            view.pool.map((c) => (
-              <div
-                key={pasurCardKey(c)}
-                className={[styles.poolCard, previewKeys.has(pasurCardKey(c)) ? styles.poolPreview : ""].join(" ")}
-              >
-                <PlayingCard card={c} faceUp compact />
-              </div>
-            ))
+            view.pool.map((c) => {
+              const k = pasurCardKey(c);
+              return (
+                <div
+                  key={k}
+                  className={[styles.poolCard, previewKeys.has(k) ? styles.poolPreview : ""].join(" ")}
+                >
+                  <PlayingCard
+                    card={c}
+                    faceUp
+                    compact
+                    animateFrom={playIn?.key === k ? playIn.from : undefined}
+                  />
+                </div>
+              );
+            })
           )}
         </div>
 
@@ -198,6 +225,20 @@ export function PasurGame() {
           </span>
         )}
       </div>
+
+      {/* ── Captured cards flying to a pile ── */}
+      {flying && (
+        <div
+          className={[styles.flyLayer, flying.from === "top" ? styles.flyUp : styles.flyDown].join(" ")}
+          aria-hidden="true"
+        >
+          {flying.cards.map((c, i) => (
+            <span key={`${pasurCardKey(c)}-${i}`} className={styles.flyCard} style={{ animationDelay: `${i * 45}ms` }}>
+              <PlayingCard card={c} faceUp compact />
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* ── Round-over banner ── */}
       {roundFlash && (
