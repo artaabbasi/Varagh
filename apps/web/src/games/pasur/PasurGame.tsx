@@ -8,20 +8,35 @@ import { playSound } from "../../app/sound";
 import { PlayingCard } from "../../components/PlayingCard";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
 import { CardLoadingScreen } from "../../components/CardLoadingScreen";
+import { CountdownRing } from "../../components/CountdownRing";
+import { TrickPile } from "../../components/TrickPile";
 import { StickerWheel } from "../hokm/StickerWheel";
 import { StickerBubble } from "../../components/stickers/StickerBubble";
+import { OpponentSeat } from "../hokm/OpponentSeat";
 import { WaitingRoom } from "../hokm/WaitingRoom";
 import { usePasurSocket } from "./usePasurSocket";
 import styles from "./PasurGame.module.css";
 
-function nameOf(room: ReturnType<typeof usePasurSocket>["room"], playerId: string): string {
-  return room?.seats.find((s) => s.playerId === playerId)?.nickname ?? playerId.slice(0, 6);
+const TURN_SECONDS = 30;
+
+type Room = ReturnType<typeof usePasurSocket>["room"];
+function seatOf(room: Room, playerId: string) {
+  return room?.seats.find((s) => s.playerId === playerId);
 }
-function avatarOf(room: ReturnType<typeof usePasurSocket>["room"], playerId: string): string | null {
-  return room?.seats.find((s) => s.playerId === playerId)?.avatar ?? null;
+function nameOf(room: Room, playerId: string): string {
+  return seatOf(room, playerId)?.nickname ?? playerId.slice(0, 6);
+}
+function avatarOf(room: Room, playerId: string): string | null {
+  return seatOf(room, playerId)?.avatar ?? null;
+}
+function discOf(room: Room, playerId: string): string {
+  return seatOf(room, playerId)?.discriminator ?? "";
+}
+function connectedOf(room: Room, playerId: string): boolean {
+  return seatOf(room, playerId)?.connected ?? true;
 }
 
-/** A face-down pile chip showing a count (captured pile / deck). */
+/** A face-down pile chip showing a count (the deck). */
 function PileChip({ label, count }: { label: string; count: number }) {
   return (
     <div className={styles.pileChip}>
@@ -135,6 +150,24 @@ export function PasurGame() {
     if (!myTurn) setSelected(null);
   }, [myTurn]);
 
+  // Local turn timer: a 30s client-side countdown that resets each time it
+  // becomes our turn (mirrors Hokm; the opponent seat shows its own ring).
+  const [remaining, setRemaining] = useState(TURN_SECONDS);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (!myTurn) { setRemaining(TURN_SECONDS); return; }
+    setRemaining(TURN_SECONDS);
+    timerRef.current = setInterval(() => {
+      setRemaining((s) => {
+        const next = Math.max(0, s - 1);
+        if (next > 0 && next <= 5) playSound("turnTick");
+        return next;
+      });
+    }, 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [myTurn]);
+
   if (room?.phase === "lobby") return <WaitingRoom room={room} />;
   if (!view) return <CardLoadingScreen />;
 
@@ -182,108 +215,168 @@ export function PasurGame() {
       })()
     : undefined;
 
-  /** Cumulative-score chip: "score / target". */
-  const ScoreChip = ({ idx }: { idx: number }) => (
-    <span className={styles.scoreChip}>
-      <span className={styles.scoreNow}>{view.scores[idx]}</span>
-      <span className={styles.scoreTarget}>/ {view.targetScore}</span>
-    </span>
-  );
-
   return (
     <div className={styles.root}>
-      {/* ── Exit button (top corner, like Hokm) ── */}
-      {!isGameOver && (
-        <button
-          className={styles.exitBtn}
-          onClick={() => setConfirmLeave(true)}
-          aria-label={t("room.leave.leaveGame")}
-          title={t("room.leave.leaveGame")}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-        </button>
-      )}
+      <div className={styles.table}>
+        {/* Decorative felt + centre emblem (behind all seats) */}
+        <div className={styles.felt} aria-hidden="true">
+          <div className={styles.feltEmblem}>
+            <span className={styles.feltSuit} data-suit="spades">♠</span>
+            <span className={styles.feltSuit} data-suit="hearts">♥</span>
+            <span className={styles.feltSuit} data-suit="diamonds">♦</span>
+            <span className={styles.feltSuit} data-suit="clubs">♣</span>
+          </div>
+        </div>
 
-      {/* ── Opponent ── */}
-      <div className={[styles.seat, view.currentTurn === opponent ? styles.activeSeat : ""].join(" ")}>
-        <div className={styles.avatarWrap}>
-          <PlayerAvatar
-            nickname={nameOf(room, opponent)}
-            avatarUrl={avatarOf(room, opponent)}
-            compact
-          />
-          {stickers[opponent] && (
-            <StickerBubble key={stickers[opponent].nonce} stickerId={stickers[opponent].id} placement="below" />
+        {/* ── Score bar (top) ── */}
+        <div className={styles.scoreBar}>
+          {!isGameOver && (
+            <button
+              className={styles.exitBtn}
+              onClick={() => setConfirmLeave(true)}
+              aria-label={t("room.leave.leaveGame")}
+              title={t("room.leave.leaveGame")}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          )}
+          <div className={styles.scoreItem}>
+            <span className={styles.scoreName}>{t("pasur.you")}</span>
+            <span className={styles.scorePts}>{view.scores[meIdx]}</span>
+            {view.surs[meIdx] > 0 && <span className={styles.scoreSur}>{t("pasur.sur")}×{view.surs[meIdx]}</span>}
+          </div>
+          <div className={styles.scoreMid}>
+            <span className={styles.scoreRound}>{t("pasur.round", { n: view.roundNumber + 1 })}</span>
+            <span className={styles.scoreTargetLabel}>{t("pasur.toTarget", { n: view.targetScore })}</span>
+          </div>
+          <div className={styles.scoreItem}>
+            <span className={styles.scoreName}>{nameOf(room, opponent)}</span>
+            <span className={styles.scorePts}>{view.scores[oppIdx]}</span>
+            {view.surs[oppIdx] > 0 && <span className={styles.scoreSur}>{t("pasur.sur")}×{view.surs[oppIdx]}</span>}
+          </div>
+        </div>
+
+        {/* ── Opponent seat (top) — reused from Hokm: border + active-turn ring ── */}
+        <OpponentSeat
+          playerId={opponent}
+          nickname={nameOf(room, opponent)}
+          discriminator={discOf(room, opponent)}
+          isHakem={false}
+          isConnected={connectedOf(room, opponent)}
+          isTurn={!isGameOver && view.currentTurn === opponent}
+          avatarUrl={avatarOf(room, opponent)}
+          handSize={view.handSizes[oppIdx]}
+          trickCount={view.capturedCounts[oppIdx]}
+          teamColor="none"
+          position="top"
+          sticker={stickers[opponent] ?? null}
+          className={styles.seat_top}
+        />
+
+        {/* ── Center: deck + pool ── */}
+        <div className={styles.center}>
+          <PileChip label={t("pasur.deck")} count={view.deckCount} />
+
+          <div className={styles.pool} aria-label={t("pasur.pool")}>
+            {view.pool.length === 0 ? (
+              <span className={styles.poolEmpty}>{t("pasur.poolEmpty")}</span>
+            ) : (
+              view.pool.map((c) => {
+                const k = pasurCardKey(c);
+                return (
+                  <div
+                    key={k}
+                    className={[styles.poolCard, previewKeys.has(k) ? styles.poolPreview : ""].join(" ")}
+                  >
+                    {/* Inner span animates on mount: every newly-laid card drops in. */}
+                    <span className={styles.poolDrop}>
+                      <PlayingCard card={c} faceUp compact />
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <div className={styles.turnPill}>
+            {isGameOver
+              ? t("pasur.gameOver.title")
+              : myTurn
+                ? t("pasur.yourTurn")
+                : t("pasur.opponentTurn", { name: nameOf(room, view.currentTurn ?? opponent) })}
+          </div>
+
+          {/* Captured cards flying to a pile */}
+          {flying && (
+            <div
+              className={[styles.flyLayer, flying.from === "top" ? styles.flyUp : styles.flyDown].join(" ")}
+              aria-hidden="true"
+            >
+              {flying.cards.map((c, i) => (
+                <span key={`${pasurCardKey(c)}-${i}`} className={styles.flyCard} style={{ animationDelay: `${i * 45}ms` }}>
+                  <PlayingCard card={c} faceUp compact />
+                </span>
+              ))}
+            </div>
           )}
         </div>
-        <div className={styles.seatStats}>
-          <ScoreChip idx={oppIdx} />
-          <PileChip label={t("pasur.captured")} count={view.capturedCounts[oppIdx]} />
-          {view.surs[oppIdx] > 0 && (
-            <span className={styles.surBadge}>{t("pasur.sur")} ×{view.surs[oppIdx]}</span>
+
+        {/* ── Local hand tray (bottom) ── */}
+        <div className={[styles.localHand, myTurn ? styles.myTurn : ""].join(" ")}>
+          <div className={styles.playerRow}>
+            <div className={styles.playerInfo}>
+              <div className={styles.avatarWrap}>
+                {stickers[me] && (
+                  <StickerBubble key={stickers[me].nonce} stickerId={stickers[me].id} placement="above" />
+                )}
+                <PlayerAvatar nickname={t("pasur.you")} avatarUrl={avatarOf(room, me)} compact />
+              </div>
+              <TrickPile count={view.capturedCounts[meIdx]} />
+            </div>
+            <div className={styles.playerRowRight}>
+              {myTurn && (
+                <div className={styles.timerArea}>
+                  <CountdownRing totalSeconds={TURN_SECONDS} remainingSeconds={remaining} size={48} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {moveError && (
+            <div className={styles.errorToast} role="alert" onClick={clearMoveError}>
+              {moveError}
+            </div>
           )}
-        </div>
-        {surFlash === opponent && <div className={styles.surFlash}>{t("pasur.sur")}!</div>}
-      </div>
 
-      {/* ── Center: deck + pool ── */}
-      <div className={styles.center}>
-        <PileChip label={t("pasur.deck")} count={view.deckCount} />
-
-        <div className={styles.pool} aria-label={t("pasur.pool")}>
-          {view.pool.length === 0 ? (
-            <span className={styles.poolEmpty}>{t("pasur.poolEmpty")}</span>
-          ) : (
-            view.pool.map((c) => {
-              const k = pasurCardKey(c);
+          <div className={styles.hand} role="list" aria-label={t("pasur.yourHand")}>
+            {view.hand.map((c) => {
+              const isSel = selected && pasurCardKey(selected.card) === pasurCardKey(c);
               return (
-                <div
-                  key={k}
-                  className={[styles.poolCard, previewKeys.has(k) ? styles.poolPreview : ""].join(" ")}
-                >
-                  {/* Inner span animates on mount: every newly-laid card drops in. */}
-                  <span className={styles.poolDrop}>
-                    <PlayingCard card={c} faceUp compact />
-                  </span>
+                <div key={pasurCardKey(c)} className={styles.handCard} role="listitem">
+                  <PlayingCard
+                    card={c}
+                    faceUp
+                    highlighted={myTurn && cardCaptures(c)}
+                    disabled={!myTurn}
+                    onClick={myTurn ? () => handleCardTap(c) : undefined}
+                    className={isSel ? styles.handSelected : undefined}
+                    aria-label={`${c.rank} of ${c.suit}`}
+                  />
                 </div>
               );
-            })
-          )}
+            })}
+          </div>
         </div>
+      </div>{/* end table */}
 
-        <div className={styles.turnPill}>
-          {isGameOver
-            ? t("pasur.gameOver.title")
-            : myTurn
-              ? t("pasur.yourTurn")
-              : t("pasur.opponentTurn", { name: nameOf(room, view.currentTurn ?? opponent) })}
-        </div>
-        {!isGameOver && (
-          <span className={styles.roundHint}>
-            {t("pasur.round", { n: view.roundNumber + 1 })} · {t("pasur.toTarget", { n: view.targetScore })}
-          </span>
-        )}
-      </div>
+      {/* Sur flash (centred) */}
+      {surFlash && <div className={styles.surFlash}>{t("pasur.sur")}!</div>}
 
-      {/* ── Captured cards flying to a pile ── */}
-      {flying && (
-        <div
-          className={[styles.flyLayer, flying.from === "top" ? styles.flyUp : styles.flyDown].join(" ")}
-          aria-hidden="true"
-        >
-          {flying.cards.map((c, i) => (
-            <span key={`${pasurCardKey(c)}-${i}`} className={styles.flyCard} style={{ animationDelay: `${i * 45}ms` }}>
-              <PlayingCard card={c} faceUp compact />
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* ── Round-over banner ── */}
+      {/* Round-over banner */}
       {roundFlash && (
         <div className={styles.roundBanner} role="status">
           <span className={styles.roundBannerTitle}>{t("pasur.round", { n: roundFlash.round + 1 })}</span>
@@ -293,7 +386,7 @@ export function PasurGame() {
         </div>
       )}
 
-      {/* ── Combination picker ── */}
+      {/* Combination picker */}
       {selected && (
         <div className={styles.picker} role="dialog" aria-label={t("pasur.chooseCombination")}>
           <div className={styles.pickerHeader}>
@@ -320,53 +413,7 @@ export function PasurGame() {
         </div>
       )}
 
-      {/* ── Move error ── */}
-      {moveError && (
-        <div className={styles.errorToast} role="alert" onClick={clearMoveError}>
-          {moveError}
-        </div>
-      )}
-
-      {/* ── Local player ── */}
-      <div className={[styles.localBar, myTurn ? styles.localActive : ""].join(" ")}>
-        <div className={styles.localInfo}>
-          <div className={styles.avatarWrap}>
-            <PlayerAvatar nickname={t("pasur.you")} avatarUrl={avatarOf(room, me)} compact />
-            {stickers[me] && (
-              <StickerBubble key={stickers[me].nonce} stickerId={stickers[me].id} placement="above" />
-            )}
-          </div>
-          <div className={styles.seatStats}>
-            <ScoreChip idx={meIdx} />
-            <PileChip label={t("pasur.captured")} count={view.capturedCounts[meIdx]} />
-            {view.surs[meIdx] > 0 && (
-              <span className={styles.surBadge}>{t("pasur.sur")} ×{view.surs[meIdx]}</span>
-            )}
-          </div>
-        </div>
-
-        <div className={styles.hand} role="list" aria-label={t("pasur.yourHand")}>
-          {view.hand.map((c) => {
-            const isSel = selected && pasurCardKey(selected.card) === pasurCardKey(c);
-            return (
-              <div key={pasurCardKey(c)} className={styles.handCard} role="listitem">
-                <PlayingCard
-                  card={c}
-                  faceUp
-                  highlighted={myTurn && cardCaptures(c)}
-                  disabled={!myTurn}
-                  onClick={myTurn ? () => handleCardTap(c) : undefined}
-                  className={isSel ? styles.handSelected : undefined}
-                  aria-label={`${c.rank} of ${c.suit}`}
-                />
-              </div>
-            );
-          })}
-        </div>
-        {surFlash === me && <div className={styles.surFlash}>{t("pasur.sur")}!</div>}
-      </div>
-
-      {/* Sticker chat — reused from Hokm. */}
+      {/* Sticker chat — sibling of the table so it floats without disturbing play. */}
       {!isGameOver && <StickerWheel />}
 
       {/* ── Game over ── */}
