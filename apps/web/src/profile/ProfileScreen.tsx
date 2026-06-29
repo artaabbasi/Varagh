@@ -66,6 +66,22 @@ export function ProfileScreen() {
   const [avatarStatus, setAvatarStatus] = useState<Status>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Shareable friend code — the handle others paste into "Add friend".
+  const friendCode = user ? `${user.nickname}#${user.discriminator}` : "";
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(friendCode);
+    } catch {
+      return; // clipboard blocked (e.g. insecure context) — leave state unchanged
+    }
+    setCopied(true);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+  };
+  useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
+
   useEffect(() => {
     setLoading(true);
     socket.emit("user:getHistory", {}, (res) => {
@@ -210,6 +226,23 @@ export function ProfileScreen() {
               <span className={styles.logoutLabel}>{t("profile.logout")}</span>
             </button>
           </div>
+        </div>
+
+        {/* ── Friend code — share so others can send a friend request ── */}
+        <div className={styles.friendCodeCard}>
+          <div className={styles.friendCodeInfo}>
+            <span className={styles.friendCodeLabel}>{t("profile.friendCode.label")}</span>
+            <span className={styles.friendCodeValue}>{friendCode}</span>
+            <span className={styles.friendCodeHint}>{t("profile.friendCode.hint")}</span>
+          </div>
+          <button
+            className={styles.copyBtn}
+            onClick={handleCopyCode}
+            aria-label={t("profile.friendCode.copy")}
+          >
+            {copied ? <CheckIcon /> : <CopyIcon />}
+            <span>{copied ? t("profile.friendCode.copied") : t("profile.friendCode.copy")}</span>
+          </button>
         </div>
 
         {/* ── Edit panel ── */}
@@ -390,6 +423,23 @@ function ProfileEditIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }

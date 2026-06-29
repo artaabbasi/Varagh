@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import type { LobbyEntry, ActiveRoomEntry, VariantDefinition } from "@varagh/shared";
 import { games } from "@varagh/shared";
 import { socket } from "../app/socket";
-import { getStoredUser } from "../auth/auth-store";
 import { useTheme } from "../theme/ThemeProvider";
 import { Logo } from "../components/Logo";
 import { SoundToggle } from "../components/SoundToggle";
@@ -86,8 +85,6 @@ export function LobbyScreen() {
   const { t, i18n } = useTranslation();
   const { theme, toggle } = useTheme();
   const isRtl = i18n.language === "fa";
-
-  const user = getStoredUser();
 
   // ── Create game state (registry-driven — no game-specific hardcoding) ──
   const lang: "en" | "fa" = isRtl ? "fa" : "en";
@@ -225,14 +222,9 @@ export function LobbyScreen() {
           <Logo variant="horizontal" size={24} />
         </Link>
 
-        <div className={styles.userInfo}>
-          {user && (
-            <>
-              <span className={styles.nickname}>{user.nickname}</span>
-              <span className={styles.discriminator}>#{user.discriminator}</span>
-            </>
-          )}
-        </div>
+        {/* Spacer keeps the action buttons pinned to the trailing edge.
+            The player's display name + code now lives on the profile screen. */}
+        <div className={styles.topSpacer} />
 
         <div className={styles.topActions}>
           <Link to="/profile" className={styles.iconBtn} aria-label={t("profile.player")}>

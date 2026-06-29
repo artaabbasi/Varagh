@@ -81,15 +81,19 @@
 }
 
 /* 3p: the two upper cards sit inset from the corners so the three played
-   cards frame the centre emblem as a balanced triangle (bottom card centred). */
+   cards frame the centre emblem as a balanced triangle (bottom card centred).
+   Physical left/right (not logical inset-inline): the 3p seats are pinned to
+   physical sides — the RTL override in HokmTable keeps `seat_top_left` on the
+   physical left in both directions — and the sweep vectors use physical pixels,
+   so the played card must land in front of the same seat in LTR and RTL. */
 .slot_top_left {
   inset-block-start: 2px;
-  inset-inline-start: 16px;
+  left: 16px;
 }
 
 .slot_top_right {
   inset-block-start: 2px;
-  inset-inline-end: 16px;
+  right: 16px;
 }
 
 /* ── Review phase — golden ring pulses around the trick grid ─────── */

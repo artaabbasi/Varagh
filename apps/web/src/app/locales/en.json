@@ -176,6 +176,12 @@
   "profile": {
     "player": "Player",
     "logout": "Log out",
+    "friendCode": {
+      "label": "Friend code",
+      "hint": "Share this code so friends can add you.",
+      "copy": "Copy",
+      "copied": "Copied!"
+    },
     "edit": {
       "title": "Edit",
       "displayName": "Display name",

@@ -18,6 +18,10 @@ import { usePasurSocket } from "./usePasurSocket";
 import styles from "./PasurGame.module.css";
 
 const TURN_SECONDS = 30;
+// A capturing play first reveals the played card + its captures in the centre
+// (so both players see what happened), then sweeps them to the capturer's pile.
+const CAPTURE_REVEAL_MS = 850;
+const CAPTURE_COLLECT_MS = 620; // matches the flyTo* animation duration in CSS
 
 type Room = ReturnType<typeof usePasurSocket>["room"];
 function seatOf(room: Room, playerId: string) {
@@ -60,10 +64,14 @@ export function PasurGame() {
   const [surFlash, setSurFlash] = useState<string | null>(null);
   const [roundFlash, setRoundFlash] = useState<{ round: number; points: Record<string, number>; scores: Record<string, number> } | null>(null);
   const [ended, setEnded] = useState<{ reason: "playerLeft" | "hostEnded"; by: string | null } | null>(null);
-  // Card-flight animation state. `flying` = a captured set flying off the table
-  // to a player's pile. (Newly-laid pool cards animate in on mount via CSS.)
-  const [flying, setFlying] = useState<{ id: number; cards: Card[]; from: "top" | "bottom" } | null>(null);
-  const flyIdRef = useRef(0);
+  // Capture animation. A capturing play reveals the played card + its captures
+  // in the centre (phase "reveal"), then sweeps them to the capturer's pile
+  // (phase "collect"). (Newly-laid pool cards animate in on mount via CSS.)
+  const [capture, setCapture] = useState<
+    { id: number; played: Card; captured: Card[]; from: "top" | "bottom"; phase: "reveal" | "collect" } | null
+  >(null);
+  const captureIdRef = useRef(0);
+  const captureTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   // Stickers currently floating over each seat: playerId → { id, nonce }.
   const [stickers, setStickers] = useState<Record<string, { id: string; nonce: number }>>({});
   const stickerNonceRef = useRef(0);
@@ -123,10 +131,20 @@ export function PasurGame() {
         const from: "top" | "bottom" = d.playerId === meId ? "bottom" : "top";
         playSound(captured.length > 0 ? "trickWin" : "playCard");
         if (captured.length > 0) {
-          // The played card plus its captures fly off to the capturer's pile.
-          const id = ++flyIdRef.current;
-          setFlying({ id, cards: [d.card, ...captured], from });
-          setTimeout(() => setFlying((f) => (f && f.id === id ? null : f)), 680);
+          // Reveal the played card + its captures, then sweep them to the pile.
+          const id = ++captureIdRef.current;
+          captureTimersRef.current.forEach(clearTimeout);
+          captureTimersRef.current = [
+            setTimeout(
+              () => setCapture((c) => (c && c.id === id ? { ...c, phase: "collect" } : c)),
+              CAPTURE_REVEAL_MS,
+            ),
+            setTimeout(
+              () => setCapture((c) => (c && c.id === id ? null : c)),
+              CAPTURE_REVEAL_MS + CAPTURE_COLLECT_MS,
+            ),
+          ];
+          setCapture({ id, played: d.card, captured, from, phase: "reveal" });
         }
         // A lay-down needs no overlay — the new pool card animates in on mount.
       } else if (e.type === "sur") {
@@ -143,6 +161,12 @@ export function PasurGame() {
       }
     }
   }, [events, view]);
+
+  // Clear pending capture-animation timers on unmount.
+  useEffect(() => {
+    const timers = captureTimersRef.current;
+    return () => timers.forEach(clearTimeout);
+  }, []);
 
   // Clear any open combination picker when it stops being our turn.
   const myTurn = !!view && view.phase === "playing" && view.currentTurn === view.forPlayer;
@@ -310,14 +334,25 @@ export function PasurGame() {
                 : t("pasur.opponentTurn", { name: nameOf(room, view.currentTurn ?? opponent) })}
           </div>
 
-          {/* Captured cards flying to a pile */}
-          {flying && (
+          {/* Capture: reveal the played card + its captures, then fly to the pile */}
+          {capture && (
             <div
-              className={[styles.flyLayer, flying.from === "top" ? styles.flyUp : styles.flyDown].join(" ")}
+              className={[
+                styles.flyLayer,
+                capture.phase === "reveal"
+                  ? styles.captureReveal
+                  : capture.from === "top"
+                    ? styles.flyUp
+                    : styles.flyDown,
+              ].join(" ")}
               aria-hidden="true"
             >
-              {flying.cards.map((c, i) => (
-                <span key={`${pasurCardKey(c)}-${i}`} className={styles.flyCard} style={{ animationDelay: `${i * 45}ms` }}>
+              {[capture.played, ...capture.captured].map((c, i) => (
+                <span
+                  key={`${pasurCardKey(c)}-${i}`}
+                  className={[styles.flyCard, i === 0 ? styles.capturePlayed : ""].join(" ")}
+                  style={{ animationDelay: `${i * 45}ms` }}
+                >
                   <PlayingCard card={c} faceUp compact />
                 </span>
               ))}
