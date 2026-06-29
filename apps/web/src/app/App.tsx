@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { createBrowserRouter, RouterProvider, redirect } from "react-router-dom";
 import { SignupScreen } from "../auth/SignupScreen";
 import { SignInScreen } from "../auth/SignInScreen";
-import { HokmGame } from "../games/hokm/HokmGame";
+import { RoomRouter } from "../games/RoomRouter";
 import { LandingPage } from "../landing/LandingPage";
 import { LobbyScreen } from "../lobby/LobbyScreen";
 import { ProfileScreen } from "../profile/ProfileScreen";
@@ -38,7 +38,7 @@ const router = createBrowserRouter([
   {
     path: "/room/:code",
     loader: () => (!getStoredToken() ? redirect("/signup") : null),
-    element: <HokmGame />,
+    element: <RoomRouter />,
   },
 ]);
 

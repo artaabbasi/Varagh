@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { LobbyEntry, ActiveRoomEntry } from "@varagh/shared";
+import type { LobbyEntry, ActiveRoomEntry, VariantDefinition } from "@varagh/shared";
+import { games } from "@varagh/shared";
 import { socket } from "../app/socket";
 import { getStoredUser } from "../auth/auth-store";
 import { useTheme } from "../theme/ThemeProvider";
@@ -9,16 +10,23 @@ import { SoundToggle } from "../components/SoundToggle";
 import { FriendsPanel } from "./FriendsPanel";
 import styles from "./LobbyScreen.module.css";
 
-type Variant = "4p" | "3p" | "2p";
-
-const VARIANTS: Variant[] = ["4p", "3p", "2p"];
-
-const VARIANT_ID: Record<Variant, string> = {
-  "4p": "hokm-4p",
-  "3p": "hokm-3p",
-  "2p": "hokm-2p",
-};
 const JOIN_CODE_RE = /^[A-Za-z]{6}$/;
+
+/** Default option values for a variant, e.g. { targetScore: 7, ... }. */
+function defaultOptions(variant: VariantDefinition): Record<string, unknown> {
+  return Object.fromEntries((variant.options ?? []).map((o) => [o.key, o.default]));
+}
+
+/** Trailing player-count tag of a variant id, e.g. "hokm-2p" / "pasur-2p" → "2p". */
+function shortVariantKey(variantId: string): string {
+  return /(\d+p)$/.exec(variantId)?.[1] ?? variantId;
+}
+
+/** Display name for a game id straight from the shared registry. */
+function gameName(gameId: string, lang: "en" | "fa"): string {
+  const g = games.find((x) => x.id === gameId);
+  return g ? g.name[lang] ?? g.name.en : gameId;
+}
 
 function ProfileIcon() {
   return (
@@ -80,15 +88,34 @@ export function LobbyScreen() {
 
   const user = getStoredUser();
 
-  // ── Create game state ────────────────────────────────────────────
+  // ── Create game state (registry-driven — no game-specific hardcoding) ──
+  const lang: "en" | "fa" = isRtl ? "fa" : "en";
   const [showCreate, setShowCreate] = useState(false);
-  const [variant, setVariant] = useState<Variant>("4p");
+  const [gameId, setGameId] = useState(games[0].id);
+  const gameDef = games.find((g) => g.id === gameId) ?? games[0];
+  const [variantId, setVariantId] = useState(gameDef.variants[0].id);
+  const variantDef =
+    gameDef.variants.find((v) => v.id === variantId) ?? gameDef.variants[0];
+  const [options, setOptions] = useState<Record<string, unknown>>(() =>
+    defaultOptions(gameDef.variants[0]),
+  );
   const [isPublic, setIsPublic] = useState(false);
-  const [targetScore, setTargetScore] = useState(7);
-  // 2p-only: privately reveal each burned card to the player who burned it.
-  const [revealBurned, setRevealBurned] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  const selectGame = (id: string) => {
+    const g = games.find((x) => x.id === id) ?? games[0];
+    setGameId(id);
+    setVariantId(g.variants[0].id);
+    setOptions(defaultOptions(g.variants[0]));
+  };
+  const selectVariant = (id: string) => {
+    const v = gameDef.variants.find((x) => x.id === id) ?? gameDef.variants[0];
+    setVariantId(id);
+    setOptions(defaultOptions(v));
+  };
+  const setOption = (key: string, value: unknown) =>
+    setOptions((prev) => ({ ...prev, [key]: value }));
 
   // ── Join by code state ───────────────────────────────────────────
   const [joinCode, setJoinCode] = useState("");
@@ -146,9 +173,9 @@ export function LobbyScreen() {
     socket.emit(
       "room:create",
       {
-        gameId: "hokm",
-        variantId: VARIANT_ID[variant],
-        options: { targetScore, ...(variant === "2p" ? { revealBurned } : {}) },
+        gameId,
+        variantId,
+        options,
         isPublic,
       },
       (res) => {
@@ -237,12 +264,12 @@ export function LobbyScreen() {
                   <div className={styles.activeGameInfo}>
                     <span className={styles.activeGameName}>
                       <span className={styles.activeGameSuits} aria-hidden="true">♠♥♦♣</span>
-                      Hokm · حکم
+                      {gameName(r.gameId, lang)}
                     </span>
                     <span className={styles.activeGameMeta}>
                       {t(`room.activeGames.phaseLabel.${r.phase}`)}
                       {" · "}
-                      {t(`lobby.variants.${(r.variantId.replace(/^hokm-/, "") as "4p" | "3p" | "2p") || r.variantId}`)}
+                      {t(`lobby.variants.${shortVariantKey(r.variantId)}`, shortVariantKey(r.variantId))}
                       {" · "}
                       {t("lobby.playersLabel", { count: r.playerCount })}
                     </span>
@@ -277,88 +304,126 @@ export function LobbyScreen() {
                 </button>
               ) : (
                 <form onSubmit={handleCreate} className={styles.createForm} noValidate>
-                  {/* Game (only Hokm for now) */}
+                  {/* Game — picked from the shared registry */}
                   <div className={styles.fieldGroup}>
                     <label className={styles.label}>{t("lobby.create.game")}</label>
-                    <div className={styles.gameOption}>
-                      <span className={styles.gameOptionSuits} aria-hidden="true">♠♥♦♣</span>
-                      <span className={styles.gameOptionName}>Hokm · حکم</span>
-                    </div>
+                    {games.length > 1 ? (
+                      <div className={styles.chipGroup} role="radiogroup" aria-label={t("lobby.create.game")}>
+                        {games.map((g) => (
+                          <button
+                            key={g.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={gameId === g.id}
+                            className={`${styles.chip} ${gameId === g.id ? styles.chipSelected : ""}`}
+                            onClick={() => selectGame(g.id)}
+                          >
+                            {g.name[lang] ?? g.name.en}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className={styles.gameOption}>
+                        <span className={styles.gameOptionSuits} aria-hidden="true">♠♥♦♣</span>
+                        <span className={styles.gameOptionName}>{gameDef.name.en} · {gameDef.name.fa}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Variant */}
-                  <div className={styles.fieldGroup}>
-                    <label className={styles.label}>{t("lobby.create.variant")}</label>
-                    <div className={styles.chipGroup} role="radiogroup" aria-label={t("lobby.create.variant")}>
-                      {VARIANTS.map((v) => (
-                        <button
-                          key={v}
-                          type="button"
-                          role="radio"
-                          aria-checked={variant === v}
-                          className={`${styles.chip} ${variant === v ? styles.chipSelected : ""}`}
-                          onClick={() => setVariant(v)}
-                        >
-                          {t(`lobby.variants.${v}`)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Points to win */}
-                  <div className={styles.fieldGroup}>
-                    <label className={styles.label}>{t("lobby.create.targetScore")}</label>
-                    <div className={styles.stepper}>
-                      <button
-                        type="button"
-                        className={styles.stepperBtn}
-                        onClick={() => setTargetScore((s) => Math.max(1, s - 1))}
-                        disabled={targetScore <= 1}
-                        aria-label={t("lobby.create.targetScoreDec")}
-                      >
-                        −
-                      </button>
-                      <span className={styles.stepperValue} aria-live="polite">{targetScore}</span>
-                      <button
-                        type="button"
-                        className={styles.stepperBtn}
-                        onClick={() => setTargetScore((s) => Math.min(13, s + 1))}
-                        disabled={targetScore >= 13}
-                        aria-label={t("lobby.create.targetScoreInc")}
-                      >
-                        +
-                      </button>
-                    </div>
-                    <p className={styles.stepperHint}>{t("lobby.create.targetScoreHint")}</p>
-                  </div>
-
-                  {/* 2p-only: reveal burned cards */}
-                  {variant === "2p" && (
+                  {gameDef.variants.length > 1 && (
                     <div className={styles.fieldGroup}>
-                      <label className={styles.label}>{t("lobby.create.revealBurned")}</label>
-                      <div className={styles.chipGroup} role="radiogroup" aria-label={t("lobby.create.revealBurned")}>
-                        <button
-                          type="button"
-                          role="radio"
-                          aria-checked={!revealBurned}
-                          className={`${styles.chip} ${!revealBurned ? styles.chipSelected : ""}`}
-                          onClick={() => setRevealBurned(false)}
-                        >
-                          {t("lobby.create.off")}
-                        </button>
-                        <button
-                          type="button"
-                          role="radio"
-                          aria-checked={revealBurned}
-                          className={`${styles.chip} ${revealBurned ? styles.chipSelected : ""}`}
-                          onClick={() => setRevealBurned(true)}
-                        >
-                          {t("lobby.create.on")}
-                        </button>
+                      <label className={styles.label}>{t("lobby.create.variant")}</label>
+                      <div className={styles.chipGroup} role="radiogroup" aria-label={t("lobby.create.variant")}>
+                        {gameDef.variants.map((v) => (
+                          <button
+                            key={v.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={variantId === v.id}
+                            className={`${styles.chip} ${variantId === v.id ? styles.chipSelected : ""}`}
+                            onClick={() => selectVariant(v.id)}
+                          >
+                            {t(`lobby.variants.${shortVariantKey(v.id)}`, v.name[lang] ?? v.name.en)}
+                          </button>
+                        ))}
                       </div>
-                      <p className={styles.stepperHint}>{t("lobby.create.revealBurnedHint")}</p>
                     </div>
                   )}
+
+                  {/* Variant options — rendered generically from the registry */}
+                  {(variantDef.options ?? []).map((opt) => {
+                    const label = opt.name[lang] ?? opt.name.en;
+                    if (opt.type === "number") {
+                      const val = Number(options[opt.key]) || 0;
+                      const min = opt.min ?? 1;
+                      const max = opt.max ?? 99;
+                      return (
+                        <div key={opt.key} className={styles.fieldGroup}>
+                          <label className={styles.label}>{label}</label>
+                          <div className={styles.stepper}>
+                            <button
+                              type="button"
+                              className={styles.stepperBtn}
+                              onClick={() => setOption(opt.key, Math.max(min, val - 1))}
+                              disabled={val <= min}
+                              aria-label="−"
+                            >−</button>
+                            <span className={styles.stepperValue} aria-live="polite">{val}</span>
+                            <button
+                              type="button"
+                              className={styles.stepperBtn}
+                              onClick={() => setOption(opt.key, Math.min(max, val + 1))}
+                              disabled={val >= max}
+                              aria-label="+"
+                            >+</button>
+                          </div>
+                        </div>
+                      );
+                    }
+                    if (opt.type === "boolean") {
+                      const on = !!options[opt.key];
+                      return (
+                        <div key={opt.key} className={styles.fieldGroup}>
+                          <label className={styles.label}>{label}</label>
+                          <div className={styles.chipGroup} role="radiogroup" aria-label={label}>
+                            <button
+                              type="button"
+                              role="radio"
+                              aria-checked={!on}
+                              className={`${styles.chip} ${!on ? styles.chipSelected : ""}`}
+                              onClick={() => setOption(opt.key, false)}
+                            >{t("lobby.create.off")}</button>
+                            <button
+                              type="button"
+                              role="radio"
+                              aria-checked={on}
+                              className={`${styles.chip} ${on ? styles.chipSelected : ""}`}
+                              onClick={() => setOption(opt.key, true)}
+                            >{t("lobby.create.on")}</button>
+                          </div>
+                        </div>
+                      );
+                    }
+                    // choice
+                    return (
+                      <div key={opt.key} className={styles.fieldGroup}>
+                        <label className={styles.label}>{label}</label>
+                        <div className={styles.chipGroup} role="radiogroup" aria-label={label}>
+                          {(opt.choices ?? []).map((choice) => (
+                            <button
+                              key={String(choice)}
+                              type="button"
+                              role="radio"
+                              aria-checked={options[opt.key] === choice}
+                              className={`${styles.chip} ${options[opt.key] === choice ? styles.chipSelected : ""}`}
+                              onClick={() => setOption(opt.key, choice)}
+                            >{String(choice)}</button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
 
                   {/* Visibility */}
                   <div className={styles.fieldGroup}>
@@ -475,10 +540,10 @@ export function LobbyScreen() {
                       <div className={styles.roomInfo}>
                         <span className={styles.roomGame}>
                           <span className={styles.roomSuits} aria-hidden="true">♠♥♦♣</span>
-                          Hokm · حکم
+                          {gameName(room.gameId, lang)}
                         </span>
                         <span className={styles.roomMeta}>
-                          {t(`lobby.variants.${(room.variantId.replace(/^hokm-/, "") as Variant) || room.variantId}`)}
+                          {t(`lobby.variants.${shortVariantKey(room.variantId)}`, shortVariantKey(room.variantId))}
                           {" · "}
                           {t("lobby.hostLabel")}: {room.hostNickname}
                           {" · "}

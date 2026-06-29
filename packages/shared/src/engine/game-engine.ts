@@ -63,6 +63,9 @@ export interface VariantOption {
   type: "number" | "boolean" | "choice";
   default: unknown;
   choices?: unknown[];               // when type === "choice"
+  /** Optional bounds for `type: "number"` (the lobby renders a stepper). */
+  min?: number;
+  max?: number;
 }
 
 // ---------------------------------------------------------------------------

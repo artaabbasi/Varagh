@@ -12,6 +12,8 @@ export const variant3p: VariantDefinition = {
       name: { en: "Target score", fa: "امتیاز هدف" },
       type: "number",
       default: 7,
+      min: 1,
+      max: 13,
     },
   ],
 };

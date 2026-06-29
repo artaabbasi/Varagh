@@ -57,7 +57,11 @@
         "players": "2 · 3 · 4 players"
       },
       "shelem": { "name": "Shelem" },
-      "pasur": { "name": "Pasur" }
+      "pasur": {
+        "name": "Pasur",
+        "desc": "The classic fishing game (Chahar Barg). Capture cards that sum to 11, sweep the pool, win the clubs.",
+        "players": "2 players"
+      }
     },
     "comingSoon": "Coming soon",
     "features": {
@@ -323,6 +327,27 @@
       "button": "End Game",
       "confirm": "End the game for everyone?",
       "confirmSub": "This finishes the match for all players and returns everyone to the lobby."
+    }
+  },
+  "pasur": {
+    "you": "You",
+    "yourHand": "Your hand",
+    "pool": "Pool",
+    "poolEmpty": "Empty pool",
+    "deck": "Deck",
+    "captured": "Captured",
+    "sur": "Sur",
+    "yourTurn": "Your turn",
+    "opponentTurn": "{{name}}'s turn",
+    "chooseCombination": "Choose which cards to capture",
+    "cancel": "Cancel",
+    "gameOver": {
+      "title": "Game over",
+      "youWin": "You win!",
+      "youLose": "You lose",
+      "draw": "Draw",
+      "rematch": "Rematch",
+      "leave": "Leave"
     }
   }
 }

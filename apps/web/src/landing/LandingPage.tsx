@@ -322,14 +322,24 @@ export function LandingPage() {
                 <span className={styles.comingSoon}>{t("landing.comingSoon")}</span>
               </div>
 
-              {/* Pasur — coming soon */}
-              <div className={`${styles.gameCard} ${styles.gameSoon}`} aria-disabled="true">
+              {/* Pasur (Chahar Barg) — available */}
+              <div className={`${styles.gameCard} ${styles.gameHokm}`} onClick={handlePlay} role="button" tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter") handlePlay(); }}>
                 <div className={styles.gameCardSuits} aria-hidden="true">
                   <span data-suit="spades">♠</span><span data-suit="hearts">♥</span>
                   <span data-suit="diamonds">♦</span><span data-suit="clubs">♣</span>
                 </div>
                 <h3 className={styles.gameName}>{t("landing.games.pasur.name")}</h3>
-                <span className={styles.comingSoon}>{t("landing.comingSoon")}</span>
+                <p className={styles.gameDesc}>{t("landing.games.pasur.desc")}</p>
+                <div className={styles.gameFooter}>
+                  <span className={styles.gamePlayers}>{t("landing.games.pasur.players")}</span>
+                  <button
+                    className={styles.gamePlayBtn}
+                    onClick={(e) => { e.stopPropagation(); handlePlay(); }}
+                  >
+                    {t("landing.hero.cta")}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { RoomView, FriendEntry } from "@varagh/shared";
+import { games } from "@varagh/shared";
 import { socket } from "../../app/socket";
 import { getStoredUser } from "../../auth/auth-store";
 import styles from "./WaitingRoom.module.css";
@@ -58,6 +59,11 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
   );
   // Hokm variants are fixed-size (min === max), so the variant number is also
   // the table capacity that bots fill up to.
+  // Game name straight from the shared registry — keeps this screen reusable by
+  // every game with no game-specific branching.
+  const gameDef = games.find((g) => g.id === room.gameId);
+  const gameLabel = gameDef ? `${gameDef.name.en} · ${gameDef.name.fa}` : room.gameId;
+
   const minPlayers = minPlayersForVariant(room.variantId);
   const tableSize = minPlayers;
   const enoughPlayers = room.seats.length >= minPlayers;
@@ -119,7 +125,7 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
         {/* Header */}
         <div className={styles.header}>
           <span className={styles.logo} aria-label="Varagh">ورق</span>
-          <span className={styles.gameLabel}>Hokm · حکم · {t(`lobby.variants.${shortVariantKey(room.variantId)}`)}</span>
+          <span className={styles.gameLabel}>{gameLabel} · {t(`lobby.variants.${shortVariantKey(room.variantId)}`)}</span>
         </div>
 
         <h1 className={styles.title}>{t("room.waiting.title")}</h1>
