@@ -2,7 +2,7 @@ import type { VariantDefinition } from "../../../engine/game-engine";
 
 export const variant2p: VariantDefinition = {
   id: "pasur-2p",
-  name: { en: "2-Player Pasur", fa: "پاسور دو نفره" },
+  name: { en: "2-Player Pasur", fa: "چهاربرگ دو نفره" },
   minPlayers: 2,
   maxPlayers: 2,
   hasTeams: false,

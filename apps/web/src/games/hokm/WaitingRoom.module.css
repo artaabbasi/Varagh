@@ -60,13 +60,8 @@
 }
 
 .logo {
-  font-size: 1.375rem;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-  background: linear-gradient(120deg, var(--varagh-grad-1), var(--varagh-grad-4));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  display: inline-flex;
+  align-items: center;
 }
 
 .gameLabel {

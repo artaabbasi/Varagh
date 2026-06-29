@@ -250,7 +250,7 @@ function applyPlay(state: PasurState, player: PlayerId, move: PasurMove, rng: Rn
 
 export const pasur: GameDefinition<PasurState, PasurMove, PasurView> = {
   id: "pasur",
-  name: { en: "Pasur", fa: "پاسور" },
+  name: { en: "Pasur", fa: "چهاربرگ" },
   variants: [variant2p],
 
   setup(ctx) {

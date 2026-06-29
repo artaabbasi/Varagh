@@ -35,14 +35,10 @@
 }
 
 .navLogo {
-  font-size: 1.625rem;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-  line-height: 1;
-  background: linear-gradient(120deg, var(--varagh-grad-1), var(--varagh-grad-4));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  border-radius: var(--md-sys-shape-corner-medium);
 }
 
 .navActions {
@@ -220,10 +216,10 @@
 }
 
 .heroSub {
-  font-size: clamp(1rem, 3vw, 1.5rem);
+  font-family: var(--varagh-font-display);
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
   font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
   color: var(--md-sys-color-on-surface-variant);
   margin: 0.5rem 0 1.5rem;
 }
@@ -799,6 +795,11 @@
 
 /* ─── Footer ────────────────────────────────────────────────────── */
 .footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   text-align: center;
   padding: 1.25rem 1.5rem;
   font-size: var(--md-sys-typescale-body-small-size);

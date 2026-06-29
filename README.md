@@ -2,7 +2,7 @@
 
 Varagh is a multiplayer Persian card-games platform, shipped as an installable
 PWA. Shipped games are **Hokm** (حکم) with 2-, 3-, and 4-player variants and
-**Pasur** (پاسور / Chahar Barg), a fishing game, with a 2-player variant. The
+**Pasur** (چهاربرگ / Chahar Barg), a fishing game, with a 2-player variant. The
 server is authoritative; clients only ever receive a redacted view of the game
 state.
 

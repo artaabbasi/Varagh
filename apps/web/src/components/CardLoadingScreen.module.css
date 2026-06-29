@@ -134,27 +134,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.6rem;
   animation: fadeUp 0.8s var(--md-sys-motion-easing-decelerate, ease-out) 0.25s both;
 }
 
-.brandFa {
-  font-size: 2.6rem;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: 0.04em;
-  color: var(--md-sys-color-primary);
-  font-family: var(--md-sys-typescale-font, system-ui);
-  direction: rtl;
-}
-
 .brandEn {
-  font-size: 0.9rem;
+  font-family: var(--varagh-font-display);
+  font-size: 1.6rem;
   font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--md-sys-color-on-surface-variant);
-  font-family: var(--md-sys-typescale-font, system-ui);
+  letter-spacing: 0.005em;
+  line-height: 1;
+  color: var(--md-sys-color-on-surface);
 }
 
 /* ── Status line ───────────────────────────────────────────────── */

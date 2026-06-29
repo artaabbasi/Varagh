@@ -6,6 +6,7 @@ import { games } from "@varagh/shared";
 import { socket } from "../app/socket";
 import { getStoredUser } from "../auth/auth-store";
 import { useTheme } from "../theme/ThemeProvider";
+import { Logo } from "../components/Logo";
 import { SoundToggle } from "../components/SoundToggle";
 import { FriendsPanel } from "./FriendsPanel";
 import styles from "./LobbyScreen.module.css";
@@ -220,7 +221,9 @@ export function LobbyScreen() {
     <div className={styles.page}>
       {/* ── Top bar ── */}
       <header className={styles.topBar}>
-        <Link to="/" className={styles.logo} aria-label="Varagh">ورق</Link>
+        <Link to="/" className={styles.logo} aria-label="Varagh — home">
+          <Logo variant="horizontal" size={24} />
+        </Link>
 
         <div className={styles.userInfo}>
           {user && (

@@ -1,0 +1,48 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--logo-size) * 0.34);
+  direction: ltr; /* the lockup reads left-to-right in both fa/en */
+  line-height: 1;
+  user-select: none;
+}
+
+.icon {
+  width: var(--logo-size);
+  height: var(--logo-size);
+  display: block;
+  /* Soft brand glow so the gradient tile lifts off any surface. */
+  filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--varagh-grad-1) 40%, transparent));
+}
+
+.text {
+  display: inline-flex;
+  flex-direction: column;
+  gap: calc(var(--logo-size) * 0.08);
+}
+
+.word {
+  font-family: var(--varagh-font-display);
+  font-weight: 600;
+  font-size: calc(var(--logo-size) * 1.18);
+  letter-spacing: -0.005em;
+  line-height: 0.95;
+  color: var(--md-sys-color-on-surface);
+}
+
+.tagline {
+  font-family: var(--varagh-font-display);
+  font-weight: 600;
+  font-size: calc(var(--logo-size) * 0.32);
+  letter-spacing: 0.04em;
+}
+
+.tPlay {
+  color: var(--varagh-grad-1);
+}
+.tConnect {
+  color: var(--varagh-grad-2);
+}
+.tWin {
+  color: var(--varagh-accent-cta);
+}

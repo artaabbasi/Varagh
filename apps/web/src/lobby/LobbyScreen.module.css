@@ -21,17 +21,11 @@
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
   margin-inline-end: 0.5rem;
   text-decoration: none;
   cursor: pointer;
-  background: linear-gradient(120deg, var(--varagh-grad-1), var(--varagh-grad-4));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
   transition: opacity var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard);
 }
 

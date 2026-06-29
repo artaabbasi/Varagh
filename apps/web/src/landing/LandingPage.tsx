@@ -5,6 +5,7 @@ import type { LobbyStats } from "@varagh/shared";
 import { socket } from "../app/socket";
 import { getStoredToken, getStoredUser } from "../auth/auth-store";
 import { useTheme } from "../theme/ThemeProvider";
+import { Logo } from "../components/Logo";
 import styles from "./LandingPage.module.css";
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -186,7 +187,9 @@ export function LandingPage() {
       {/* ── Navigation ── */}
       <header className={styles.nav}>
         <nav className={styles.navInner} aria-label="Main navigation">
-          <span className={styles.navLogo} aria-label="Varagh">ورق</span>
+          <a href="/" className={styles.navLogo} aria-label="Varagh — home">
+            <Logo variant="horizontal" size={26} />
+          </a>
           <div className={styles.navActions}>
             <button className={styles.navBtn} onClick={toggleLang} aria-label="Toggle language">
               {isRtl ? "EN" : "فا"}
@@ -442,7 +445,8 @@ export function LandingPage() {
 
       {/* ── Footer ── */}
       <footer className={styles.footer}>
-        <span>ورق · Varagh · {new Date().getFullYear()}</span>
+        <Logo variant="horizontal" size={22} />
+        <span>· {new Date().getFullYear()}</span>
       </footer>
     </div>
   );

@@ -196,7 +196,7 @@ ambiguous after reading this, ask — do not invent.
 
 ## Pasur reference rules (canonical for this project)
 
-Pasur (پاسور), also called **Chahar Barg**, is a fishing game on a standard
+Pasur (چهاربرگ), also called **Chahar Barg**, is a fishing game on a standard
 52-card deck. Only the **2-player** variant ships today; it lives under
 `variants/2p.ts` so 3p/4p can be added later with no core changes. The engine is
 pure/deterministic and server-authoritative like every Varagh game.

@@ -5,6 +5,7 @@ import type { RoomView, FriendEntry } from "@varagh/shared";
 import { games } from "@varagh/shared";
 import { socket } from "../../app/socket";
 import { getStoredUser } from "../../auth/auth-store";
+import { Logo } from "../../components/Logo";
 import styles from "./WaitingRoom.module.css";
 
 interface WaitingRoomProps {
@@ -124,7 +125,7 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
       <div className={styles.panel}>
         {/* Header */}
         <div className={styles.header}>
-          <span className={styles.logo} aria-label="Varagh">ورق</span>
+          <Logo variant="horizontal" size={22} className={styles.logo} />
           <span className={styles.gameLabel}>{gameLabel} · {t(`lobby.variants.${shortVariantKey(room.variantId)}`)}</span>
         </div>
 

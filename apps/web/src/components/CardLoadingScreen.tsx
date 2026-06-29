@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Logo } from "./Logo";
 import styles from "./CardLoadingScreen.module.css";
 
 const CARDS = [
@@ -40,8 +41,8 @@ export function CardLoadingScreen() {
         ))}
       </div>
 
-      <div className={styles.brand} aria-label="Varagh">
-        <span className={styles.brandFa}>ورق</span>
+      <div className={styles.brand}>
+        <Logo variant="icon" size={72} />
         <span className={styles.brandEn}>Varagh</span>
       </div>
 

@@ -36,18 +36,13 @@
 .backBtn:hover { background: var(--md-sys-color-surface-container); }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-  /* margin-auto (not flex:1) keeps the link tight to its text so only the
+  display: inline-flex;
+  align-items: center;
+  /* margin-auto (not flex:1) keeps the link tight to its content so only the
      logo is clickable, while still pushing the actions to the far edge. */
   margin-inline-end: auto;
   text-decoration: none;
   cursor: pointer;
-  background: linear-gradient(120deg, var(--varagh-grad-1), var(--varagh-grad-4));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
   transition: opacity var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-standard);
 }
 

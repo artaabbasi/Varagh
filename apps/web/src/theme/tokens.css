@@ -80,6 +80,8 @@
 
   /* Typography scale */
   --md-sys-typescale-font: "Vazirmatn", "Inter", system-ui, sans-serif;
+  /* Brand display face — rounded geometric sans for the Varagh wordmark/logo. */
+  --varagh-font-display: "Fredoka", "Vazirmatn", system-ui, sans-serif;
   --md-sys-typescale-display-large-size: 3.5625rem;
   --md-sys-typescale-display-large-weight: 400;
   --md-sys-typescale-display-medium-size: 2.8125rem;
@@ -128,6 +130,9 @@
   --varagh-grad-5: #f59e0b; /* amber  */
   --varagh-accent-cta: #f43f5e;
   --varagh-on-cta: #ffffff;
+
+  /* The brand icon gradient (violet → magenta → rose), reusable on CTAs etc. */
+  --varagh-brand-gradient: linear-gradient(135deg, #7c3aed 0%, #b5179e 52%, #f43f5e 100%);
 }
 
 /* ── Dark theme ─────────────────────────────────────────────── */

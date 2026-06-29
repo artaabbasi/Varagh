@@ -6,6 +6,7 @@ import { games } from "@varagh/shared";
 import { socket } from "../app/socket";
 import { getStoredUser, storeUser, clearToken, type StoredUser } from "../auth/auth-store";
 import { useTheme } from "../theme/ThemeProvider";
+import { Logo } from "../components/Logo";
 import { compressImage } from "./compressImage";
 import styles from "./ProfileScreen.module.css";
 
@@ -27,7 +28,7 @@ function shortVariantKey(variantId: string) {
   return m ? `${m[1]}p` : variantId;
 }
 
-/** Game label from the shared registry: "en · fa", e.g. "Pasur · پاسور". */
+/** Game label from the shared registry: "en · fa", e.g. "Pasur · چهاربرگ". */
 function gameLabel(gameId: string): string {
   const g = games.find((x) => x.id === gameId);
   return g ? `${g.name.en} · ${g.name.fa}` : gameId;
@@ -165,7 +166,9 @@ export function ProfileScreen() {
         <button className={styles.backBtn} onClick={() => void navigate("/lobby")}>
           <BackIcon />
         </button>
-        <Link to="/" className={styles.logo} aria-label="Varagh">ورق</Link>
+        <Link to="/" className={styles.logo} aria-label="Varagh — home">
+          <Logo variant="horizontal" size={24} />
+        </Link>
         <div className={styles.topActions}>
           <button className={styles.iconBtn} onClick={() => void i18n.changeLanguage(isRtl ? "en" : "fa")}>
             {isRtl ? "EN" : "فا"}
