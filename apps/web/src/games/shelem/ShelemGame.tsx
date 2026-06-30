@@ -2,14 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { Card, GameEvent, ShelemMove, ShelemView, TrickPlay } from "@varagh/shared";
-import { shelemLegalPlays, shelemMaxBid, SHELEM_BID_STEP } from "@varagh/shared";
+import { shelemLegalPlays, shelemMaxBid, shelemSortHand, SHELEM_BID_STEP } from "@varagh/shared";
 import { socket } from "../../app/socket";
 import { playSound } from "../../app/sound";
-import { PlayingCard } from "../../components/PlayingCard";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
 import { CardLoadingScreen } from "../../components/CardLoadingScreen";
 import { CountdownRing } from "../../components/CountdownRing";
 import { TrickPile } from "../../components/TrickPile";
+import { HandFan } from "../../components/HandFan";
 import { StickerWheel } from "../hokm/StickerWheel";
 import { StickerBubble } from "../../components/stickers/StickerBubble";
 import { OpponentSeat } from "../hokm/OpponentSeat";
@@ -291,27 +291,22 @@ export function ShelemGame() {
   const teamColorFor = (idx: number) => (idx % 2 === 0 ? "primary" : "tertiary") as "primary" | "tertiary";
 
   // ── Phase-specific local-hand interactions ──
-  const legalCardKeys = new Set(
-    view.phase === "playing" && myTurn
-      ? shelemLegalPlays(view.hand, view.currentTrick).map(cardKey)
-      : [],
-  );
-  const settingTrump = view.phase === "playing" && iAmHakem && view.trumpSuit === null && view.currentTrick.length === 0;
+  // The fan is always sorted (trump first, then suit/rank). During the Hakem's
+  // exchange the "hand" is the 16 they're choosing 4 to bury from.
+  const sortedHand = shelemSortHand(view.hand, view.trumpSuit);
+  const isPlaying = view.phase === "playing";
+  const isExchanging = view.phase === "zaminExchange" && iAmHakem;
+  const legalPlayCards = isPlaying && myTurn ? shelemLegalPlays(view.hand, view.currentTrick) : [];
+  const settingTrump = isPlaying && iAmHakem && view.trumpSuit === null && view.currentTrick.length === 0;
 
-  const onHandCard = (c: Card) => {
-    if (view.phase === "playing" && myTurn && legalCardKeys.has(cardKey(c))) {
-      sendMove({ type: "playCard", card: c });
-      return;
-    }
-    if (view.phase === "zaminExchange" && iAmHakem) {
-      setDiscardSel((prev) => {
-        const has = prev.some((d) => cardKey(d) === cardKey(c));
-        if (has) return prev.filter((d) => cardKey(d) !== cardKey(c));
-        if (prev.length >= 4) return prev;
-        return [...prev, c];
-      });
-    }
-  };
+  const playCard = (c: Card) => sendMove({ type: "playCard", card: c });
+  const toggleDiscard = (c: Card) =>
+    setDiscardSel((prev) => {
+      const has = prev.some((d) => cardKey(d) === cardKey(c));
+      if (has) return prev.filter((d) => cardKey(d) !== cardKey(c));
+      if (prev.length >= 4) return prev;
+      return [...prev, c];
+    });
 
   const submitBid = () => sendMove({ type: "bid", amount: bidValue });
   const ceiling = shelemMaxBid(view.options.aceValue);
@@ -500,26 +495,25 @@ export function ShelemGame() {
             </div>
           )}
 
-          <div className={styles.hand} role="list" aria-label={t("shelem.yourHand")}>
-            {view.hand.map((c) => {
-              const selected = discardSel.some((d) => cardKey(d) === cardKey(c));
-              const playable = view.phase === "playing" && myTurn && legalCardKeys.has(cardKey(c));
-              const selectable = view.phase === "zaminExchange" && iAmHakem;
-              return (
-                <div key={cardKey(c)} className={styles.handCard} role="listitem">
-                  <PlayingCard
-                    card={c}
-                    faceUp
-                    highlighted={playable || (selectable && !selected)}
-                    disabled={!playable && !selectable}
-                    onClick={playable || selectable ? () => onHandCard(c) : undefined}
-                    className={selected ? styles.handSelected : undefined}
-                    aria-label={`${c.rank} of ${c.suit}`}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          {/* Sorted, curved hand fan — like Hokm. Playing: tap a legal card.
+              Exchange: tap to toggle the 4 to bury (lifted + ringed). */}
+          <HandFan
+            cards={sortedHand}
+            faceUp
+            trump={view.trumpSuit}
+            validCards={
+              isPlaying && myTurn
+                ? legalPlayCards
+                : isExchanging
+                  ? (discardSel.length < 4 ? sortedHand : discardSel)
+                  : undefined
+            }
+            selectedCards={isExchanging ? discardSel : undefined}
+            onPlay={
+              isPlaying && myTurn ? playCard : isExchanging ? toggleDiscard : undefined
+            }
+            className={styles.fan}
+          />
         </div>
       </div>{/* end table */}
 

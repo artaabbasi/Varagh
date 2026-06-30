@@ -18,6 +18,12 @@ interface HandFanProps {
   trump?: string | null;
   onPlay?: (card: Card) => void;
   onInvalidPlay?: (card: Card) => void;
+  /**
+   * Selection mode (e.g. Shelem's Zamin bury): cards in this list are lifted and
+   * ringed. When provided, tapping a card toggles it via `onPlay` (no follow-suit
+   * shake), and `validCards` limits which cards may still be toggled.
+   */
+  selectedCards?: Card[];
   compact?: boolean;
   className?: string;
 }
@@ -29,9 +35,11 @@ export function HandFan({
   trump,
   onPlay,
   onInvalidPlay,
+  selectedCards,
   compact = false,
   className,
 }: HandFanProps) {
+  const selectionMode = selectedCards != null;
   const [shakingCard, setShakingCard] = useState<string | null>(null);
   const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fanRef = useRef<HTMLDivElement>(null);
@@ -69,6 +77,8 @@ export function HandFan({
       if (!onPlay) return;
       const isValid = !validCards || validCards.some((v) => sameCard(v, card));
       if (!isValid) {
+        // Selection mode: silently ignore an un-toggleable card (e.g. a 5th pick).
+        if (selectionMode) return;
         const key = cardKey(card);
         setShakingCard(key);
         onInvalidPlay?.(card);
@@ -78,7 +88,7 @@ export function HandFan({
       }
       onPlay(card);
     },
-    [onPlay, onInvalidPlay, validCards],
+    [onPlay, onInvalidPlay, validCards, selectionMode],
   );
 
   if (!faceUp) {
@@ -120,13 +130,16 @@ export function HandFan({
       {cards.map((card, i) => {
         const key = cardKey(card);
         const isPlayable = !validCards || validCards.some((v) => sameCard(v, card));
+        const isSelected = selectionMode && selectedCards!.some((v) => sameCard(v, card));
         const isShaking = shakingCard === key;
         const cardIsTrump = Boolean(trump && card.suit === trump);
+        // In selection mode a card is tappable while toggleable or already chosen.
+        const tappable = isMyTurn && (selectionMode ? isPlayable || isSelected : true);
 
         return (
           <div
             key={key}
-            className={[styles.cardSlot, isShaking ? styles.shaking : null]
+            className={[styles.cardSlot, isShaking ? styles.shaking : null, isSelected ? styles.selected : null]
               .filter(Boolean)
               .join(" ")}
             style={
@@ -140,12 +153,12 @@ export function HandFan({
             <PlayingCard
               card={card}
               faceUp
-              highlighted={isMyTurn && isPlayable}
+              highlighted={isMyTurn && !selectionMode && isPlayable}
               isTrump={cardIsTrump}
-              disabled={isMyTurn && !isPlayable}
-              onClick={isMyTurn ? () => handlePlay(card) : undefined}
-              aria-label={`${card.rank} of ${card.suit}${isMyTurn && !isPlayable ? " — cannot play" : ""}`}
-              tabIndex={isMyTurn && isPlayable ? 0 : -1}
+              disabled={isMyTurn && !selectionMode && !isPlayable}
+              onClick={tappable ? () => handlePlay(card) : undefined}
+              aria-label={`${card.rank} of ${card.suit}${isSelected ? " — selected" : ""}${isMyTurn && !selectionMode && !isPlayable ? " — cannot play" : ""}`}
+              tabIndex={tappable ? 0 : -1}
             />
           </div>
         );

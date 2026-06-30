@@ -269,16 +269,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-.hand {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 8px;
-  padding-block: 2px;
-}
-.handCard { transition: transform var(--md-sys-motion-dur-short4) var(--md-sys-motion-easing-spring); }
-.handSelected { outline: 3px solid var(--md-sys-color-tertiary); outline-offset: 2px; border-radius: 8px; transform: translateY(-8px); }
+/* Curved hand fan — sized to the tray width; HandFan tightens overlap to fit. */
+.fan { width: 100%; max-width: 560px; }
 
 /* ── Bidding bar ───────────────────────────────────────────────────── */
 .bidBar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }

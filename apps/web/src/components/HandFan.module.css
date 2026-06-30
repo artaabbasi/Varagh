@@ -28,6 +28,21 @@
   margin-inline-start: 0;
 }
 
+/* Selection mode (e.g. Shelem Zamin bury): lift + ring the chosen cards. */
+.faceUp .cardSlot.selected {
+  transform: rotate(var(--rotation)) translateY(calc(var(--lift) - 20px));
+  z-index: 3;
+}
+.faceUp .cardSlot.selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  outline: 3px solid var(--md-sys-color-tertiary);
+  outline-offset: 2px;
+  pointer-events: none;
+}
+
 /* deal-in stagger */
 .faceUp .cardSlot {
   animation: fanIn var(--md-sys-motion-dur-medium4) var(--md-sys-motion-easing-spring) both;
