@@ -100,7 +100,6 @@ export function ShelemGame() {
   const [displayTrick, setDisplayTrick] = useState<TrickPlay[]>([]);
   const [reviewingWinner, setReviewingWinner] = useState<string | null>(null);
   const [sweepingWinner, setSweepingWinner] = useState<string | null>(null);
-  const [showGameOver, setShowGameOver] = useState(false);
   const sweepTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -201,13 +200,6 @@ export function ShelemGame() {
     }
   }, [events]);
 
-  // Reveal the game-over sheet only after the final trick has swept (also
-  // covers reconnecting into an already-finished game).
-  useEffect(() => {
-    if (view?.phase !== "gameOver") { setShowGameOver(false); return; }
-    const id = setTimeout(() => setShowGameOver(true), TRICK_HOLD_MS);
-    return () => clearTimeout(id);
-  }, [view?.phase]);
 
   // Seed the trick display from the authoritative view on reconnect (no events).
   useEffect(() => {
@@ -560,7 +552,7 @@ export function ShelemGame() {
       {!isGameOver && <StickerWheel />}
 
       {/* Game over */}
-      {isGameOver && showGameOver && (
+      {isGameOver && (
         <div className={styles.overlay} role="dialog" aria-modal="true">
           <div className={styles.sheet}>
             <h2 className={styles.sheetTitle}>

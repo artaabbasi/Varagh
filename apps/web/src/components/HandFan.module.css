@@ -28,19 +28,13 @@
   margin-inline-start: 0;
 }
 
-/* Selection mode (e.g. Shelem Zamin bury): lift + ring the chosen cards. */
+/* Selection mode (e.g. Shelem Zamin bury): the chosen card rises and comes in
+   front of its neighbours — no border. Tapping it again cancels the selection.
+   `!important` overrides the deal-in animation's filled transform (like .shaking). */
 .faceUp .cardSlot.selected {
-  transform: rotate(var(--rotation)) translateY(calc(var(--lift) - 20px));
-  z-index: 3;
-}
-.faceUp .cardSlot.selected::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 8px;
-  outline: 3px solid var(--md-sys-color-tertiary);
-  outline-offset: 2px;
-  pointer-events: none;
+  transform: rotate(var(--rotation)) translateY(calc(var(--lift) - 30px)) scale(1.06) !important;
+  z-index: 5;
+  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.35));
 }
 
 /* deal-in stagger */
