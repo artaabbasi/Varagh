@@ -3,9 +3,9 @@
 ## What this project is
 
 Varagh is a multiplayer Persian card games platform, shipped as an installable
-PWA. Shipped games: **Hokm** (2p / 3p / 4p variants) and **Pasur** / Chahar
-Barg (2p; more variants to come). Future games: Shelem, Haft Khabis, Poker
-(Hold'em, Omaha).
+PWA. Shipped games: **Hokm** (2p / 3p / 4p variants), **Pasur** / Chahar Barg
+(2p; more variants to come), and **Shelem** (4p partnership bidding &
+trick-taking). Future games: Haft Khabis, Poker (Hold'em, Omaha).
 
 The defining architectural promise: **adding a new game must never require
 changing core server, lobby, or auth code.** A game is one self-contained
@@ -256,6 +256,78 @@ plays computer seats and, through the platform's generic bot-takeover hook,
 substitutes for a disconnected human after the grace period (with a short
 human-like think delay in the server timer layer), reverting the instant the
 player returns.
+
+These are the house rules of record. If an implementation detail is still
+ambiguous after reading this, ask — do not invent.
+
+## Shelem reference rules (canonical for this project)
+
+Shelem (شلم) is a 4-player **partnership bidding & trick-taking** game on a
+standard 52-card deck (no jokers, rank A high → 2). Only the **4-player**
+variant ships, living under `variants/4p.ts`. Two teams of two sit across —
+seats {0,2} vs {1,3} — mirroring Hokm 4p's seat/team model exactly. The engine
+is pure/deterministic and server-authoritative like every Varagh game. Phases:
+`bidding → zaminExchange → playing → gameOver` (a finished round emits a
+`roundOver` event and immediately deals the next round's bidding).
+
+**Deal.** 12 cards to each player in batches of 4; the remaining 4 form the
+**Zamin** (زمین), face-down in the middle.
+
+**Bidding.** Rises in steps of **5 with NO minimum floor**, starting left of the
+dealer. **Pass is permanent.** Numeric bids are capped one step below the round
+total (5…160 at aceValue 10; 5…180 at 15); claiming the full total requires a
+**Shelem (slam) call**, which outranks every numeric bid. The highest bidder
+becomes **Hakem** (declarer). **If all four players pass with no bid, the deal is
+void: the dealer rotates and a fresh round is dealt.**
+
+**Zamin exchange.** The Hakem picks up the 4 Zamin (now holds 16) and buries
+**any 4 face-down into their own team's pile** — those 4 discards COUNT toward
+the team's captured points, and the buried pile also counts as one trick
+(see scoring). Back to 12 cards.
+
+**Trump.** There is **no separate trump-picker step.** After the exchange the
+Hakem **leads any card to trick 1, and that card's suit retroactively becomes
+trump** (`trumpSuit` is null until that lead). Every later trick uses normal
+follow-suit logic: follow the led suit if able, else any card; highest trump
+wins, else the highest card of the led suit.
+
+**Card-points (the exact model).** Each Ace = 10 (option: 15), each 10 = 10,
+each 5 = 5, **AND each trick won = 5**. There are 12 played tricks plus the
+buried **Zamin pile, which counts as a 13th trick** (worth 5, always the Hakem
+team's). Round total = 4×Ace + 4×10 + 4×5 + 13×5 = **165** (or **185** at
+aceValue 15) — asserted as an invariant.
+
+**Scoring per round.** The Hakem's team must reach its bid to score it; the
+opponents ALWAYS score exactly the card-points they made. Play continues across
+rounds (dealer/starter rotates each round) until a team reaches the **target
+score** (default **1165**); the higher score wins, the Hakem team taking ties.
+
+**Toggleable rules** (pre-game, via the standard `options` channel, bilingual
+fa/en, surfaced generically by the lobby; defaults noted):
+- **Failed-contract penalty** (default `simple`): `simple` = lose exactly the
+  bid; `doubled` = lose the bid, doubled when the Hakem team scored less than the
+  opponents; `yasa` = if the Hakem team scored less than the opponents, take the
+  full round total (165 / 185) as negative.
+- **Zamin reveal** (default `private`): `private` (only the Hakem sees the 4
+  Zamin) vs `reveal` (face-up to all, then the Hakem takes them) — affects
+  `getPlayerView` redaction.
+- **Target score** (numeric, default `1165`; common 600 / 1165 / 1200).
+- **Shelem (slam) reward** (default `330`): a successful slam scores `330`, or
+  `bidX2` = twice the slam's effective bid (the full round total).
+- **Ace value** (default `10`): `10` (165-point round) vs `15` (185-point round).
+- **Successful-contract score** (default `bidExact`): `bidExact` (score the bid,
+  capped) vs `actual` (score the actual card-points made, uncapped).
+
+A Shelem's effective bid for the `bidX2` reward and the failure penalty is the
+full round total (165 / 185). A failed slam pays the chosen failure penalty
+against that total.
+
+**Bot & disconnect substitution.** Shelem ships a bot (`getBotMove`) that plays
+from the redacted view only — a hand-strength bidding heuristic and a card-play
+heuristic (lead strong, follow suit, win point-rich tricks, feed points to the
+partner). Through the platform's generic bot-takeover hook it plays computer
+seats and substitutes for a disconnected human after the grace period (short
+human-like think delay in the server timer layer), reverting when they return.
 
 These are the house rules of record. If an implementation detail is still
 ambiguous after reading this, ask — do not invent.

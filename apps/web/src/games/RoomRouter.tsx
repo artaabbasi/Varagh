@@ -5,6 +5,7 @@ import { socket, setActiveRoom } from "../app/socket";
 import { CardLoadingScreen } from "../components/CardLoadingScreen";
 import { HokmGame } from "./hokm/HokmGame";
 import { PasurGame } from "./pasur/PasurGame";
+import { ShelemGame } from "./shelem/ShelemGame";
 
 /**
  * Web game-UI registry — the client-side mirror of the shared `games` registry.
@@ -13,6 +14,7 @@ import { PasurGame } from "./pasur/PasurGame";
 const GAME_UI: Record<string, ComponentType> = {
   hokm: HokmGame,
   pasur: PasurGame,
+  shelem: ShelemGame,
 };
 
 /**

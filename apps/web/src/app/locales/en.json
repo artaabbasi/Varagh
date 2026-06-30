@@ -56,7 +56,11 @@
         "desc": "The classic Persian trick-taking game. Choose trump, follow suit, race to 7 points.",
         "players": "2 · 3 · 4 players"
       },
-      "shelem": { "name": "Shelem" },
+      "shelem": {
+        "name": "Shelem",
+        "desc": "The Persian partnership bidding game. Win the auction, set trump with your first lead, and capture Aces, 10s, 5s and tricks to make your contract.",
+        "players": "4 players"
+      },
       "pasur": {
         "name": "Pasur",
         "desc": "The classic fishing game (Chahar Barg). Capture cards that sum to 11, sweep the pool, win the clubs.",
@@ -73,9 +77,18 @@
     },
     "howto": {
       "title": "How to Play",
-      "s1": { "title": "Create an account", "desc": "Just a username and password — no email needed" },
-      "s2": { "title": "Create or join a room", "desc": "Share the 6-letter code with friends" },
-      "s3": { "title": "Play!", "desc": "First team to 7 points wins the game" }
+      "s1": {
+        "title": "Create an account",
+        "desc": "Just a username and password — no email needed"
+      },
+      "s2": {
+        "title": "Create or join a room",
+        "desc": "Share the 6-letter code with friends"
+      },
+      "s3": {
+        "title": "Play!",
+        "desc": "First team to 7 points wins the game"
+      }
     },
     "contact": {
       "title": "Get in touch",
@@ -163,6 +176,30 @@
           "Chase clubs — having the most clubs is worth a flat 7 points.",
           "The 10♦ (3 points) and 2♣ (2 points) are prize cards; grab them whenever you can.",
           "Watch for Sur chances to clear the pool and steal 5 quick points."
+        ]
+      },
+      "shelem": {
+        "name": "Shelem",
+        "tagline": "Persian partnership bidding & trick-taking",
+        "players": "4 players",
+        "goal": "With your partner across the table, win the auction and capture enough card-points (Aces, 10s, 5s) and tricks to make your bid. The first team to the target score wins.",
+        "basics": [
+          "Four players in two teams sit across — you and the player opposite are partners.",
+          "Each player is dealt 12 cards; the last 4 form the Zamin (زمین), face-down in the middle.",
+          "Bidding rises in steps of 5 with no minimum, starting left of the dealer. Passing is permanent, and a Shelem (slam) call beats every number.",
+          "The highest bidder becomes the Hakem (declarer): they take the 4 Zamin cards, then bury any 4 face-down — those buried cards count for the Hakem's team.",
+          "There is no separate trump pick: the Hakem leads any card to the first trick, and that card's suit becomes trump.",
+          "Follow the led suit if you can; otherwise play anything. The highest trump wins a trick, else the highest card of the led suit.",
+          "Card-points: each Ace = 10, each 10 = 10, each 5 = 5, and each trick won = 5 — 165 points in a round.",
+          "The Hakem's team must reach its bid to score it; the opponents always score exactly what they captured. First team to the target score (default 1165) wins."
+        ],
+        "tips": [
+          "Only bid what your long suit and high cards can truly take — a failed contract is subtracted from your score.",
+          "As Hakem, bury your weakest off-suit cards in the Zamin to create voids you can trump later.",
+          "Feed Aces, 10s and 5s into tricks your partner already controls; throw your worthless cards when an opponent has the trick.",
+          "Failed-contract penalty (table option): ‘simple’ loses the bid; ‘doubled’ doubles it when your team trails the opponents; ‘yasa’ costs the full 165 when your team trails.",
+          "Zamin reveal (option): ‘private’ shows the Zamin only to the Hakem; ‘reveal’ turns it face-up to everyone before the Hakem takes it.",
+          "More options: Shelem reward (a flat 330 or double the bid), Ace value (10 → 165 per round, or 15 → 185), and Successful score (exactly the bid, or the actual points made)."
         ]
       }
     }
@@ -439,6 +476,55 @@
       "draw": "Draw",
       "rematch": "Rematch",
       "leave": "Leave"
+    }
+  },
+  "shelem": {
+    "you": "You",
+    "usTeam": "Your team",
+    "themTeam": "Opponents",
+    "round": "Round {{n}}",
+    "bidding": "Bidding",
+    "slam": "Shelem",
+    "contract": "Bid {{n}}",
+    "toTarget": "to {{n}}",
+    "trick": "Trick",
+    "exchangeInProgress": "Hakem is burying the Zamin…",
+    "leadSetsTrump": "Your lead sets trump",
+    "yourTurn": "Your turn",
+    "yourBid": "Your bid",
+    "yourExchange": "Bury 4 cards",
+    "waitingFor": "{{name}} is thinking…",
+    "points": "{{n}} pts",
+    "buryHint": "Selected {{n}}/4 to bury",
+    "buryConfirm": "Bury & start",
+    "bid": "Bid",
+    "callShelem": "Shelem!",
+    "pass": "Pass",
+    "passed": "Passed",
+    "yourHand": "Your hand",
+    "hakemShort": "Hakem",
+    "trumpIs": "Trump is {{suit}}",
+    "highBid": "High bid {{n}} — {{name}}",
+    "slamCalled": "{{name}} called Shelem!",
+    "noBidYet": "No bid yet",
+    "suits": {
+      "hearts": "Hearts",
+      "diamonds": "Diamonds",
+      "clubs": "Clubs",
+      "spades": "Spades"
+    },
+    "roundOver": {
+      "title": "Round over",
+      "made": "Contract made!",
+      "failed": "Contract failed",
+      "continue": "Continue"
+    },
+    "gameOver": {
+      "title": "Game over",
+      "youWin": "Your team wins!",
+      "youLose": "Opponents win",
+      "leave": "Leave",
+      "rematch": "Rematch"
     }
   }
 }

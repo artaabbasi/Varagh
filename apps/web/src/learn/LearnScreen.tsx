@@ -6,7 +6,7 @@ import { Logo } from "../components/Logo";
 import styles from "./LearnScreen.module.css";
 
 /** Games covered by the beginner guide, in display order. */
-const LEARN_GAMES = ["hokm", "pasur"] as const;
+const LEARN_GAMES = ["hokm", "shelem", "pasur"] as const;
 
 function BackIcon() {
   return (
