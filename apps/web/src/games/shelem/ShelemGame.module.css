@@ -6,7 +6,7 @@
   background: var(--md-sys-color-surface-container-lowest);
 }
 
-/* ── 4-seat table grid ─────────────────────────────────────────────── */
+/* ── 4-seat table grid (mirrors Hokm 4p) ───────────────────────────── */
 .table {
   position: relative;
   width: 100%;
@@ -14,11 +14,13 @@
   display: grid;
   grid-template-areas:
     "score  score  score"
-    "left   top    right"
+    ".      top    ."
     "left   center right"
     "bottom bottom bottom";
   grid-template-rows: auto auto 1fr auto;
-  grid-template-columns: minmax(0, auto) 1fr minmax(0, auto);
+  /* Fixed symmetric side columns (132px matches OpponentSeat's max-width) so
+     the centre never drifts when nicknames differ in length. */
+  grid-template-columns: minmax(0, 132px) 1fr minmax(0, 132px);
   gap: 8px;
   padding: 12px;
 }
@@ -27,11 +29,16 @@
 .table > .seat_top { grid-area: top; justify-self: center; align-self: start; z-index: 1; }
 .table > .seat_left { grid-area: left; justify-self: start; align-self: center; z-index: 1; }
 .table > .seat_right { grid-area: right; justify-self: end; align-self: center; z-index: 1; }
-.table > .center { grid-area: center; position: relative; z-index: 1; }
+/* RTL: the grid columns reverse, so swap the seat areas to pin each seat (and
+   its played card) to a fixed PHYSICAL side in both directions. */
+[dir="rtl"] .table > .seat_left { grid-area: right; justify-self: end; }
+[dir="rtl"] .table > .seat_right { grid-area: left; justify-self: start; }
+/* Trick area above the local hand so card fly-in isn't clipped. */
+.table > .center { grid-area: center; position: relative; z-index: 2; }
 .table > .localHand { grid-area: bottom; position: relative; z-index: 10; }
 
 @media (max-width: 480px) {
-  .table { gap: 4px; padding: 6px; }
+  .table { grid-template-columns: minmax(0, 76px) 1fr minmax(0, 76px); gap: 4px; padding: 6px; }
 }
 
 /* ── Decorative felt ───────────────────────────────────────────────── */
@@ -166,33 +173,11 @@
   gap: 12px;
   min-height: 0;
 }
-.trick {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  max-width: 460px;
-  min-height: 90px;
-  padding: 10px;
-  border-radius: var(--md-sys-shape-corner-large);
-  background: color-mix(in srgb, var(--md-sys-color-surface-container) 45%, transparent);
-}
-.trickEmpty { font-size: var(--md-sys-typescale-body-medium-size); color: var(--md-sys-color-on-surface-variant); }
-.trickCard { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.trickName {
-  font-size: var(--md-sys-typescale-label-small-size);
+.trickArea { width: 100%; }
+.centerHint {
+  font-size: var(--md-sys-typescale-body-medium-size);
   color: var(--md-sys-color-on-surface-variant);
-  max-width: 8ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.trickDrop { display: inline-flex; animation: trickDrop 300ms var(--md-sys-motion-easing-spring) both; }
-@keyframes trickDrop {
-  0% { transform: translateY(-40px) scale(0.6) rotate(-6deg); opacity: 0; }
-  70% { transform: translateY(3px) scale(1.05); opacity: 1; }
-  100% { transform: none; opacity: 1; }
+  text-align: center;
 }
 
 .turnPill {

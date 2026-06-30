@@ -418,16 +418,20 @@ export function LobbyScreen() {
                       <div key={opt.key} className={styles.fieldGroup}>
                         <label className={styles.label}>{label}</label>
                         <div className={styles.chipGroup} role="radiogroup" aria-label={label}>
-                          {(opt.choices ?? []).map((choice) => (
-                            <button
-                              key={String(choice)}
-                              type="button"
-                              role="radio"
-                              aria-checked={options[opt.key] === choice}
-                              className={`${styles.chip} ${options[opt.key] === choice ? styles.chipSelected : ""}`}
-                              onClick={() => setOption(opt.key, choice)}
-                            >{String(choice)}</button>
-                          ))}
+                          {(opt.choices ?? []).map((choice) => {
+                            const ck = String(choice);
+                            const clabel = opt.choiceLabels?.[ck]?.[lang] ?? opt.choiceLabels?.[ck]?.en ?? ck;
+                            return (
+                              <button
+                                key={ck}
+                                type="button"
+                                role="radio"
+                                aria-checked={options[opt.key] === choice}
+                                className={`${styles.chip} ${options[opt.key] === choice ? styles.chipSelected : ""}`}
+                                onClick={() => setOption(opt.key, choice)}
+                              >{clabel}</button>
+                            );
+                          })}
                         </div>
                       </div>
                     );

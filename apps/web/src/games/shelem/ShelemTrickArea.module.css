@@ -1,0 +1,96 @@
+.area {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+}
+
+/* ── Center trump indicator ─────────────────────────────────────── */
+.trumpIndicator {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-surface-container);
+  box-shadow: var(--md-sys-elevation-1);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  z-index: 0;
+  pointer-events: none;
+}
+.trumpSymbol { font-size: 22px; line-height: 1; }
+.red { color: #c1121f; }
+.black { color: var(--md-sys-color-on-surface); }
+[data-theme="dark"] .black { color: #e6e1e5; }
+
+/* ── Trick grid ─────────────────────────────────────────────────── */
+.trickGrid {
+  position: relative;
+  width: 180px;
+  height: 150px;
+  z-index: 1;
+  overflow: visible; /* let swept cards fly outside the grid bounds */
+}
+.cardSlot { position: absolute; }
+
+.slot_bottom { inset-block-end: 0; inset-inline: 0; margin: auto; width: fit-content; }
+.slot_top { inset-block-start: 0; inset-inline: 0; margin: auto; width: fit-content; }
+/* Physical left/right (not logical) so the card lands in front of the same
+   seat in both LTR and RTL — the seats are pinned to physical sides via the
+   grid-area RTL overrides, and the sweep vectors use physical pixels. */
+.slot_left { left: 0; inset-block: 0; margin: auto; height: fit-content; }
+.slot_right { right: 0; inset-block: 0; margin: auto; height: fit-content; }
+
+/* ── Review phase — golden ring pulses around the trick grid ─────── */
+.reviewing::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 16px;
+  border: 2px solid rgba(201, 151, 26, 0.65);
+  box-shadow: 0 0 18px 4px rgba(201, 151, 26, 0.22);
+  animation: reviewRing 0.5s var(--md-sys-motion-easing-decelerate) both;
+  pointer-events: none;
+  z-index: 3;
+}
+@keyframes reviewRing {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Winner card pops with a golden glow during review ───────────── */
+.winnerHighlight {
+  z-index: 2;
+  animation: winnerPop 0.45s var(--md-sys-motion-easing-spring) 0.08s both;
+}
+@keyframes winnerPop {
+  0%   { transform: scale(1)    translateY(0);    filter: none; }
+  55%  { transform: scale(1.22) translateY(-6px); filter: drop-shadow(0 6px 14px rgba(201, 151, 26, 0.8)); }
+  100% { transform: scale(1.12) translateY(-3px); filter: drop-shadow(0 3px 9px  rgba(201, 151, 26, 0.55)); }
+}
+
+/* ── Trick sweep — cards gather and fly to the winner's seat ──────── */
+@keyframes sweepCard {
+  0%   { transform: translate(0, 0) scale(1);    opacity: 1; }
+  15%  { transform: translate(0, 0) scale(1.08); opacity: 1; }
+  65%  { opacity: 0.85; }
+  100% { transform: translate(var(--sweep-x, 0px), var(--sweep-y, 0px)) scale(0.28) rotate(12deg); opacity: 0; }
+}
+.sweeping {
+  animation: sweepCard 0.6s var(--md-sys-motion-easing-accelerate) forwards;
+  animation-delay: var(--sweep-delay, 0ms);
+}
+
+@media (max-width: 480px) {
+  .area { min-height: unset; }
+  .trickGrid { width: min(180px, 100%); height: auto; aspect-ratio: 180 / 150; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reviewing::after, .winnerHighlight, .sweeping { animation: none; }
+}

@@ -63,6 +63,12 @@ export interface VariantOption {
   type: "number" | "boolean" | "choice";
   default: unknown;
   choices?: unknown[];               // when type === "choice"
+  /**
+   * Optional localized labels for `type: "choice"` values, keyed by
+   * `String(choice)`. The lobby renders these (falling back to the raw value)
+   * so choice options aren't shown as bare identifiers in a non-English UI.
+   */
+  choiceLabels?: Record<string, Record<string, string>>;
   /** Optional bounds for `type: "number"` (the lobby renders a stepper). */
   min?: number;
   max?: number;

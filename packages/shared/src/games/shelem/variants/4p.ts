@@ -22,6 +22,11 @@ export const variant4p: VariantDefinition = {
       type: "choice",
       default: "simple",
       choices: ["simple", "doubled", "yasa"],
+      choiceLabels: {
+        simple: { en: "Simple", fa: "ساده" },
+        doubled: { en: "Doubled", fa: "دوبرابر" },
+        yasa: { en: "Yasa (full 165)", fa: "یاسا (کل ۱۶۵)" },
+      },
     },
     {
       key: "zaminReveal",
@@ -29,6 +34,10 @@ export const variant4p: VariantDefinition = {
       type: "choice",
       default: "private",
       choices: ["private", "reveal"],
+      choiceLabels: {
+        private: { en: "Private", fa: "خصوصی" },
+        reveal: { en: "Face-up", fa: "رو" },
+      },
     },
     {
       key: "shelemReward",
@@ -36,6 +45,10 @@ export const variant4p: VariantDefinition = {
       type: "choice",
       default: "330",
       choices: ["330", "bidX2"],
+      choiceLabels: {
+        "330": { en: "330", fa: "۳۳۰" },
+        bidX2: { en: "Double the bid", fa: "دو برابر پیشنهاد" },
+      },
     },
     {
       key: "aceValue",
@@ -43,6 +56,10 @@ export const variant4p: VariantDefinition = {
       type: "choice",
       default: 10,
       choices: [10, 15],
+      choiceLabels: {
+        "10": { en: "10 (165 a round)", fa: "۱۰ (۱۶۵ در دست)" },
+        "15": { en: "15 (185 a round)", fa: "۱۵ (۱۸۵ در دست)" },
+      },
     },
     {
       key: "successScore",
@@ -50,6 +67,10 @@ export const variant4p: VariantDefinition = {
       type: "choice",
       default: "bidExact",
       choices: ["bidExact", "actual"],
+      choiceLabels: {
+        bidExact: { en: "Exactly the bid", fa: "دقیقاً پیشنهاد" },
+        actual: { en: "Actual points made", fa: "امتیاز واقعی" },
+      },
     },
   ],
 };

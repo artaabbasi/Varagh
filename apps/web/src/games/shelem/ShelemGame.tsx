@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { Card, GameEvent, ShelemMove, ShelemView } from "@varagh/shared";
+import type { Card, GameEvent, ShelemMove, ShelemView, TrickPlay } from "@varagh/shared";
 import { shelemLegalPlays, shelemMaxBid, SHELEM_BID_STEP } from "@varagh/shared";
 import { socket } from "../../app/socket";
 import { playSound } from "../../app/sound";
@@ -14,6 +14,8 @@ import { StickerWheel } from "../hokm/StickerWheel";
 import { StickerBubble } from "../../components/stickers/StickerBubble";
 import { OpponentSeat } from "../hokm/OpponentSeat";
 import { WaitingRoom } from "../hokm/WaitingRoom";
+import { ShelemTrickArea, type Pos } from "./ShelemTrickArea";
+import { TRICK_REVIEW_MS, TRICK_SWEEP_MS, TRICK_HOLD_MS, POINT_DELAY_MS } from "./timing";
 import { useShelemSocket } from "./useShelemSocket";
 import styles from "./ShelemGame.module.css";
 
@@ -49,6 +51,30 @@ interface RoundOverData {
   scores: number[];
 }
 
+/**
+ * Hold the previous per-team trick counts for POINT_DELAY_MS after they rise,
+ * so the trick piles tick up in time with the sweep animation (mirrors Hokm).
+ */
+function useDelayedTeamTricks(tricks: number[]): number[] {
+  const [shown, setShown] = useState<number[]>(tricks);
+  const prevRef = useRef<number[]>(tricks);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const prev = prevRef.current;
+    const rose = tricks.some((t, i) => t > (prev[i] ?? 0));
+    if (rose) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => { prevRef.current = tricks; setShown(tricks); }, POINT_DELAY_MS);
+    } else {
+      prevRef.current = tricks;
+      setShown(tricks);
+    }
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tricks.join(",")]);
+  return shown;
+}
+
 export function ShelemGame() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
@@ -64,6 +90,22 @@ export function ShelemGame() {
   const [stickers, setStickers] = useState<Record<string, { id: string; nonce: number }>>({});
   const stickerNonceRef = useRef(0);
   const stickerTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // ── Trick display (event-driven, not state-driven) ──
+  // currentTrickRef accumulates cards as they're played; isTrickCompleteRef
+  // freezes the completed trick on screen through the review + sweep animation.
+  const currentTrickRef = useRef<TrickPlay[]>([]);
+  const isTrickCompleteRef = useRef(false);
+  const [displayTrick, setDisplayTrick] = useState<TrickPlay[]>([]);
+  const [reviewingWinner, setReviewingWinner] = useState<string | null>(null);
+  const [sweepingWinner, setSweepingWinner] = useState<string | null>(null);
+  const [showGameOver, setShowGameOver] = useState(false);
+  const sweepTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    const timers = sweepTimersRef.current;
+    return () => timers.forEach(clearTimeout);
+  }, []);
 
   // Join (or rejoin) on mount — RoomRouter owns active-room registration.
   useEffect(() => {
@@ -104,26 +146,80 @@ export function ShelemGame() {
     };
   }, []);
 
-  // Sound + round/trump feedback from the event stream.
+  // Sound + trick-animation + round/trump feedback from the event stream.
   const lastEventRef = useRef<GameEvent[]>([]);
   useEffect(() => {
     if (events === lastEventRef.current) return;
     lastEventRef.current = events;
     for (const e of events) {
-      if (e.type === "cardPlayed") playSound("playCard");
-      else if (e.type === "trickWon") playSound("trickWin");
-      else if (e.type === "bidPlaced" || e.type === "passed") playSound("turnTick");
-      else if (e.type === "trumpSet") {
+      if (e.type === "cardPlayed") {
+        playSound("playCard");
+        const d = e.data as { playerId: string; card: Card };
+        const updated = [...currentTrickRef.current, { playerId: d.playerId, card: d.card }];
+        currentTrickRef.current = updated;
+        // Only push to the display while no sweep is in flight; during the
+        // review/sweep the completed trick stays frozen on screen.
+        if (!isTrickCompleteRef.current) setDisplayTrick(updated);
+      } else if (e.type === "trickWon") {
+        playSound("trickWin");
+        const winnerId = (e.data as { winnerId: string }).winnerId;
+        // REVIEW (all cards visible, winner highlighted) → SWEEP (fly to seat) → CLEAR.
+        isTrickCompleteRef.current = true;
+        currentTrickRef.current = []; // ready to accumulate the next trick
+        setSweepingWinner(null);
+        setReviewingWinner(winnerId);
+        const reviewTimer = setTimeout(() => {
+          setReviewingWinner(null);
+          setSweepingWinner(winnerId);
+          const sweepTimer = setTimeout(() => {
+            setSweepingWinner(null);
+            isTrickCompleteRef.current = false;
+            // Flush any cards that arrived during the animation, or clear.
+            setDisplayTrick(currentTrickRef.current.length > 0 ? [...currentTrickRef.current] : []);
+          }, TRICK_SWEEP_MS);
+          sweepTimersRef.current.push(sweepTimer);
+        }, TRICK_REVIEW_MS);
+        sweepTimersRef.current.push(reviewTimer);
+      } else if (e.type === "bidPlaced" || e.type === "passed") {
+        playSound("turnTick");
+      } else if (e.type === "trumpSet") {
         const suit = (e.data as { suit: string }).suit;
         playSound("trumpChosen");
         setTrumpFlash(suit);
-        setTimeout(() => setTrumpFlash(null), 2000);
+        const id = setTimeout(() => setTrumpFlash(null), 2000);
+        sweepTimersRef.current.push(id);
       } else if (e.type === "roundOver") {
         playSound("trickWin");
-        setRoundFlash(e.data as RoundOverData);
-      } else if (e.type === "gameOver") playSound("gameWin");
+        // Hold the summary back until the final trick has reviewed + swept.
+        const data = e.data as RoundOverData;
+        const id = setTimeout(() => setRoundFlash(data), TRICK_HOLD_MS);
+        sweepTimersRef.current.push(id);
+      } else if (e.type === "gameOver") {
+        playSound("gameWin");
+      }
     }
   }, [events]);
+
+  // Reveal the game-over sheet only after the final trick has swept (also
+  // covers reconnecting into an already-finished game).
+  useEffect(() => {
+    if (view?.phase !== "gameOver") { setShowGameOver(false); return; }
+    const id = setTimeout(() => setShowGameOver(true), TRICK_HOLD_MS);
+    return () => clearTimeout(id);
+  }, [view?.phase]);
+
+  // Seed the trick display from the authoritative view on reconnect (no events).
+  useEffect(() => {
+    if (isTrickCompleteRef.current || !view) return;
+    if (view.currentTrick.length > 0 && displayTrick.length === 0) {
+      currentTrickRef.current = view.currentTrick;
+      setDisplayTrick(view.currentTrick);
+    } else if (view.currentTrick.length === 0 && displayTrick.length > 0 &&
+               currentTrickRef.current.length === 0 && reviewingWinner === null && sweepingWinner === null) {
+      setDisplayTrick([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view?.currentTrick]);
 
   // Reset the discard selection whenever we leave the exchange.
   useEffect(() => {
@@ -173,8 +269,18 @@ export function ShelemGame() {
     });
   }, [view, meIdx]);
 
+  // Per-team trick counts that lag the raw view so they land with the sweep.
+  const delayedTricks = useDelayedTeamTricks(view?.tricksWonTeam ?? [0, 0]);
+
   if (room?.phase === "lobby") return <WaitingRoom room={room} />;
   if (!view) return <CardLoadingScreen />;
+
+  // Full seat-position map (local player at the bottom) for the trick area.
+  const seatPositions = new Map<number, Pos>();
+  seatPositions.set(meIdx, "bottom");
+  seatPositions.set((meIdx + 1) % 4, "left");
+  seatPositions.set((meIdx + 2) % 4, "top");
+  seatPositions.set((meIdx + 3) % 4, "right");
 
   const myTeam = meIdx % 2;
   const oppTeam = myTeam === 0 ? 1 : 0;
@@ -276,7 +382,7 @@ export function ShelemGame() {
             isTurn={!isGameOver && view.currentTurn === playerId}
             avatarUrl={avatarOf(room, playerId)}
             handSize={view.handSizes[idx]}
-            trickCount={view.tricksWonTeam[idx % 2]}
+            trickCount={delayedTricks[idx % 2]}
             teamColor={teamColorFor(idx)}
             position={pos}
             sticker={stickers[playerId] ?? null}
@@ -289,26 +395,22 @@ export function ShelemGame() {
           {view.phase === "bidding" ? (
             <BiddingStatus view={view} room={room} t={t} />
           ) : (
-            <div className={styles.trick} aria-label={t("shelem.trick")}>
-              {view.currentTrick.length === 0 ? (
-                <span className={styles.trickEmpty}>
-                  {view.phase === "zaminExchange"
-                    ? t("shelem.exchangeInProgress")
-                    : settingTrump
-                      ? t("shelem.leadSetsTrump")
-                      : "·"}
+            <>
+              <ShelemTrickArea
+                trick={displayTrick}
+                players={view.players}
+                seatPositions={seatPositions}
+                trumpSuit={view.trumpSuit}
+                reviewingWinner={reviewingWinner}
+                sweepingWinner={sweepingWinner}
+                className={styles.trickArea}
+              />
+              {(view.phase === "zaminExchange" || settingTrump) && displayTrick.length === 0 && (
+                <span className={styles.centerHint}>
+                  {view.phase === "zaminExchange" ? t("shelem.exchangeInProgress") : t("shelem.leadSetsTrump")}
                 </span>
-              ) : (
-                view.currentTrick.map((tp) => (
-                  <div key={cardKey(tp.card)} className={styles.trickCard}>
-                    <span className={styles.trickName}>{tp.playerId === me ? t("shelem.you") : nameOf(room, tp.playerId)}</span>
-                    <span className={styles.trickDrop}>
-                      <PlayingCard card={tp.card} faceUp compact />
-                    </span>
-                  </div>
-                ))
               )}
-            </div>
+            </>
           )}
 
           <div className={styles.turnPill}>
@@ -467,7 +569,7 @@ export function ShelemGame() {
       {!isGameOver && <StickerWheel />}
 
       {/* Game over */}
-      {isGameOver && (
+      {isGameOver && showGameOver && (
         <div className={styles.overlay} role="dialog" aria-modal="true">
           <div className={styles.sheet}>
             <h2 className={styles.sheetTitle}>
