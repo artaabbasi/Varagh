@@ -10,7 +10,6 @@ import type {
 } from "../../engine/game-engine";
 import type { ShelemMove, ShelemOptions, ShelemState, ShelemView } from "./state";
 import {
-  SUITS,
   bidLegal,
   cardKey,
   cardPointsOf,
@@ -18,7 +17,6 @@ import {
   createDeck,
   legalPlays,
   lowestCard,
-  mostCommonSuit,
   moveEquals,
   numericBidOptions,
   roundTotalPoints,
@@ -26,7 +24,7 @@ import {
   scoreRound,
   trickWinner,
 } from "./rules";
-import { shelemBidMove, shelemDiscardMove, shelemPlayMove, shelemTrumpMove } from "./bot";
+import { shelemBidMove, shelemDiscardMove, shelemPlayMove } from "./bot";
 import { variant4p } from "./variants/4p";
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -243,37 +241,20 @@ function applyDiscard(state: ShelemState, cards: Card[]): MoveResult<ShelemState
   ];
 
   // The buried pile is credited to the Hakem's team's tally only at round end
-  // (see scoreRound); capturedTeam still holds only trick cards until then. After
-  // burying, the Hakem names the trump (حکم) suit before leading the first trick.
-  return {
-    ok: true,
-    state: {
-      ...state,
-      phase: "chooseTrump",
-      hands: { ...state.hands, [hakem]: newHand },
-      zamin: [],
-      zaminPile: cards,
-      currentTurn: hakem,
-    },
-    events,
-  };
-}
-
-// ── Choose trump (حکم) ─────────────────────────────────────────────────────────
-
-function applyChooseTrump(state: ShelemState, suit: Suit): MoveResult<ShelemState> {
-  const hakem = state.players[state.hakemIndex!];
+  // (see scoreRound); capturedTeam still holds only trick cards until then.
   return {
     ok: true,
     state: {
       ...state,
       phase: "playing",
-      trumpSuit: suit,
+      hands: { ...state.hands, [hakem]: newHand },
+      zamin: [],
+      zaminPile: cards,
       trickLeaderIndex: state.hakemIndex!,
       currentTrick: [],
       currentTurn: hakem,
     },
-    events: [{ type: "trumpSet", data: { suit }, visibility: { kind: "public" } }],
+    events,
   };
 }
 
@@ -284,18 +265,23 @@ function applyPlayCard(state: ShelemState, player: PlayerId, card: Card, rng: Rn
   const newHands = { ...state.hands, [player]: removeOneCard(state.hands[player] ?? [], card) };
   const newTrick = [...state.currentTrick, { playerId: player, card }];
 
-  // Trump (حکم) is always named before the playing phase begins.
-  const trumpSuit = state.trumpSuit;
-  const events: GameEvent[] = [
-    { type: "cardPlayed", data: { playerId: player, card }, visibility: { kind: "public" } },
-  ];
+  const events: GameEvent[] = [];
+
+  // The Hakem's very first lead retroactively sets trump.
+  let trumpSuit = state.trumpSuit;
+  if (trumpSuit === null) {
+    trumpSuit = card.suit;
+    events.push({ type: "trumpSet", data: { suit: trumpSuit }, visibility: { kind: "public" } });
+  }
+
+  events.push({ type: "cardPlayed", data: { playerId: player, card }, visibility: { kind: "public" } });
 
   // Trick still in progress — advance the turn.
   if (newTrick.length < state.players.length) {
     const nextIdx = (playerIdx + 1) % state.players.length;
     return {
       ok: true,
-      state: { ...state, hands: newHands, currentTrick: newTrick, currentTurn: state.players[nextIdx] },
+      state: { ...state, hands: newHands, currentTrick: newTrick, trumpSuit, currentTurn: state.players[nextIdx] },
       events,
     };
   }
@@ -421,11 +407,6 @@ export const shelem: GameDefinition<ShelemState, ShelemMove, ShelemView> = {
       return combinations(hakemHolding(state), DISCARD_SIZE).map(cards => ({ type: "discard" as const, cards }));
     }
 
-    if (state.phase === "chooseTrump") {
-      if (state.hakemIndex !== seat) return [];
-      return SUITS.map(suit => ({ type: "chooseTrump" as const, suit }));
-    }
-
     if (state.phase === "playing") {
       return legalPlays(state.hands[player] ?? [], state.currentTrick).map(card => ({
         type: "playCard" as const,
@@ -470,14 +451,6 @@ export const shelem: GameDefinition<ShelemState, ShelemMove, ShelemView> = {
         if (!isValidDiscard(hakemHolding(state), move.cards))
           return err("RULE_VIOLATION", "Pick exactly 4 cards from your hand to bury.", "دقیقاً ۴ کارت از دست خود برای زمین انتخاب کنید.");
         return applyDiscard(state, move.cards);
-      }
-
-      case "chooseTrump": {
-        if (state.hakemIndex !== seat)
-          return err("NOT_YOUR_TURN", "Only the Hakem names trump.", "فقط حاکم حکم را انتخاب می‌کند.");
-        if (move.type !== "chooseTrump")
-          return err("INVALID_MOVE", "You must choose a trump suit.", "باید یک خال برای حکم انتخاب کنید.");
-        return applyChooseTrump(state, move.suit);
       }
 
       case "playing": {
@@ -560,7 +533,6 @@ export const shelem: GameDefinition<ShelemState, ShelemMove, ShelemView> = {
   getDefaultMove(state, player) {
     if (state.phase === "bidding") return { type: "pass" };
     if (state.phase === "zaminExchange") return shelemDiscardMove(state);
-    if (state.phase === "chooseTrump") return { type: "chooseTrump", suit: mostCommonSuit(state.hands[player] ?? []) };
     const legal = legalPlays(state.hands[player] ?? [], state.currentTrick);
     return { type: "playCard", card: lowestCard(legal) };
   },
@@ -568,7 +540,6 @@ export const shelem: GameDefinition<ShelemState, ShelemMove, ShelemView> = {
   getBotMove(state, player, rng) {
     if (state.phase === "bidding") return shelemBidMove(state, player);
     if (state.phase === "zaminExchange") return shelemDiscardMove(state);
-    if (state.phase === "chooseTrump") return shelemTrumpMove(state, player);
     return shelemPlayMove(state, player, rng);
   },
 };

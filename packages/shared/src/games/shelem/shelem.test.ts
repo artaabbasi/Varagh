@@ -72,14 +72,6 @@ function biddingToHakem(seed: number, bid = 50, options: Record<string, unknown>
   return s;
 }
 
-/** Drive bidding → bury 4 → name trump; returns a fresh "playing" state (P0 = Hakem). */
-function toPlaying(seed: number, bid = 50, trump: Suit = "spades", options: Record<string, unknown> = {}): ShelemState {
-  let s = biddingToHakem(seed, bid, options);
-  s = play(s, "P0", { type: "discard", cards: [...s.hands.P0, ...s.zamin].slice(0, 4) });
-  s = play(s, "P0", { type: "chooseTrump", suit: trump });
-  return s;
-}
-
 function fives(n: number): Card[] {
   return Array.from({ length: n }, () => card("5", "clubs"));
 }
@@ -263,8 +255,7 @@ describe("Zamin exchange", () => {
     expect(holding).toHaveLength(16);
     const discard = holding.slice(0, 4);
     s = play(s, "P0", { type: "discard", cards: discard });
-    // After burying, the Hakem names trump (حکم) before play begins.
-    expect(s.phase).toBe("chooseTrump");
+    expect(s.phase).toBe("playing");
     expect(s.hands.P0).toHaveLength(12);
     expect(s.zaminPile).toHaveLength(4);
     expect(s.zamin).toHaveLength(0);
@@ -312,19 +303,15 @@ describe("Zamin exchange", () => {
 // ── trick play ────────────────────────────────────────────────────────────────
 
 describe("trick play", () => {
-  it("the Hakem names trump (حکم) after the Zamin exchange, then leads", () => {
-    let s = biddingToHakem(70, 55);
-    s = play(s, "P0", { type: "discard", cards: [...s.hands.P0, ...s.zamin].slice(0, 4) });
-    expect(s.phase).toBe("chooseTrump");
-    // Only the Hakem may choose, and any of the 4 suits is offered.
-    expect(shelem.getValidMoves(s, "P0")).toHaveLength(4);
-    expect(shelem.getValidMoves(s, "P1")).toHaveLength(0);
-    const r = shelem.applyMove(s, "P0", { type: "chooseTrump", suit: "clubs" }, makeRng(0));
+  it("the Hakem's first lead retroactively sets trump", () => {
+    const s = playingState(
+      { P0: [card("7", "clubs"), card("A", "hearts")], P1: [card("2", "clubs")], P2: [card("3", "clubs")], P3: [card("4", "clubs")] },
+      { trumpSuit: null, currentTurn: "P0", trickLeaderIndex: 0 },
+    );
+    const r = shelem.applyMove(s, "P0", { type: "playCard", card: card("7", "clubs") }, makeRng(0));
     expect(r.ok).toBe(true);
     if (!r.ok) throw new Error();
-    expect(r.state.phase).toBe("playing");
     expect(r.state.trumpSuit).toBe("clubs");
-    expect(r.state.currentTurn).toBe("P0"); // Hakem leads the first trick
     expect(r.events.some(e => e.type === "trumpSet")).toBe(true);
   });
 
@@ -541,7 +528,6 @@ describe("getPlayerView — redaction (security)", () => {
   it("a view never exposes another seat's hand, the buried Zamin, or full state", () => {
     let s = biddingToHakem(40, 55);
     s = play(s, "P0", { type: "discard", cards: [...s.hands.P0, ...s.zamin].slice(0, 4) });
-    s = play(s, "P0", { type: "chooseTrump", suit: "spades" });
     // mid-play
     s = play(s, "P0", { type: "playCard", card: shelem.getValidMoves(s, "P0")[0].type === "playCard" ? (shelem.getValidMoves(s, "P0")[0] as { card: Card }).card : s.hands.P0[0] });
     for (const p of s.players) {

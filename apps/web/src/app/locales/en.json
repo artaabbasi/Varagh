@@ -58,7 +58,7 @@
       },
       "shelem": {
         "name": "Shelem",
-        "desc": "The Persian partnership bidding game. Win the auction, name the trump (Hokm) suit, then capture Aces, 10s, 5s and tricks to make your contract.",
+        "desc": "The Persian partnership bidding game. Win the auction, set trump with your first lead, and capture Aces, 10s, 5s and tricks to make your contract.",
         "players": "4 players"
       },
       "pasur": {
@@ -188,7 +188,7 @@
           "Each player is dealt 12 cards; the last 4 form the Zamin (زمین), face-down in the middle.",
           "Bidding rises in steps of 5 with no minimum, starting left of the dealer. Passing is permanent, and a Shelem (slam) call beats every number.",
           "The highest bidder becomes the Hakem (declarer): they take the 4 Zamin cards, then bury any 4 face-down — those buried cards count for the Hakem's team.",
-          "After burying the Zamin, the Hakem names the trump (Hokm) suit, then leads the first trick.",
+          "There is no separate trump pick: the Hakem leads any card to the first trick, and that card's suit becomes trump.",
           "Follow the led suit if you can; otherwise play anything. The highest trump wins a trick, else the highest card of the led suit.",
           "Card-points: each Ace = 10, each 10 = 10, each 5 = 5, and each trick won = 5 — 165 points in a round.",
           "The Hakem's team must reach its bid to score it; the opponents always score exactly what they captured. First team to the target score (default 1165) wins."
@@ -525,9 +525,6 @@
       "youLose": "Opponents win",
       "leave": "Leave",
       "rematch": "Rematch"
-    },
-    "chooseTrump": "Choose Hokm (trump)",
-    "chooseTrumpSub": "Pick the trump suit, then lead the first trick.",
-    "hakemChoosingTrump": "{{name}} is choosing Hokm…"
+    }
   }
 }

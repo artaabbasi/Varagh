@@ -1,6 +1,6 @@
 import type { Card, PlayerId, PlayerViewBase, Suit } from "../../engine/game-engine";
 
-export type ShelemPhase = "bidding" | "zaminExchange" | "chooseTrump" | "playing" | "gameOver";
+export type ShelemPhase = "bidding" | "zaminExchange" | "playing" | "gameOver";
 
 export interface TrickPlay {
   playerId: PlayerId;
@@ -57,8 +57,6 @@ export type ShelemMove =
   | { type: "pass" }
   /** Hakem buries exactly 4 cards (from hand ∪ Zamin) into their team's pile. */
   | { type: "discard"; cards: Card[] }
-  /** Hakem names the trump (حکم) suit after the Zamin exchange. */
-  | { type: "chooseTrump"; suit: Suit }
   /** Play a card to the current trick. */
   | { type: "playCard"; card: Card };
 
@@ -94,7 +92,6 @@ export interface ShelemState {
   hands: Record<PlayerId, Card[]>;
   /** The 4 face-down Zamin cards (held until the Hakem exchanges). */
   zamin: Card[];
-  /** The trump (حکم) suit — null until the Hakem names it in the chooseTrump phase. */
   trumpSuit: Suit | null;
   currentTrick: TrickPlay[];
   trickLeaderIndex: number;
