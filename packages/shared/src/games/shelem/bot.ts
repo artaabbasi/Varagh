@@ -76,6 +76,13 @@ export function shelemBidMove(state: ShelemState, player: PlayerId): ShelemMove 
   return { type: "bid", amount };
 }
 
+/** Name the strongest suit as trump — the long suit the bot built its bid on. */
+export function shelemTrumpMove(state: ShelemState, player: PlayerId): ShelemMove {
+  const hand = state.hands[player] ?? [];
+  const { best } = handStrength(hand, state.options.aceValue);
+  return { type: "chooseTrump", suit: best };
+}
+
 // ── Zamin discard ─────────────────────────────────────────────────────────────
 
 /**

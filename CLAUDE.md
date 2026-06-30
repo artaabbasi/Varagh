@@ -267,8 +267,8 @@ standard 52-card deck (no jokers, rank A high → 2). Only the **4-player**
 variant ships, living under `variants/4p.ts`. Two teams of two sit across —
 seats {0,2} vs {1,3} — mirroring Hokm 4p's seat/team model exactly. The engine
 is pure/deterministic and server-authoritative like every Varagh game. Phases:
-`bidding → zaminExchange → playing → gameOver` (a finished round emits a
-`roundOver` event and immediately deals the next round's bidding).
+`bidding → zaminExchange → chooseTrump → playing → gameOver` (a finished round
+emits a `roundOver` event and immediately deals the next round's bidding).
 
 **Deal.** 12 cards to each player in batches of 4; the remaining 4 form the
 **Zamin** (زمین), face-down in the middle.
@@ -285,9 +285,9 @@ void: the dealer rotates and a fresh round is dealt.**
 the team's captured points, and the buried pile also counts as one trick
 (see scoring). Back to 12 cards.
 
-**Trump.** There is **no separate trump-picker step.** After the exchange the
-Hakem **leads any card to trick 1, and that card's suit retroactively becomes
-trump** (`trumpSuit` is null until that lead). Every later trick uses normal
+**Trump (حکم).** After the Zamin exchange the Hakem **explicitly names the trump
+suit** (the `chooseTrump` phase — any of the four suits, Hokm-style), then leads
+trick 1. `trumpSuit` is null until that choice is made. Every trick uses normal
 follow-suit logic: follow the led suit if able, else any card; highest trump
 wins, else the highest card of the led suit.
 

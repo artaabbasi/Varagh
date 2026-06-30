@@ -187,10 +187,18 @@ export function sameCardSet(a: Card[], b: Card[]): boolean {
 export function moveEquals(a: ShelemMove, b: ShelemMove): boolean {
   if (a.type !== b.type) return false;
   if (a.type === "bid" && b.type === "bid") return a.amount === b.amount;
+  if (a.type === "chooseTrump" && b.type === "chooseTrump") return a.suit === b.suit;
   if (a.type === "playCard" && b.type === "playCard") return sameCard(a.card, b.card);
   if (a.type === "discard" && b.type === "discard") return sameCardSet(a.cards, b.cards);
   // pass / bidShelem carry no payload.
   return true;
+}
+
+/** The suit most represented in a hand (a sensible default trump choice). */
+export function mostCommonSuit(hand: Card[]): Suit {
+  const counts: Record<Suit, number> = { hearts: 0, diamonds: 0, clubs: 0, spades: 0 };
+  for (const c of hand) counts[c.suit]++;
+  return SUITS.reduce((best, s) => (counts[s] > counts[best] ? s : best), SUITS[0]);
 }
 
 // ── Scoring ──────────────────────────────────────────────────────────────────

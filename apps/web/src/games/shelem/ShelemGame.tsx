@@ -15,6 +15,7 @@ import { StickerBubble } from "../../components/stickers/StickerBubble";
 import { OpponentSeat } from "../hokm/OpponentSeat";
 import { WaitingRoom } from "../hokm/WaitingRoom";
 import { ShelemTrickArea, type Pos } from "./ShelemTrickArea";
+import { ShelemTrumpSelector } from "./ShelemTrumpSelector";
 import { TRICK_REVIEW_MS, TRICK_SWEEP_MS, TRICK_HOLD_MS, POINT_DELAY_MS } from "./timing";
 import { useShelemSocket } from "./useShelemSocket";
 import styles from "./ShelemGame.module.css";
@@ -297,7 +298,6 @@ export function ShelemGame() {
   const isPlaying = view.phase === "playing";
   const isExchanging = view.phase === "zaminExchange" && iAmHakem;
   const legalPlayCards = isPlaying && myTurn ? shelemLegalPlays(view.hand, view.currentTrick) : [];
-  const settingTrump = isPlaying && iAmHakem && view.trumpSuit === null && view.currentTrick.length === 0;
 
   const playCard = (c: Card) => sendMove({ type: "playCard", card: c });
   const toggleDiscard = (c: Card) =>
@@ -400,10 +400,8 @@ export function ShelemGame() {
                 sweepingWinner={sweepingWinner}
                 className={styles.trickArea}
               />
-              {(view.phase === "zaminExchange" || settingTrump) && displayTrick.length === 0 && (
-                <span className={styles.centerHint}>
-                  {view.phase === "zaminExchange" ? t("shelem.exchangeInProgress") : t("shelem.leadSetsTrump")}
-                </span>
+              {view.phase === "zaminExchange" && displayTrick.length === 0 && (
+                <span className={styles.centerHint}>{t("shelem.exchangeInProgress")}</span>
               )}
             </>
           )}
@@ -521,6 +519,17 @@ export function ShelemGame() {
       {trumpFlash && (
         <div className={styles.trumpFlash} data-suit={trumpFlash}>
           {SUIT_SYMBOL[trumpFlash]} {t("shelem.trumpIs", { suit: t(`shelem.suits.${trumpFlash}`) })}
+        </div>
+      )}
+
+      {/* Trump (حکم) selection — Hokm-style bottom sheet */}
+      {view.phase === "chooseTrump" && (
+        <div className={styles.phaseOverlay} role="dialog" aria-modal="true">
+          {iAmHakem ? (
+            <ShelemTrumpSelector hand={sortedHand} onChoose={(suit) => sendMove({ type: "chooseTrump", suit })} />
+          ) : (
+            <ShelemTrumpSelector hakemName={hakemId ? nameOf(room, hakemId) : ""} />
+          )}
         </div>
       )}
 

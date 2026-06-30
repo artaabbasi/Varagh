@@ -385,6 +385,18 @@
   background: color-mix(in srgb, var(--md-sys-color-scrim, #000) 50%, transparent);
   backdrop-filter: blur(3px);
 }
+
+/* Phase sheet (trump pick) slides up from the bottom, like Hokm. */
+.phaseOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 58;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: color-mix(in srgb, var(--md-sys-color-surface) 20%, transparent);
+  backdrop-filter: blur(2px);
+}
 .sheet {
   width: min(92vw, 380px);
   background: var(--md-sys-color-surface-container-high);
