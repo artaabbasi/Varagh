@@ -462,19 +462,33 @@ export function ShelemGame() {
               <div className={styles.stepper}>
                 <button
                   type="button"
+                  className={[styles.stepperBtn, styles.stepperBtnBig].join(" ")}
+                  onClick={() => setBidValue((v) => Math.max(biddingFloor, v - 2 * SHELEM_BID_STEP))}
+                  disabled={view.isShelemBid || bidValue <= biddingFloor}
+                  aria-label={`−${2 * SHELEM_BID_STEP}`}
+                >−{2 * SHELEM_BID_STEP}</button>
+                <button
+                  type="button"
                   className={styles.stepperBtn}
                   onClick={() => setBidValue((v) => Math.max(biddingFloor, v - SHELEM_BID_STEP))}
                   disabled={view.isShelemBid || bidValue <= biddingFloor}
-                  aria-label="−"
-                >−</button>
+                  aria-label={`−${SHELEM_BID_STEP}`}
+                >−{SHELEM_BID_STEP}</button>
                 <span className={styles.stepperValue} aria-live="polite">{bidValue}</span>
                 <button
                   type="button"
                   className={styles.stepperBtn}
                   onClick={() => setBidValue((v) => Math.min(ceiling, v + SHELEM_BID_STEP))}
                   disabled={view.isShelemBid || bidValue >= ceiling}
-                  aria-label="+"
-                >+</button>
+                  aria-label={`+${SHELEM_BID_STEP}`}
+                >+{SHELEM_BID_STEP}</button>
+                <button
+                  type="button"
+                  className={[styles.stepperBtn, styles.stepperBtnBig].join(" ")}
+                  onClick={() => setBidValue((v) => Math.min(ceiling, v + 2 * SHELEM_BID_STEP))}
+                  disabled={view.isShelemBid || bidValue >= ceiling}
+                  aria-label={`+${2 * SHELEM_BID_STEP}`}
+                >+{2 * SHELEM_BID_STEP}</button>
               </div>
               <button className={styles.bidBtn} disabled={view.isShelemBid || biddingFloor > ceiling} onClick={submitBid}>
                 {t("shelem.bid")}
