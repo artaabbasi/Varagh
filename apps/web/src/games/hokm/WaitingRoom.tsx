@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { RoomView, FriendEntry } from "@varagh/shared";
@@ -36,8 +36,11 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [onlineFriends, setOnlineFriends] = useState<FriendEntry[]>([]);
   const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
+  // Friends invited just now flash a confirmation, then the button becomes "Re-invite".
+  const [sentFlash, setSentFlash] = useState<Set<string>>(new Set());
+  const flashTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  useEffect(() => {
+  const refreshFriends = useCallback(() => {
     socket.emit("friend:list", {}, (res) => {
       const seated = new Set(room.seats.map((s) => s.playerId));
       setOnlineFriends(
@@ -46,9 +49,36 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
     });
   }, [room.seats]);
 
+  // Initial fetch, plus a periodic re-poll so the online-friends list stays
+  // current (mirrors the friends-panel online-status refresh).
+  useEffect(() => { refreshFriends(); }, [refreshFriends]);
+  useEffect(() => {
+    const POLL_MS = 5000;
+    const id = setInterval(() => {
+      if (document.hidden || !socket.connected) return;
+      refreshFriends();
+    }, POLL_MS);
+    return () => clearInterval(id);
+  }, [refreshFriends]);
+
+  // Clear any pending flash timers on unmount.
+  useEffect(() => {
+    const timers = flashTimers.current;
+    return () => Object.values(timers).forEach(clearTimeout);
+  }, []);
+
   const handleInviteFriend = (userId: string) => {
     socket.emit("room:inviteFriend", { userId }, () => {
       setInvitedIds((prev) => new Set([...prev, userId]));
+      setSentFlash((prev) => new Set([...prev, userId]));
+      if (flashTimers.current[userId]) clearTimeout(flashTimers.current[userId]);
+      flashTimers.current[userId] = setTimeout(() => {
+        setSentFlash((prev) => {
+          const next = new Set(prev);
+          next.delete(userId);
+          return next;
+        });
+      }, 1800);
     });
   };
 
@@ -159,19 +189,27 @@ export function WaitingRoom({ room }: WaitingRoomProps) {
           <div className={styles.friendsSection}>
             <span className={styles.friendsLabel}>{t("room.waiting.inviteFriends")}</span>
             <ul className={styles.friendsList}>
-              {onlineFriends.map((f) => (
-                <li key={f.userId} className={styles.friendItem}>
-                  <span className={styles.friendOnlineDot} aria-hidden="true" />
-                  <span className={styles.friendName}>{f.nickname}<span className={styles.friendDisc}>#{f.discriminator}</span></span>
-                  <button
-                    className={styles.inviteBtn}
-                    onClick={() => handleInviteFriend(f.userId)}
-                    disabled={invitedIds.has(f.userId)}
-                  >
-                    {invitedIds.has(f.userId) ? t("room.waiting.invited") : t("room.waiting.invite")}
-                  </button>
-                </li>
-              ))}
+              {onlineFriends.map((f) => {
+                const invited = invitedIds.has(f.userId);
+                const flashing = sentFlash.has(f.userId);
+                return (
+                  <li key={f.userId} className={styles.friendItem}>
+                    <span className={styles.friendOnlineDot} aria-hidden="true" />
+                    <span className={styles.friendName}>{f.nickname}<span className={styles.friendDisc}>#{f.discriminator}</span></span>
+                    <button
+                      className={[styles.inviteBtn, invited && !flashing ? styles.reinviteBtn : ""].join(" ")}
+                      onClick={() => handleInviteFriend(f.userId)}
+                      disabled={flashing}
+                    >
+                      {flashing
+                        ? t("room.waiting.invited")
+                        : invited
+                          ? t("room.waiting.reinvite")
+                          : t("room.waiting.invite")}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

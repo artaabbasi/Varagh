@@ -271,7 +271,8 @@
       "invited": "Invited!",
       "addBot": "Add Bot",
       "removeBot": "Remove bot",
-      "bot": "Bot"
+      "bot": "Bot",
+      "reinvite": "Re-invite"
     },
     "leave": {
       "confirm": "Leave this game?",
